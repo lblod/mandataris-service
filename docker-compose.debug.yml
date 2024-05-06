@@ -1,0 +1,24 @@
+services:
+  mandataris:
+    image: local-js-template
+    #build: ./
+    restart: 'no'
+    labels:
+      - 'logging=true'
+    environment:
+      - NODE_ENV=development
+      - NO_BABEL_NODE=true
+    ports:
+      - '8082:80'
+      - '9225:9229'
+    volumes:
+      - ../app-lokaal-mandatenbeheer/config/mandataris:/config
+      - ./:/app
+      # ignore app/dist because this is where we map the built files to, otherwise we get an infinite loop of creating files (on mac)
+      - /app/dist
+      - ./dist:/build/
+    networks:
+      - debug
+networks:
+  debug:
+    external: true
