@@ -19,6 +19,5 @@ export const deleteMandataris = async (id: string) => {
          ?p ?o .
   }
   `;
-  const result = await query(q);
-  return result;
+  await query(q);
 };

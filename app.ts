@@ -8,7 +8,7 @@ app.get('/', async (_req, res) => {
 
 app.delete('/mandatarissen/:id', async (req: Request, res: Response) => {
   await deleteMandataris(req.params.id);
-  res.sendStatus(200);
+  return res.status(204).send();
 });
 
 const errorHandler: ErrorRequestHandler = function (err, _req, res, _next) {
