@@ -1,6 +1,6 @@
 import { app } from 'mu';
 import { Request, Response, ErrorRequestHandler } from 'express';
-import { deleteMandataris } from './services/delete';
+import { deleteMandataris } from './data-access/delete';
 
 app.get('/', async (_req, res) => {
   res.send({ status: 'ok' });
