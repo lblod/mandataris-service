@@ -1,15 +1,12 @@
 import { app } from 'mu';
-import { Request, Response, ErrorRequestHandler } from 'express';
-import { deleteMandataris } from './data-access/delete';
+import { ErrorRequestHandler } from 'express';
+import { mandatarissenRouter } from './routes/mandatarissen';
 
 app.get('/', async (_req, res) => {
   res.send({ status: 'ok' });
 });
 
-app.delete('/mandatarissen/:id', async (req: Request, res: Response) => {
-  await deleteMandataris(req.params.id);
-  return res.status(204).send();
-});
+app.use('/mandatarissen', mandatarissenRouter);
 
 const errorHandler: ErrorRequestHandler = function (err, _req, res, _next) {
   // custom error handler to have a default 500 error code instead of 400 as in the template
