@@ -13,6 +13,7 @@ services:
       - '9225:9229'
     volumes:
       - ../app-lokaal-mandatenbeheer/config/mandataris:/config
+      - ../app-lokaal-mandatenbeheer/data/files/burgemeester-benoemingen:/uploads
       - ./:/app
       # ignore app/dist because this is where we map the built files to, otherwise we get an infinite loop of creating files (on mac)
       - /app/dist
