@@ -3,7 +3,11 @@ import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
 import { sparqlEscapeUri, sparqlEscapeString, sparqlEscapeDateTime } from 'mu';
 import { v4 as uuidv4 } from 'uuid';
 import { Request, Response } from 'express';
-import { HttpError } from './util/http-error';
+import { HttpError } from '../util/http-error';
+
+import Router from 'express-promise-router';
+
+const burgemeesterRouter = Router();
 
 const upload = multer({ dest: '/uploads/' });
 
@@ -509,9 +513,9 @@ const onBurgemeesterBenoeming = async (req: Request, res: Response) => {
 };
 
 export const handleBurgemeesterBenoeming = async (app) => {
-  app.post(
-    '/burgemeester-benoeming',
-    upload.single('file'),
-    onBurgemeesterBenoeming,
-  );
+  app.post('/burgemeester-benoeming', onBurgemeesterBenoeming);
 };
+
+burgemeesterRouter.post('/', upload.single('file'), onBurgemeesterBenoeming);
+
+export { burgemeesterRouter };
