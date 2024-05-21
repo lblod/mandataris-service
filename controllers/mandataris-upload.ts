@@ -63,9 +63,9 @@ const processData = (data: string, headers: Map<string, number>) => {
   console.log(data);
   const words = data.split(',');
   validatePersons(
-    words[headers.get('rrn')],
-    words[headers.get('firstName')],
-    words[headers.get('lastName')],
+    words[headers.get('rrn') as number],
+    words[headers.get('firstName') as number],
+    words[headers.get('lastName') as number],
   );
 };
 
