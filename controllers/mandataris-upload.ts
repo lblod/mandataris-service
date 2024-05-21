@@ -12,11 +12,13 @@ export const uploadCsv = (req, res) => {
     output: process.stdout,
   });
   let firstLine = true;
+  let headers;
   rl.on('line', (line) => {
     if (firstLine) {
       firstLine = false;
+      headers = parseHeader(line);
     } else {
-      processData(line);
+      processData(line, headers);
     }
   });
   // Delete file after contents are processed.
@@ -30,10 +32,41 @@ export const uploadCsv = (req, res) => {
   return res.status(200).send({ status: 'ok' });
 };
 
-const processData = (data: string) => {
+const parseHeader = (data: string): Map<string, number> => {
   console.log(data);
   const words = data.split(',');
-  validatePersons(words[0], words[1], words[2]);
+  const headers = new Map();
+  const referenceHeaders = [
+    'rrn',
+    'firstName',
+    'lastName',
+    'mandateName',
+    'startDateTime',
+    'endDateTime',
+    'fractieName',
+    'rangordeString',
+    'beleidsdomeinNames',
+  ];
+  words.forEach((elem, index) => {
+    console.log(elem);
+    if (referenceHeaders.includes(elem)) {
+      headers.set(elem, index);
+    } else {
+      console.log('hmmm');
+    }
+  });
+
+  return headers;
+};
+
+const processData = (data: string, headers: Map<string, number>) => {
+  console.log(data);
+  const words = data.split(',');
+  validatePersons(
+    words[headers.get('rrn')],
+    words[headers.get('firstName')],
+    words[headers.get('lastName')],
+  );
 };
 
 const validatePersons = (rrn: string, fName: string, lName: string) => {
