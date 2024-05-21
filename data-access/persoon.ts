@@ -34,3 +34,9 @@ export const findPerson = async (rrn: string) => {
     return null;
   }
 };
+
+export const createPerson = async (
+  rrn: string,
+  fName: string,
+  lName: string,
+) => {};

@@ -1,7 +1,7 @@
 import fs from 'fs';
 import readline from 'readline';
 import { HttpError } from '../util/http-error';
-import { findPerson } from '../data-access/persoon';
+import { createPerson, findPerson } from '../data-access/persoon';
 
 export const uploadCsv = async (req) => {
   const formData = req.file;
@@ -78,9 +78,13 @@ const processData = (data: string, headers: Map<string, number>) => {
 };
 
 const validatePerson = async (rrn: string, fName: string, lName: string) => {
-  console.log(rrn);
-  console.log(fName);
-  console.log(lName);
   const persoon = await findPerson(rrn);
-  console.log(persoon);
+  if (!persoon) {
+    createPerson(rrn, fName, lName);
+  } else if (persoon.naam != lName || persoon.voornaam != fName) {
+    console.log(
+      `First name and last name of provided data differs from data in database,
+      first name: ${fName} vs ${persoon.voornaam}, last name: ${lName} vs ${persoon.naam}`,
+    );
+  }
 };
