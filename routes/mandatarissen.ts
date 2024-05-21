@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import multer from 'multer';
 import fs from 'fs';
+import readline from 'readline';
 import Router from 'express-promise-router';
 import { deleteMandataris } from '../data-access/delete';
 import { HttpError } from '../util/http-error';
@@ -22,9 +23,12 @@ mandatarissenRouter.post(
     if (!formData) {
       throw new HttpError('No file provided', 400);
     }
-    fs.readFile(formData.path, (err, data) => {
-      if (err) throw new HttpError(err?.message, 400);
-      console.log(data.toString());
+    const rl = readline.createInterface({
+      input: fs.createReadStream(formData.path),
+      output: process.stdout,
+    });
+    rl.on('line', (line) => {
+      console.log(line);
     });
     return res.status(200).send({ status: 'ok' });
   },
