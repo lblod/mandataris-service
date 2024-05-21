@@ -2,60 +2,33 @@ import fs from 'fs';
 import readline from 'readline';
 import { HttpError } from '../util/http-error';
 
-export const uploadCsv = async (req, res) => {
-  let promiseResolve, promiseReject;
-  let promiseRejected = false;
-  const promise = new Promise(function (resolve, reject) {
-    promiseResolve = resolve;
-    promiseReject = reject;
-  });
-
+export const uploadCsv = async (req) => {
   const formData = req.file;
   if (!formData) {
     throw new HttpError('No file provided', 400);
   }
+
   const rl = readline.createInterface({
     input: fs.createReadStream(formData.path),
     output: process.stdout,
   });
   let firstLine = true;
   let headers;
-  rl.on('line', (line) => {
-    try {
-      if (firstLine) {
-        firstLine = false;
-        headers = parseHeader(line);
-      } else {
-        if (!promiseRejected) {
-          processData(line, headers);
-        }
-      }
-    } catch (err) {
-      console.log(err);
-      promiseReject();
-      promiseRejected = true;
-      rl.close();
+  for await (const line of rl) {
+    if (firstLine) {
+      firstLine = false;
+      headers = parseHeader(line);
+    } else {
+      processData(line, headers);
     }
-  });
+  }
+
   // Delete file after contents are processed.
-  rl.on('close', () => {
-    try {
-      fs.unlink(formData.path, (err) => {
-        if (err) {
-          throw new HttpError(
-            'File could not be deleted after processing',
-            500,
-          );
-        }
-      });
-      if (!promiseRejected) {
-        promiseResolve();
-      }
-    } catch (err) {
-      console.log(err);
+  fs.unlink(formData.path, (err) => {
+    if (err) {
+      throw new HttpError('File could not be deleted after processing', 500);
     }
   });
-  return promise;
 };
 
 const parseHeader = (data: string): Map<string, number> => {
