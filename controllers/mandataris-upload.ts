@@ -1,6 +1,7 @@
 import fs from 'fs';
 import readline from 'readline';
 import { HttpError } from '../util/http-error';
+import { findPerson } from '../data-access/persoon';
 
 export const uploadCsv = async (req) => {
   const formData = req.file;
@@ -69,15 +70,17 @@ const parseHeader = (data: string): Map<string, number> => {
 const processData = (data: string, headers: Map<string, number>) => {
   console.log(data);
   const words = data.split(',');
-  validatePersons(
+  validatePerson(
     words[headers.get('rrn') as number],
     words[headers.get('firstName') as number],
     words[headers.get('lastName') as number],
   );
 };
 
-const validatePersons = (rrn: string, fName: string, lName: string) => {
+const validatePerson = async (rrn: string, fName: string, lName: string) => {
   console.log(rrn);
   console.log(fName);
   console.log(lName);
+  const persoon = await findPerson(rrn);
+  console.log(persoon);
 };
