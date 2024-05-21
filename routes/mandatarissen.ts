@@ -17,7 +17,14 @@ mandatarissenRouter.post(
   '/upload-csv',
   upload.single('csv'),
   async (req: Request, res: Response) => {
-    uploadCsv(req, res);
+    try {
+      await uploadCsv(req, res);
+    } catch (err) {
+      return res
+        .status(err.status)
+        .send({ error: err.message, errors: err.errors });
+    }
+    console.log('second');
   },
 );
 

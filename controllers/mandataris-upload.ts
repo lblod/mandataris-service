@@ -2,7 +2,14 @@ import fs from 'fs';
 import readline from 'readline';
 import { HttpError } from '../util/http-error';
 
-export const uploadCsv = (req, res) => {
+export const uploadCsv = async (req, res) => {
+  let promiseResolve, promiseReject;
+  let promiseRejected = false;
+  const promise = new Promise(function (resolve, reject) {
+    promiseResolve = resolve;
+    promiseReject = reject;
+  });
+
   const formData = req.file;
   if (!formData) {
     throw new HttpError('No file provided', 400);
@@ -14,28 +21,48 @@ export const uploadCsv = (req, res) => {
   let firstLine = true;
   let headers;
   rl.on('line', (line) => {
-    if (firstLine) {
-      firstLine = false;
-      headers = parseHeader(line);
-    } else {
-      processData(line, headers);
+    try {
+      if (firstLine) {
+        firstLine = false;
+        headers = parseHeader(line);
+      } else {
+        if (!promiseRejected) {
+          processData(line, headers);
+        }
+      }
+    } catch (err) {
+      console.log(err);
+      promiseReject();
+      promiseRejected = true;
+      rl.close();
     }
   });
   // Delete file after contents are processed.
   rl.on('close', () => {
-    fs.unlink(formData.path, (err) => {
-      if (err) {
-        throw new HttpError('File could not be deleted after processing', 500);
+    try {
+      fs.unlink(formData.path, (err) => {
+        if (err) {
+          throw new HttpError(
+            'File could not be deleted after processing',
+            500,
+          );
+        }
+      });
+      if (!promiseRejected) {
+        promiseResolve();
       }
-    });
+    } catch (err) {
+      console.log(err);
+    }
   });
-  return res.status(200).send({ status: 'ok' });
+  return promise;
 };
 
 const parseHeader = (data: string): Map<string, number> => {
   console.log(data);
   const words = data.split(',');
   const headers = new Map();
+  const errors: string[] = [];
   const referenceHeaders = [
     'rrn',
     'firstName',
@@ -48,13 +75,20 @@ const parseHeader = (data: string): Map<string, number> => {
     'beleidsdomeinNames',
   ];
   words.forEach((elem, index) => {
-    console.log(elem);
     if (referenceHeaders.includes(elem)) {
       headers.set(elem, index);
     } else {
-      console.log('hmmm');
+      errors.push(`${elem} is not a valid header`);
     }
   });
+
+  if (errors.length != 0) {
+    throw new HttpError(
+      'Received csv files with the wrong headers:',
+      400,
+      errors,
+    );
+  }
 
   return headers;
 };
