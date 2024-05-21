@@ -11,8 +11,13 @@ export const uploadCsv = (req, res) => {
     input: fs.createReadStream(formData.path),
     output: process.stdout,
   });
+  let firstLine = true;
   rl.on('line', (line) => {
-    console.log(line);
+    if (firstLine) {
+      firstLine = false;
+    } else {
+      processData(line);
+    }
   });
   // Delete file after contents are processed.
   rl.on('close', () => {
@@ -23,4 +28,16 @@ export const uploadCsv = (req, res) => {
     });
   });
   return res.status(200).send({ status: 'ok' });
+};
+
+const processData = (data: string) => {
+  console.log(data);
+  const words = data.split(',');
+  validatePersons(words[0], words[1], words[2]);
+};
+
+const validatePersons = (rrn: string, fName: string, lName: string) => {
+  console.log(rrn);
+  console.log(fName);
+  console.log(lName);
 };
