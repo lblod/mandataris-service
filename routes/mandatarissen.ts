@@ -30,6 +30,17 @@ mandatarissenRouter.post(
     rl.on('line', (line) => {
       console.log(line);
     });
+    // Delete file after contents are processed.
+    rl.on('close', () => {
+      fs.unlink(formData.path, (err) => {
+        if (err) {
+          throw new HttpError(
+            'File could not be deleted after processing',
+            500,
+          );
+        }
+      });
+    });
     return res.status(200).send({ status: 'ok' });
   },
 );
