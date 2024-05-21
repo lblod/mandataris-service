@@ -1,10 +1,8 @@
 import { Request, Response } from 'express';
 import multer from 'multer';
-import fs from 'fs';
-import readline from 'readline';
 import Router from 'express-promise-router';
 import { deleteMandataris } from '../data-access/delete';
-import { HttpError } from '../util/http-error';
+import { uploadCsv } from '../controllers/mandataris-upload';
 
 const upload = multer({ dest: 'mandataris-uploads/' });
 
@@ -19,29 +17,7 @@ mandatarissenRouter.post(
   '/upload-csv',
   upload.single('csv'),
   async (req: Request, res: Response) => {
-    const formData = req.file;
-    if (!formData) {
-      throw new HttpError('No file provided', 400);
-    }
-    const rl = readline.createInterface({
-      input: fs.createReadStream(formData.path),
-      output: process.stdout,
-    });
-    rl.on('line', (line) => {
-      console.log(line);
-    });
-    // Delete file after contents are processed.
-    rl.on('close', () => {
-      fs.unlink(formData.path, (err) => {
-        if (err) {
-          throw new HttpError(
-            'File could not be deleted after processing',
-            500,
-          );
-        }
-      });
-    });
-    return res.status(200).send({ status: 'ok' });
+    uploadCsv(req, res);
   },
 );
 
