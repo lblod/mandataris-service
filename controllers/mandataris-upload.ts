@@ -1,7 +1,9 @@
 import fs from 'fs';
-import readline from 'readline';
 import { HttpError } from '../util/http-error';
 import { createPerson, findPerson } from '../data-access/persoon';
+import { CSVRow, CsvUploadState } from '../types';
+import { parse } from 'csv-parse';
+import { findGraphAndMandate } from '../data-access/mandataris';
 
 export const uploadCsv = async (req) => {
   const formData = req.file;
@@ -9,32 +11,44 @@ export const uploadCsv = async (req) => {
     throw new HttpError('No file provided', 400);
   }
 
-  const rl = readline.createInterface({
-    input: fs.createReadStream(formData.path),
-    output: process.stdout,
-  });
-  let firstLine = true;
-  let headers;
-  for await (const line of rl) {
-    if (firstLine) {
-      firstLine = false;
-      headers = parseHeader(line);
-    } else {
-      processData(line, headers);
+  const uploadState: CsvUploadState = {
+    errors: [],
+    warnings: [],
+    personsCreated: 0,
+    mandatarissenCreated: 0,
+  };
+
+  const parser = fs.createReadStream(formData.path).pipe(
+    parse({
+      columns: true,
+    }),
+  );
+
+  let lineNumber = 0;
+  for await (const line of parser) {
+    if (lineNumber === 0) {
+      validateHeaders(line);
     }
+    await processData(lineNumber, line, uploadState).catch((err) => {
+      uploadState.errors.push(
+        `[line ${lineNumber}]: failed to process person: ${err.message}`,
+      );
+    });
+    lineNumber++;
   }
 
   // Delete file after contents are processed.
-  fs.unlink(formData.path, (err) => {
+  await fs.unlink(formData.path, (err) => {
     if (err) {
       throw new HttpError('File could not be deleted after processing', 500);
     }
   });
+
+  return uploadState;
 };
 
-const parseHeader = (data: string): Map<string, number> => {
+const validateHeaders = (data: CSVRow): Map<string, number> => {
   console.log(data);
-  const words = data.split(',');
   const headers = new Map();
   const errors: string[] = [];
   const referenceHeaders = [
@@ -48,11 +62,9 @@ const parseHeader = (data: string): Map<string, number> => {
     'rangordeString',
     'beleidsdomeinNames',
   ];
-  words.forEach((elem, index) => {
-    if (referenceHeaders.includes(elem)) {
-      headers.set(elem, index);
-    } else {
-      errors.push(`${elem} is not a valid header`);
+  referenceHeaders.forEach((elem) => {
+    if (data[elem] === undefined) {
+      errors.push(`${elem} column is not present`);
     }
   });
 
@@ -67,23 +79,62 @@ const parseHeader = (data: string): Map<string, number> => {
   return headers;
 };
 
-const processData = (data: string, headers: Map<string, number>) => {
+const processData = async (
+  lineNumber: number,
+  data: CSVRow,
+  uploadState: CsvUploadState,
+) => {
   console.log(data);
-  const words = data.split(',');
-  validatePerson(
-    words[headers.get('rrn') as number],
-    words[headers.get('firstName') as number],
-    words[headers.get('lastName') as number],
+  const { mandate, graph } = await findGraphAndMandate(
+    data['startDateTime'],
+    data['mandateName'],
+  );
+  if (!graph || !mandate) {
+    // this means that our user possibly does not have access to the mandate
+    uploadState.errors.push(
+      `[line ${lineNumber}] No mandate found name ${data['mandateName']}`,
+    );
+    return;
+  }
+  return validateOrCreatePerson(
+    lineNumber,
+    data['rrn'],
+    data['firstName'],
+    data['lastName'],
+    uploadState,
   );
 };
 
-const validatePerson = async (rrn: string, fName: string, lName: string) => {
-  const persoon = await findPerson(rrn);
+const parseRrn = (rrn: string) => {
+  if (!rrn || rrn.trim().length == 0) {
+    return null;
+  }
+  const cleanedRrn = rrn.replace(/\D/g, '');
+  if (cleanedRrn.length != 11) {
+    return null;
+  }
+  return cleanedRrn;
+};
+
+const validateOrCreatePerson = async (
+  lineNumber: number,
+  rrn: string,
+  fName: string,
+  lName: string,
+  uploadState: CsvUploadState,
+) => {
+  const parsedRrn = parseRrn(rrn);
+  if (!parsedRrn) {
+    uploadState.errors.push(`[line ${lineNumber}] No RRN provided`);
+    return;
+  }
+  const persoon = await findPerson(parsedRrn);
   if (!persoon) {
-    createPerson(rrn, fName, lName);
+    await createPerson(parsedRrn, fName, lName);
+    uploadState.personsCreated++;
   } else if (persoon.naam != lName || persoon.voornaam != fName) {
-    console.log(
-      `First name and last name of provided data differs from data in database,
+    uploadState.warnings.push(
+      `[line ${lineNumber}] First name and last name of provided data differs from data in database,
       first name: ${fName} vs ${persoon.voornaam}, last name: ${lName} vs ${persoon.naam}`,
     );
   }

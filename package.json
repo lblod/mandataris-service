@@ -24,6 +24,7 @@
     "body-parser": "^1.19.0",
     "cron": "^1.8.2",
     "crypto-js": "^4.0.0",
+    "csv-parse": "^5.5.6",
     "express-promise-router": "^4.1.1",
     "lodash.groupby": "^4.6.0",
     "lodash.uniq": "^4.5.0",

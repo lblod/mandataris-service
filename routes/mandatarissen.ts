@@ -3,6 +3,7 @@ import multer from 'multer';
 import Router from 'express-promise-router';
 import { deleteMandataris } from '../data-access/delete';
 import { uploadCsv } from '../controllers/mandataris-upload';
+import { CsvUploadState } from '../types';
 
 const upload = multer({ dest: 'mandataris-uploads/' });
 
@@ -15,10 +16,11 @@ mandatarissenRouter.delete('/:id', async (req: Request, res: Response) => {
 
 mandatarissenRouter.post(
   '/upload-csv',
-  upload.single('csv'),
+  upload.single('file'),
   async (req: Request, res: Response) => {
-    await uploadCsv(req);
-    return res.status(200).send({ status: 'ok' });
+    const state: CsvUploadState & { status?: string } = await uploadCsv(req);
+    state.status = state.errors.length > 0 ? 'error' : 'ok';
+    return res.status(200).send(state);
   },
 );
 
