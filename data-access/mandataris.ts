@@ -5,15 +5,13 @@ import {
   sparqlEscapeDateTime,
   sparqlEscapeUri,
 } from 'mu';
+import { CSVRow, MandateHit } from '../types';
 
-export const findGraphAndMandate = async (
-  dateFrom: string,
-  mandateName: string,
-) => {
-  const mandate = await findMandateByName(mandateName, dateFrom);
+export const findGraphAndMandates = async (row: CSVRow) => {
+  const mandates = await findMandatesByName(row);
 
-  if (!mandate) {
-    return { mandate: null, graph: null };
+  if (mandates.length === 0) {
+    return { mandates: [], graph: null };
   }
 
   const q = `
@@ -23,41 +21,67 @@ export const findGraphAndMandate = async (
     GRAPH ?g {
       ?mandate a mandaat:Mandaat .
       VALUES ?mandate {
-        ${sparqlEscapeUri(mandate)}
+        ${sparqlEscapeUri(mandates[0].mandate)}
       }
     }
   } LIMIT 1`;
   const result = await querySudo(q);
   if (!result.results.bindings.length) {
-    return { mandate: null, graph: null };
+    return { mandates: [], graph: null };
   }
 
   return {
-    graph: result.results.bindings[0].g.value,
-    mandate: result.results.bindings[0].mandate.value,
+    graph: result.results.bindings[0].g.value as string,
+    mandates: mandates,
   };
 };
 
-const findMandateByName = async (name: string, dateFrom: string) => {
+const findMandatesByName = async (row: CSVRow) => {
+  const { mandateName, startDateTime, endDateTime, fractieName } = row.data;
+  const from = sparqlEscapeDateTime(startDateTime);
+  const to = endDateTime
+    ? sparqlEscapeDateTime(endDateTime)
+    : new Date('3000-01-01').toISOString();
+  const safeFractionName = fractieName
+    ? sparqlEscapeString(fractieName)
+    : 'mu:doesNotExist';
+
   const q = `
   PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
   PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
   PREFIX org: <http://www.w3.org/ns/org#>
 
-  SELECT ?mandate WHERE {
+  SELECT ?mandate ?fraction ?start ?end WHERE {
     ?mandate a mandaat:Mandaat ;
     ^org:hasPost ?orgaanInTijd ;
-        org:role / skos:prefLabel ${sparqlEscapeString(name)} .
+        org:role / skos:prefLabel ${sparqlEscapeString(mandateName)} .
     ?orgaanInTijd mandaat:bindingStart ?start .
     OPTIONAL {
       ?orgaanInTijd mandaat:bindingEinde ?end .
     }
-    FILTER (?start <= ${sparqlEscapeDateTime(dateFrom)})
-    FILTER (!BOUND(?end) || ?end >= ${sparqlEscapeDateTime(dateFrom)})
-  } ORDER BY ?start LIMIT 1`;
+    OPTIONAL {
+      ?orgaanInTijd ^org:memberOf ?fraction .
+      ?fraction skos:prefLabel ${safeFractionName} .
+    }
+    BIND(IF(BOUND(?end), ?end,  "3000-01-01T12:00:00.000Z"^^xsd:dateTime) as ?safeEnd)
+    FILTER ((?start <= ${from} && ${from} <= ?safeEnd) ||
+            (?start <= ${to} && ${to} <= ?safeEnd) ||
+            (${from} <= ?start && ?safeEnd <= ${to}))
+  }`;
   const result = await query(q);
   if (!result.results.bindings.length) {
-    return null;
+    return [];
   }
-  return result.results.bindings[0].mandate.value;
+  const items: MandateHit[] = result.results.bindings.map((binding) => {
+    return {
+      mandate: binding.mandate.value,
+      fraction: binding.fraction?.value,
+      start: binding.start.value,
+      end: binding.end?.value,
+    };
+  });
+  items.sort((a, b) => {
+    return new Date(b.start).getTime() - new Date(a.start).getTime();
+  });
+  return items;
 };

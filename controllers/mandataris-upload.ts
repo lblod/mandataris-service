@@ -1,9 +1,9 @@
 import fs from 'fs';
 import { HttpError } from '../util/http-error';
 import { createPerson, findPerson } from '../data-access/persoon';
-import { CSVRow, CsvUploadState } from '../types';
+import { CSVRow, CsvUploadState, MandateHit } from '../types';
 import { parse } from 'csv-parse';
-import { findGraphAndMandate } from '../data-access/mandataris';
+import { findGraphAndMandates } from '../data-access/mandataris';
 
 export const uploadCsv = async (req) => {
   const formData = req.file;
@@ -29,7 +29,8 @@ export const uploadCsv = async (req) => {
     if (lineNumber === 0) {
       validateHeaders(line);
     }
-    await processData(lineNumber, line, uploadState).catch((err) => {
+    const row: CSVRow = { data: line, lineNumber };
+    await processData(row, uploadState).catch((err) => {
       uploadState.errors.push(
         `[line ${lineNumber}]: failed to process person: ${err.message}`,
       );
@@ -47,8 +48,7 @@ export const uploadCsv = async (req) => {
   return uploadState;
 };
 
-const validateHeaders = (data: CSVRow): Map<string, number> => {
-  console.log(data);
+const validateHeaders = (row: CSVRow): Map<string, number> => {
   const headers = new Map();
   const errors: string[] = [];
   const referenceHeaders = [
@@ -63,7 +63,7 @@ const validateHeaders = (data: CSVRow): Map<string, number> => {
     'beleidsdomeinNames',
   ];
   referenceHeaders.forEach((elem) => {
-    if (data[elem] === undefined) {
+    if (row.data[elem] === undefined) {
       errors.push(`${elem} column is not present`);
     }
   });
@@ -79,30 +79,38 @@ const validateHeaders = (data: CSVRow): Map<string, number> => {
   return headers;
 };
 
-const processData = async (
-  lineNumber: number,
-  data: CSVRow,
-  uploadState: CsvUploadState,
-) => {
-  console.log(data);
-  const { mandate, graph } = await findGraphAndMandate(
-    data['startDateTime'],
-    data['mandateName'],
-  );
-  if (!graph || !mandate) {
+const processData = async (row: CSVRow, uploadState: CsvUploadState) => {
+  const data = row.data;
+  const { mandates, graph } = await findGraphAndMandates(row);
+  if (!graph || !mandates) {
     // this means that our user possibly does not have access to the mandate
     uploadState.errors.push(
-      `[line ${lineNumber}] No mandate found name ${data['mandateName']}`,
+      `[line ${row.lineNumber}] No mandate found name ${data['mandateName']}`,
     );
     return;
   }
-  return validateOrCreatePerson(
-    lineNumber,
-    data['rrn'],
-    data['firstName'],
-    data['lastName'],
-    uploadState,
-  );
+  if (invalidFraction(row, mandates, uploadState)) {
+    return;
+  }
+  return validateOrCreatePerson(row, uploadState);
+};
+
+const invalidFraction = (
+  row: CSVRow,
+  mandates: MandateHit[],
+  uploadState: CsvUploadState,
+) => {
+  const targetFraction = row.data.fractieName;
+  if (!targetFraction) {
+    return false;
+  }
+  const hasMissingFraction = !mandates.some((mandate) => !mandate.fraction);
+  if (hasMissingFraction) {
+    uploadState.errors.push(
+      `[line ${row.lineNumber}] No fraction found for mandate ${row.data.mandateName}`,
+    );
+  }
+  return hasMissingFraction;
 };
 
 const parseRrn = (rrn: string) => {
@@ -117,15 +125,13 @@ const parseRrn = (rrn: string) => {
 };
 
 const validateOrCreatePerson = async (
-  lineNumber: number,
-  rrn: string,
-  fName: string,
-  lName: string,
+  row: CSVRow,
   uploadState: CsvUploadState,
 ) => {
+  const { rrn, firstName: fName, lastName: lName } = row.data;
   const parsedRrn = parseRrn(rrn);
   if (!parsedRrn) {
-    uploadState.errors.push(`[line ${lineNumber}] No RRN provided`);
+    uploadState.errors.push(`[line ${row.lineNumber}] No RRN provided`);
     return;
   }
   const persoon = await findPerson(parsedRrn);
@@ -134,7 +140,7 @@ const validateOrCreatePerson = async (
     uploadState.personsCreated++;
   } else if (persoon.naam != lName || persoon.voornaam != fName) {
     uploadState.warnings.push(
-      `[line ${lineNumber}] First name and last name of provided data differs from data in database,
+      `[line ${row.lineNumber}] First name and last name of provided data differs from data in database,
       first name: ${fName} vs ${persoon.voornaam}, last name: ${lName} vs ${persoon.naam}`,
     );
   }
