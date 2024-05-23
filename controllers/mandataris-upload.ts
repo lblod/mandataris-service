@@ -26,10 +26,10 @@ export const uploadCsv = async (req) => {
 
   let lineNumber = 0;
   for await (const line of parser) {
-    if (lineNumber === 0) {
-      validateHeaders(line);
-    }
     const row: CSVRow = { data: line, lineNumber };
+    if (lineNumber === 0) {
+      validateHeaders(row);
+    }
     await processData(row, uploadState).catch((err) => {
       uploadState.errors.push(
         `[line ${lineNumber}]: failed to process person: ${err.message}`,
@@ -81,6 +81,9 @@ const validateHeaders = (row: CSVRow): Map<string, number> => {
 
 const processData = async (row: CSVRow, uploadState: CsvUploadState) => {
   const data = row.data;
+  if (hasMissingRequiredColumns(row, uploadState)) {
+    return;
+  }
   const { mandates, graph } = await findGraphAndMandates(row);
   if (!graph || !mandates) {
     // this means that our user possibly does not have access to the mandate
@@ -93,6 +96,29 @@ const processData = async (row: CSVRow, uploadState: CsvUploadState) => {
     return;
   }
   return validateOrCreatePerson(row, uploadState);
+};
+
+const hasMissingRequiredColumns = (
+  row: CSVRow,
+  uploadState: CsvUploadState,
+) => {
+  const required = [
+    'rrn',
+    'firstName',
+    'lastName',
+    'mandateName',
+    'startDateTime',
+  ];
+  let hasMissingData = false;
+  required.forEach((elem) => {
+    if (!row.data[elem] || row.data[elem].trim().length == 0) {
+      uploadState.errors.push(
+        `[line ${row.lineNumber}] Missing required column: ${elem}`,
+      );
+      hasMissingData = true;
+    }
+  });
+  return hasMissingData;
 };
 
 const invalidFraction = (
