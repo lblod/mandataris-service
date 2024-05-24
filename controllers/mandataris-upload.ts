@@ -3,7 +3,12 @@ import { HttpError } from '../util/http-error';
 import { createPerson, findPerson } from '../data-access/persoon';
 import { CSVRow, CsvUploadState, MandateHit } from '../types';
 import { parse } from 'csv-parse';
-import { findGraphAndMandates } from '../data-access/mandataris';
+import {
+  createMandatarisInstance,
+  findGraphAndMandates,
+  validateNoOverlappingMandate,
+} from '../data-access/mandataris';
+import { ensureBeleidsdomeinen } from '../data-access/beleidsdomein';
 
 export const uploadCsv = async (req) => {
   const formData = req.file;
@@ -16,6 +21,8 @@ export const uploadCsv = async (req) => {
     warnings: [],
     personsCreated: 0,
     mandatarissenCreated: 0,
+    beleidsdomeinenCreated: 0,
+    beleidsDomeinMapping: {},
   };
 
   const parser = fs.createReadStream(formData.path).pipe(
@@ -24,7 +31,7 @@ export const uploadCsv = async (req) => {
     }),
   );
 
-  let lineNumber = 0;
+  let lineNumber = 1; // headers are skipped so immediately set line to 1
   for await (const line of parser) {
     const row: CSVRow = { data: line, lineNumber };
     if (lineNumber === 0) {
@@ -84,6 +91,7 @@ const processData = async (row: CSVRow, uploadState: CsvUploadState) => {
   if (hasMissingRequiredColumns(row, uploadState)) {
     return;
   }
+  await increaseBeleidsdomeinMapping(row, uploadState);
   const { mandates, graph } = await findGraphAndMandates(row);
   if (!graph || !mandates) {
     // this means that our user possibly does not have access to the mandate
@@ -95,7 +103,17 @@ const processData = async (row: CSVRow, uploadState: CsvUploadState) => {
   if (invalidFraction(row, mandates, uploadState)) {
     return;
   }
-  return validateOrCreatePerson(row, uploadState);
+  const persoon = await validateOrCreatePerson(row, uploadState);
+  if (!persoon) {
+    return;
+  }
+  await createMandatarisInstances(
+    row,
+    persoon.uri,
+    mandates,
+    graph,
+    uploadState,
+  );
 };
 
 const hasMissingRequiredColumns = (
@@ -121,6 +139,60 @@ const hasMissingRequiredColumns = (
   return hasMissingData;
 };
 
+const increaseBeleidsdomeinMapping = async (
+  row: CSVRow,
+  state: CsvUploadState,
+) => {
+  const { beleidsdomeinNames } = row.data;
+  if (!beleidsdomeinNames) {
+    return;
+  }
+  const names = beleidsdomeinNames.split('|').map((name) => name.trim());
+  const toFetch = names.filter((name) => !state.beleidsDomeinMapping[name]);
+  if (toFetch.length === 0) {
+    return;
+  }
+  const { existing, created } = await ensureBeleidsdomeinen(toFetch);
+  state.beleidsdomeinenCreated += Object.keys(created).length;
+  state.beleidsDomeinMapping = {
+    ...state.beleidsDomeinMapping,
+    ...existing,
+    ...created,
+  };
+};
+
+const createMandatarisInstances = async (
+  row: CSVRow,
+  persoonUri: string,
+  mandates: MandateHit[],
+  graph: string,
+  uploadState: CsvUploadState,
+) => {
+  const { startDateTime, endDateTime, rangordeString, beleidsdomeinNames } =
+    row.data;
+  const hasOverlappingMandate = await validateNoOverlappingMandate(
+    row,
+    persoonUri,
+    mandates,
+    uploadState,
+  );
+  if (hasOverlappingMandate) {
+    return;
+  }
+  const promises = mandates.map((mandate) => {
+    return createMandatarisInstance(
+      persoonUri,
+      mandate,
+      startDateTime,
+      endDateTime,
+      rangordeString,
+      beleidsdomeinNames,
+      uploadState,
+    );
+  });
+  await Promise.all(promises);
+};
+
 const invalidFraction = (
   row: CSVRow,
   mandates: MandateHit[],
@@ -130,10 +202,10 @@ const invalidFraction = (
   if (!targetFraction) {
     return false;
   }
-  const hasMissingFraction = !mandates.some((mandate) => !mandate.fraction);
+  const hasMissingFraction = mandates.some((mandate) => !mandate.fractionUri);
   if (hasMissingFraction) {
     uploadState.errors.push(
-      `[line ${row.lineNumber}] No fraction found for mandate ${row.data.mandateName}`,
+      `[line ${row.lineNumber}] No fraction found for fraction ${row.data.fractieName}`,
     );
   }
   return hasMissingFraction;
@@ -157,12 +229,14 @@ const validateOrCreatePerson = async (
   const { rrn, firstName: fName, lastName: lName } = row.data;
   const parsedRrn = parseRrn(rrn);
   if (!parsedRrn) {
-    uploadState.errors.push(`[line ${row.lineNumber}] No RRN provided`);
+    uploadState.errors.push(
+      `[line ${row.lineNumber}] No or invalid RRN provided`,
+    );
     return;
   }
-  const persoon = await findPerson(parsedRrn);
+  let persoon = await findPerson(parsedRrn);
   if (!persoon) {
-    await createPerson(parsedRrn, fName, lName);
+    persoon = await createPerson(parsedRrn, fName, lName);
     uploadState.personsCreated++;
   } else if (persoon.naam != lName || persoon.voornaam != fName) {
     uploadState.warnings.push(
@@ -170,4 +244,5 @@ const validateOrCreatePerson = async (
       first name: ${fName} vs ${persoon.voornaam}, last name: ${lName} vs ${persoon.naam}`,
     );
   }
+  return persoon;
 };
