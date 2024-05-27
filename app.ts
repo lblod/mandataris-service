@@ -3,6 +3,7 @@ import { mandatarissenRouter } from './routes/mandatarissen';
 import express, { ErrorRequestHandler } from 'express';
 import { burgemeesterRouter } from './routes/burgemeester-benoeming';
 import { installatievergaderingRouter } from './routes/intallatievergadering';
+import { mandatenRouter } from './routes/mandaten';
 
 app.use(express.urlencoded({ extended: true }));
 
@@ -11,6 +12,7 @@ app.get('/', async (_req, res) => {
 });
 
 app.use('/mandatarissen', mandatarissenRouter);
+app.use('/mandaten', mandatenRouter);
 app.use('/burgemeester-benoeming', burgemeesterRouter);
 app.use('/installatievergadering-api', installatievergaderingRouter);
 
