@@ -3,6 +3,8 @@ export type CsvUploadState = {
   warnings: string[];
   personsCreated: number;
   mandatarissenCreated: number;
+  beleidsdomeinenCreated: number;
+  beleidsDomeinMapping: { [key: string]: string };
 };
 
 export type CSVRow = {
@@ -21,8 +23,8 @@ export type CSVRow = {
 };
 
 export type MandateHit = {
-  mandate: string;
+  mandateUri: string;
   start: string;
   end: string | null;
-  fraction: string | null;
+  fractionUri: string | null;
 };

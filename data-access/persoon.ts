@@ -66,4 +66,10 @@ export const createPerson = async (
   }`;
 
   await update(q);
+
+  return {
+    uri: uri,
+    voornaam: fName,
+    naam: lName,
+  };
 };
