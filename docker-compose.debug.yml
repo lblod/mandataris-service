@@ -20,6 +20,24 @@ services:
       - ./dist:/build/
     networks:
       - debug
+  besluiten-consumer:
+    image: lblod/delta-consumer:0.0.24
+    restart: 'no'
+    networks:
+      - besluiten
+    volumes:
+      - ./config/custom-dispatching:/config/triples-dispatching/custom-dispatching
+    environment:
+      DCR_CRON_PATTERN_DELTA_SYNC: '0/15 * * * * *' # todo set to 1 hour
+      DCR_SERVICE_NAME: 'besluiten-consumer'
+      DCR_SYNC_BASE_URL: 'http://database' # consume from database that is a separate service
+      DCR_INITIAL_SYNC_JOB_OPERATION: 'http://redpencil.data.gift/id/jobs/concept/JobOperation/deltas/consumer/initialSync/besluiten-1' # Mandataroy env even if we are not doing initial sync
+      DCR_DELTA_SYNC_JOB_OPERATION: 'http://redpencil.data.gift/id/jobs/concept/JobOperation/deltas/consumer/xyzDeltaFileSyncing'
+      DCR_JOB_CREATOR_URI: 'http://data.lblod.info/services/id/besluiten-consumer'
+      DCR_DISABLE_INITIAL_SYNC: 'true' # We are not using inital sync
+
 networks:
   debug:
+    external: true
+  besluiten:
     external: true
