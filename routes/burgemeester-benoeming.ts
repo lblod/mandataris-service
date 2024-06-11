@@ -128,6 +128,7 @@ const findBurgemeesterMandaat = async (
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
     PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
     PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
     SELECT DISTINCT ?orgGraph ?mandaatUri WHERE {
       ?bestuurseenheid a besluit:Bestuurseenheid ;
