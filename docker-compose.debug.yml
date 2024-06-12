@@ -38,7 +38,7 @@ services:
       DCR_KEEP_DELTA_FILES: 'true'
       DCR_DELTA_FILE_FOLDER: '/delta/mandatees-decisions/files/'
       SLEEP_BETWEEN_BATCHES: '100'
-      BATCH_SIZE: '500'
+      BATCH_SIZE: 500
     networks:
       - debug
       - deltas-sync
