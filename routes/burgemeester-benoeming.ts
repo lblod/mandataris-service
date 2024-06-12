@@ -390,7 +390,7 @@ const benoemBurgemeester = async (
     );
   } else {
     // we need to create a new mandataris from scratch
-    newMandatarisUri = createBurgemeesterFromScratch(
+    newMandatarisUri = await createBurgemeesterFromScratch(
       orgGraph,
       burgemeesterUri,
       burgemeesterMandaat,
