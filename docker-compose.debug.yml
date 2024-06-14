@@ -36,7 +36,7 @@ services:
       DCR_SYNC_FILES_PATH: '/sync/mandatees-decisions/files'
       DCR_KEEP_DELTA_FILES: true
       DCR_DELTA_FILE_FOLDER: '/deltas/mandatees-decisions/files'
-      DCR_CRON_PATTERN_DELTA_SYNC: '0/15 * * * * *' # Every 15 seconds minute
+      DCR_CRON_PATTERN_DELTA_SYNC: '0/15 * * * * *' # Every 15 seconds minute This should be every hour on a running environment
       DCR_DISABLE_INITIAL_SYNC: false
       SLEEP_BETWEEN_BATCHES: 1
       BATCH_SIZE: 500
