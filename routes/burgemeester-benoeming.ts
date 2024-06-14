@@ -55,7 +55,7 @@ const checkAuthorization = async (req: Request) => {
   if (!token) {
     throw new HttpError('Unauthorized', 401);
   }
-  const decodedToken = Buffer.from(token, 'base64').toString('utf-8');
+  const decodedToken = decodeURIComponent(atob(token));
   const [http, username, password] = decodedToken.split(':');
   const reconstructedUsername = [http, username].join(':');
 
