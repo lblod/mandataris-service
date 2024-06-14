@@ -1,18 +1,3 @@
-const { parallelisedBatchedUpdate } = require('./utils');
-const {
-  BYPASS_MU_AUTH_FOR_EXPENSIVE_QUERIES,
-  DIRECT_DATABASE_ENDPOINT,
-  MU_CALL_SCOPE_ID_INITIAL_SYNC,
-  BATCH_SIZE,
-  SLEEP_BETWEEN_BATCHES,
-  INGEST_GRAPH,
-  PARALLEL_CALLS,
-} = require('./config');
-
-const endpoint = BYPASS_MU_AUTH_FOR_EXPENSIVE_QUERIES
-  ? DIRECT_DATABASE_ENDPOINT
-  : process.env.MU_SPARQL_ENDPOINT;
-
 /**
  * Dispatch the fetched information to a target graph.
  * @param { mu, muAuthSudo, fech } lib - The provided libraries from the host service.
@@ -27,31 +12,15 @@ const endpoint = BYPASS_MU_AUTH_FOR_EXPENSIVE_QUERIES
  * @return {void} Nothing
  */
 async function dispatch(lib, data) {
-  const { mu } = lib;
+  const triples = data.termObjects;
 
-  const triples = data.termObjects.map(
-    (o) => `${o.subject} ${o.predicate} ${o.object}.`,
-  );
-
-  if (BYPASS_MU_AUTH_FOR_EXPENSIVE_QUERIES) {
-    console.warn(`Service configured to skip MU_AUTH!`);
-  }
-  console.log(`Using ${endpoint} to insert triples`);
-
-  await parallelisedBatchedUpdate(
-    lib,
-    triples,
-    INGEST_GRAPH,
-    SLEEP_BETWEEN_BATCHES,
-    BATCH_SIZE,
-    { 'mu-call-scope-id': MU_CALL_SCOPE_ID_INITIAL_SYNC },
-    endpoint,
-    'INSERT',
-    //If we don't bypass mu-auth already from the start, we provide a direct database endpoint
-    // as fallback
-    !BYPASS_MU_AUTH_FOR_EXPENSIVE_QUERIES ? DIRECT_DATABASE_ENDPOINT : '',
-    PARALLEL_CALLS,
-  );
+  console.log(`|> Found ${triples.length} to be processed`);
+  console.log('Showing only the first 10.');
+  const info = triples
+    .slice(0, 10)
+    .map((t) => `triple: ${t.subject} ${t.predicate} ${t.object}`);
+  info.forEach((s) => console.log(s));
+  console.log('All triples were logged');
 }
 
 /**

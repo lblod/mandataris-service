@@ -1,16 +1,3 @@
-const {
-  BYPASS_MU_AUTH_FOR_EXPENSIVE_QUERIES,
-  DIRECT_DATABASE_ENDPOINT,
-  BATCH_SIZE,
-  SLEEP_BETWEEN_BATCHES,
-  INGEST_GRAPH,
-  PARALLEL_CALLS,
-} = require('./config');
-const { parallelisedBatchedUpdate } = require('./utils');
-const endpoint = BYPASS_MU_AUTH_FOR_EXPENSIVE_QUERIES
-  ? DIRECT_DATABASE_ENDPOINT
-  : process.env.MU_SPARQL_ENDPOINT; //Defaults to mu-auth
-
 /**
  * Dispatch the fetched information to a target graph.
  * @param { mu, muAuthSudo, fetch } lib - The provided libraries from the host service.
@@ -25,50 +12,25 @@ const endpoint = BYPASS_MU_AUTH_FOR_EXPENSIVE_QUERIES
  * @return {void} Nothing
  */
 async function dispatch(lib, data) {
-  const { mu } = lib;
   const { termObjectChangeSets } = data;
 
+  console.log(
+    `|> Found an amount of ${termObjectChangeSets.length} changesets`,
+  );
   for (let { deletes, inserts } of termObjectChangeSets) {
-    if (BYPASS_MU_AUTH_FOR_EXPENSIVE_QUERIES) {
-      console.warn(`Service configured to skip MU_AUTH!`);
-    }
-    console.log(`Using ${endpoint} to insert triples`);
-
+    console.log('Logging delete information: ');
     const deleteStatements = deletes.map(
-      (o) => `${o.subject} ${o.predicate} ${o.object}.`,
+      (o) =>
+        `In graph: ${o.graph}, triple: ${o.subject} ${o.predicate} ${o.object}`,
     );
-    await parallelisedBatchedUpdate(
-      lib,
-      deleteStatements,
-      INGEST_GRAPH,
-      SLEEP_BETWEEN_BATCHES,
-      BATCH_SIZE,
-      {},
-      endpoint,
-      'DELETE',
-      //If we don't bypass mu-auth already from the start, we provide a direct database endpoint
-      // as fallback
-      !BYPASS_MU_AUTH_FOR_EXPENSIVE_QUERIES ? DIRECT_DATABASE_ENDPOINT : '',
-      PARALLEL_CALLS,
-    );
+    deleteStatements.forEach((s) => console.log(s));
 
+    console.log('Logging insert information: ');
     const insertStatements = inserts.map(
-      (o) => `${o.subject} ${o.predicate} ${o.object}.`,
+      (o) =>
+        `In graph: ${o.graph}, triple: ${o.subject} ${o.predicate} ${o.object}.`,
     );
-    await parallelisedBatchedUpdate(
-      lib,
-      insertStatements,
-      INGEST_GRAPH,
-      SLEEP_BETWEEN_BATCHES,
-      BATCH_SIZE,
-      {},
-      endpoint,
-      'INSERT',
-      //If we don't bypass mu-auth already from the start, we provide a direct database endpoint
-      // as fallback
-      !BYPASS_MU_AUTH_FOR_EXPENSIVE_QUERIES ? DIRECT_DATABASE_ENDPOINT : '',
-      PARALLEL_CALLS,
-    );
+    insertStatements.forEach((s) => console.log(s));
   }
 }
 
