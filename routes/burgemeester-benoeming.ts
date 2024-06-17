@@ -388,6 +388,17 @@ const confirmKnownPerson = async (orgGraph, personUri) => {
 const validateAndParseRequest = async (req: Request) => {
   try {
     const benoemingRequest = BurgemeesterBenoemingRequest.fromRequest(req);
+
+    const smallestDate = new Date('2024-10-15T00:00:00.000Z');
+    if (benoemingRequest.date.getTime() < smallestDate.getTime() || isNaN(benoemingRequest.date.getTime())) {
+      throw Error(`Invalid date. Date must be after ${smallestDate}`);
+    }
+
+    const possibleStatusses = ['benoemd', 'afgewezen']
+    if (!possibleStatusses.includes(benoemingRequest.status)) {
+      throw Error(`Invalid status. Possible values: ${possibleStatusses.join(', ')}`);
+    }
+
     const burgemeesterMandaat =
       await findBurgemeesterMandaat(
         benoemingRequest.bestuurseenheidUri,

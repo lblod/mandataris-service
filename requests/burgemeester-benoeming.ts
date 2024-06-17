@@ -11,7 +11,7 @@ export class BurgemeesterBenoemingRequest {
   constructor(
     burgemeesterUri: string,
     bestuurseenheidUri: string,
-    status: "benoemd" | "afgewezen",
+    status: string,
     date: Date,
     file: unknown
   ) {
@@ -38,22 +38,11 @@ export class BurgemeesterBenoemingRequest {
       throw Error(`The body is missing these parameters: ${missingParamsInBody.join(', ')}.`);
     }
 
-    const parsedDate = new Date(request.body.datum);
-    const smallestDate = new Date('2024-10-15T00:00:00.000Z');
-    if (parsedDate.getTime() < smallestDate.getTime() || isNaN(parsedDate.getTime())) {
-      throw Error(`Invalid date. Date must be before ${smallestDate}`)
-    }
-
-    const possibleStatusses = ['benoemd', 'afgewezen']
-    if (!possibleStatusses.includes(request.body.status)) {
-      throw Error(`Invalid status. Possible values: ${possibleStatusses.join(', ')}`);
-    }
-
     return new this(
       request.body.burgemeesterUri,
       request.body.bestuurseenheidUri,
       request.body.status,
-      request.body.datum,
+      new Date(request.body.datum),
       request.file
     )
   }
