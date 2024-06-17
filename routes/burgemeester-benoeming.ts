@@ -450,7 +450,7 @@ const onBurgemeesterBenoemingSafe = async (req: Request) => {
       );
     }
   } catch (error) {
-    throw new HttpError(error.message, 400)
+    throw new HttpError(error.message, error.status ?? 400)
   }
 };
 
