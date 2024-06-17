@@ -202,6 +202,9 @@ const createBurgemeesterBenoeming = async (
   const fileUri = await storeFile(benoemingRequest.file, orgGraph);
   const uuid = uuidv4();
   const benoemingUri = `http://mu.semte.ch/vocabularies/ext/burgemeester-benoemingen/${uuid}`;
+  const bestuurseenheidUri = sparqlEscapeUri(benoemingRequest.bestuurseenheidUri);
+  const burgemeesterUri = sparqlEscapeUri(benoemingRequest.burgemeesterUri);
+
   await updateSudo(`
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -214,8 +217,8 @@ const createBurgemeesterBenoeming = async (
           mu:uuid ${sparqlEscapeString(uuid)} ;
           ext:status ${sparqlEscapeString(benoemingRequest.status)} ;
           ext:datum ${sparqlEscapeDateTime(benoemingRequest.date)} ;
-          ext:bestuurseenheid ${sparqlEscapeUri(benoemingRequest.bestuurseenheidUri)} ;
-          ext:burgemeester ${sparqlEscapeUri(benoemingRequest.burgemeesterUri)} ;
+          ext:bestuurseenheid ${bestuurseenheidUri} ;
+          ext:burgemeester ${burgemeesterUri} ;
           ext:file ${sparqlEscapeUri(fileUri)} .
       }
     }`);
@@ -381,26 +384,32 @@ const confirmKnownPerson = async (orgGraph, personUri) => {
   }
 };
 
-const validateRequest = async (benoemingRequest: BurgemeesterBenoemingRequest) => {
+const validateRequest = async (
+  benoemingRequest: BurgemeesterBenoemingRequest,
+) => {
   const smallestDate = new Date('2024-10-15T00:00:00.000Z');
-  if (benoemingRequest.date.getTime() < smallestDate.getTime() || isNaN(benoemingRequest.date.getTime())) {
+  if (
+    benoemingRequest.date.getTime() < smallestDate.getTime() ||
+    isNaN(benoemingRequest.date.getTime())
+  ) {
     throw Error(`Invalid date. Date must be after ${smallestDate}`);
   }
 
-  const possibleStatuses = ['benoemd', 'afgewezen']
+  const possibleStatuses = ['benoemd', 'afgewezen'];
   if (!possibleStatuses.includes(benoemingRequest.status)) {
-    throw Error(`Invalid status. Possible statuses: ${possibleStatuses.join(', ')}`);
+    throw Error(
+      `Invalid status. Possible statuses: ${possibleStatuses.join(', ')}`,
+    );
   }
 
-  const burgemeesterMandaat =
-    await findBurgemeesterMandaat(
-      benoemingRequest.bestuurseenheidUri,
-      benoemingRequest.date
-    );
+  const burgemeesterMandaat = await findBurgemeesterMandaat(
+    benoemingRequest.bestuurseenheidUri,
+    benoemingRequest.date,
+  );
 
   await confirmKnownPerson(
     burgemeesterMandaat.orgGraph,
-    benoemingRequest.burgemeesterUri
+    benoemingRequest.burgemeesterUri,
   );
 
   return {
@@ -413,7 +422,8 @@ const validateRequest = async (benoemingRequest: BurgemeesterBenoemingRequest) =
 const onBurgemeesterBenoemingSafe = async (req: Request) => {
   try {
     const benoemingRequest = BurgemeesterBenoemingRequest.fromRequest(req);
-    const { orgGraph, burgemeesterMandaat } = await validateRequest(benoemingRequest);
+    const { orgGraph, burgemeesterMandaat } =
+      await validateRequest(benoemingRequest);
 
     const benoeming = await createBurgemeesterBenoeming(
       benoemingRequest,
@@ -450,7 +460,7 @@ const onBurgemeesterBenoemingSafe = async (req: Request) => {
       );
     }
   } catch (error) {
-    throw new HttpError(error.message, error.status ?? 400)
+    throw new HttpError(error.message, error.status ?? 400);
   }
 };
 
