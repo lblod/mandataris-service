@@ -6,6 +6,7 @@ import { Request, Response } from 'express';
 import { HttpError } from '../util/http-error';
 
 import Router from 'express-promise-router';
+import { BurgemeesterBenoemingRequest } from '../requests/burgemeester-benoeming';
 
 const burgemeesterRouter = Router();
 
@@ -79,44 +80,6 @@ const checkAuthorization = async (req: Request) => {
   if (result.results.bindings.length == 0) {
     throw new HttpError('Unauthorized', 401);
   }
-};
-
-const parseBody = (body) => {
-  if (body == null) {
-    throw new HttpError('No body provided', 400);
-  }
-  const bestuurseenheidUri = body.bestuurseenheidUri;
-  if (!bestuurseenheidUri) {
-    throw new HttpError('No bestuurseenheidUri provided', 400);
-  }
-  const burgemeesterUri = body.burgemeesterUri;
-  if (!burgemeesterUri) {
-    throw new HttpError('No burgemeesterUri provided', 400);
-  }
-  const status = body.status;
-  if (status != 'benoemd' && status != 'afgewezen') {
-    throw new HttpError('Invalid status provided', 400);
-  }
-  const date = body.datum;
-  const parsedDate = new Date(date);
-  if (
-    !date ||
-    parsedDate.getTime() < new Date('2024-10-15T00:00:00.000Z').getTime() ||
-    isNaN(parsedDate.getTime())
-  ) {
-    throw new HttpError('Invalid date provided', 400);
-  }
-  return {
-    bestuurseenheidUri,
-    burgemeesterUri,
-    status,
-    date: parsedDate,
-  } as {
-    bestuurseenheidUri: string;
-    burgemeesterUri: string;
-    status: string;
-    date: Date;
-  };
 };
 
 const findBurgemeesterMandaat = async (
@@ -423,27 +386,31 @@ const confirmKnownPerson = async (orgGraph, personUri) => {
 };
 
 const validateAndParseRequest = async (req: Request) => {
-  if (!req.file) {
-    throw new HttpError('No file provided', 400);
+  try {
+    const benoemingRequest = BurgemeesterBenoemingRequest.fromRequest(req);
+    const burgemeesterMandaat =
+      await findBurgemeesterMandaat(
+        benoemingRequest.bestuurseenheidUri,
+        benoemingRequest.date
+      );
+
+    await confirmKnownPerson(
+      burgemeesterMandaat.orgGraph,
+      benoemingRequest.burgemeesterUri
+    );
+
+    return {
+      bestuurseenheidUri: benoemingRequest.bestuurseenheidUri,
+      burgemeesterUri: benoemingRequest.burgemeesterUri,
+      status: benoemingRequest.status,
+      date: benoemingRequest.date,
+      file: benoemingRequest.file,
+      orgGraph: burgemeesterMandaat.orgGraph,
+      burgemeesterMandaat: burgemeesterMandaat.mandaatUri,
+    };
+  } catch (error) {
+    throw new HttpError(error.message, 400)
   }
-
-  const parsedBody = parseBody(req.body);
-
-  const { bestuurseenheidUri, burgemeesterUri, status, date } = parsedBody;
-
-  const { orgGraph, mandaatUri: burgemeesterMandaat } =
-    await findBurgemeesterMandaat(bestuurseenheidUri, date);
-
-  await confirmKnownPerson(orgGraph, burgemeesterUri);
-  return {
-    bestuurseenheidUri,
-    burgemeesterUri,
-    status,
-    date,
-    file: req.file,
-    orgGraph,
-    burgemeesterMandaat,
-  };
 };
 
 const onBurgemeesterBenoemingSafe = async (req: Request) => {
