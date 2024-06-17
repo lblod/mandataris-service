@@ -381,84 +381,76 @@ const confirmKnownPerson = async (orgGraph, personUri) => {
   }
 };
 
-const validateAndParseRequest = async (req: Request) => {
-  try {
-    const benoemingRequest = BurgemeesterBenoemingRequest.fromRequest(req);
+const validateRequest = async (benoemingRequest: BurgemeesterBenoemingRequest) => {
+  const smallestDate = new Date('2024-10-15T00:00:00.000Z');
+  if (benoemingRequest.date.getTime() < smallestDate.getTime() || isNaN(benoemingRequest.date.getTime())) {
+    throw Error(`Invalid date. Date must be after ${smallestDate}`);
+  }
 
-    const smallestDate = new Date('2024-10-15T00:00:00.000Z');
-    if (benoemingRequest.date.getTime() < smallestDate.getTime() || isNaN(benoemingRequest.date.getTime())) {
-      throw Error(`Invalid date. Date must be after ${smallestDate}`);
-    }
+  const possibleStatuses = ['benoemd', 'afgewezen']
+  if (!possibleStatuses.includes(benoemingRequest.status)) {
+    throw Error(`Invalid status. Possible statuses: ${possibleStatuses.join(', ')}`);
+  }
 
-    const possibleStatuses = ['benoemd', 'afgewezen']
-    if (!possibleStatuses.includes(benoemingRequest.status)) {
-      throw Error(`Invalid status. Possible statuses: ${possibleStatuses.join(', ')}`);
-    }
-
-    const burgemeesterMandaat =
-      await findBurgemeesterMandaat(
-        benoemingRequest.bestuurseenheidUri,
-        benoemingRequest.date
-      );
-
-    await confirmKnownPerson(
-      burgemeesterMandaat.orgGraph,
-      benoemingRequest.burgemeesterUri
+  const burgemeesterMandaat =
+    await findBurgemeesterMandaat(
+      benoemingRequest.bestuurseenheidUri,
+      benoemingRequest.date
     );
 
-    return {
-      benoemingRequest,
-      orgGraph: burgemeesterMandaat.orgGraph,
-      burgemeesterMandaat: burgemeesterMandaat.mandaatUri,
-    };
-  } catch (error) {
-    throw new HttpError(error.message, 400)
-  }
+  await confirmKnownPerson(
+    burgemeesterMandaat.orgGraph,
+    benoemingRequest.burgemeesterUri
+  );
+
+  return {
+    benoemingRequest,
+    orgGraph: burgemeesterMandaat.orgGraph,
+    burgemeesterMandaat: burgemeesterMandaat.mandaatUri,
+  };
 };
 
 const onBurgemeesterBenoemingSafe = async (req: Request) => {
-  const {
-    benoemingRequest,
-    orgGraph,
-    burgemeesterMandaat,
-  } = await validateAndParseRequest(req);
+  try {
+    const benoemingRequest = BurgemeesterBenoemingRequest.fromRequest(req);
+    const { orgGraph, burgemeesterMandaat } = await validateRequest(benoemingRequest);
 
-  const benoeming = await createBurgemeesterBenoeming(
-    benoemingRequest,
-    orgGraph,
-  );
-  if (status === 'benoemd') {
-    const existing = await findExistingMandataris(
+    const benoeming = await createBurgemeesterBenoeming(
+      benoemingRequest,
       orgGraph,
-      burgemeesterMandaat,
     );
-    await benoemBurgemeester(
-      orgGraph,
-      benoemingRequest.burgemeesterUri,
-      burgemeesterMandaat,
-      benoemingRequest.date,
-      benoeming,
-      existing?.mandataris,
-      existing?.persoon,
-    );
-    if (existing) {
-      await endExistingMandataris(
+    if (benoemingRequest.status === 'benoemd') {
+      const existing = await findExistingMandataris(
         orgGraph,
-        existing.mandataris,
-        benoeming,
+        burgemeesterMandaat,
+      );
+      await benoemBurgemeester(
+        orgGraph,
+        benoemingRequest.burgemeesterUri,
+        burgemeesterMandaat,
         benoemingRequest.date,
+        benoeming,
+        existing?.mandataris,
+        existing?.persoon,
+      );
+      if (existing) {
+        await endExistingMandataris(
+          orgGraph,
+          existing.mandataris,
+          benoeming,
+          benoemingRequest.date,
+        );
+      }
+    } else if (benoemingRequest.status === 'afgewezen') {
+      await markCurrentBurgemeesterAsRejected(
+        orgGraph,
+        benoemingRequest.burgemeesterUri,
+        burgemeesterMandaat,
+        benoeming,
       );
     }
-  } else if (status === 'afgewezen') {
-    await markCurrentBurgemeesterAsRejected(
-      orgGraph,
-      benoemingRequest.burgemeesterUri,
-      burgemeesterMandaat,
-      benoeming,
-    );
-  } else {
-    // this was already checked during validation, just for clarity
-    throw new HttpError('Invalid status provided', 400);
+  } catch (error) {
+    throw new HttpError(error.message, 400)
   }
 };
 
