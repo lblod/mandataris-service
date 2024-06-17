@@ -196,14 +196,10 @@ const endExistingMandataris = async (
 };
 
 const createBurgemeesterBenoeming = async (
-  bestuurseenheidUri: string,
-  burgemeesterUri: string,
-  status: string,
-  date: Date,
-  file,
+  benoemingRequest: BurgemeesterBenoemingRequest,
   orgGraph: string,
 ) => {
-  const fileUri = await storeFile(file, orgGraph);
+  const fileUri = await storeFile(benoemingRequest.file, orgGraph);
   const uuid = uuidv4();
   const benoemingUri = `http://mu.semte.ch/vocabularies/ext/burgemeester-benoemingen/${uuid}`;
   await updateSudo(`
@@ -216,10 +212,10 @@ const createBurgemeesterBenoeming = async (
       GRAPH ${sparqlEscapeUri(orgGraph)} {
         ${sparqlEscapeUri(benoemingUri)} a ext:BurgemeesterBenoeming ;
           mu:uuid ${sparqlEscapeString(uuid)} ;
-          ext:status ${sparqlEscapeString(status)} ;
-          ext:datum ${sparqlEscapeDateTime(date)} ;
-          ext:bestuurseenheid ${sparqlEscapeUri(bestuurseenheidUri)} ;
-          ext:burgemeester ${sparqlEscapeUri(burgemeesterUri)} ;
+          ext:status ${sparqlEscapeString(benoemingRequest.status)} ;
+          ext:datum ${sparqlEscapeDateTime(benoemingRequest.date)} ;
+          ext:bestuurseenheid ${sparqlEscapeUri(benoemingRequest.bestuurseenheidUri)} ;
+          ext:burgemeester ${sparqlEscapeUri(benoemingRequest.burgemeesterUri)} ;
           ext:file ${sparqlEscapeUri(fileUri)} .
       }
     }`);
@@ -394,9 +390,9 @@ const validateAndParseRequest = async (req: Request) => {
       throw Error(`Invalid date. Date must be after ${smallestDate}`);
     }
 
-    const possibleStatusses = ['benoemd', 'afgewezen']
-    if (!possibleStatusses.includes(benoemingRequest.status)) {
-      throw Error(`Invalid status. Possible values: ${possibleStatusses.join(', ')}`);
+    const possibleStatuses = ['benoemd', 'afgewezen']
+    if (!possibleStatuses.includes(benoemingRequest.status)) {
+      throw Error(`Invalid status. Possible statuses: ${possibleStatuses.join(', ')}`);
     }
 
     const burgemeesterMandaat =
@@ -411,11 +407,7 @@ const validateAndParseRequest = async (req: Request) => {
     );
 
     return {
-      bestuurseenheidUri: benoemingRequest.bestuurseenheidUri,
-      burgemeesterUri: benoemingRequest.burgemeesterUri,
-      status: benoemingRequest.status,
-      date: benoemingRequest.date,
-      file: benoemingRequest.file,
+      benoemingRequest,
       orgGraph: burgemeesterMandaat.orgGraph,
       burgemeesterMandaat: burgemeesterMandaat.mandaatUri,
     };
@@ -426,21 +418,13 @@ const validateAndParseRequest = async (req: Request) => {
 
 const onBurgemeesterBenoemingSafe = async (req: Request) => {
   const {
-    bestuurseenheidUri,
-    burgemeesterUri,
-    status,
-    date,
-    file,
+    benoemingRequest,
     orgGraph,
     burgemeesterMandaat,
   } = await validateAndParseRequest(req);
 
   const benoeming = await createBurgemeesterBenoeming(
-    bestuurseenheidUri,
-    burgemeesterUri,
-    status,
-    date,
-    file,
+    benoemingRequest,
     orgGraph,
   );
   if (status === 'benoemd') {
@@ -450,9 +434,9 @@ const onBurgemeesterBenoemingSafe = async (req: Request) => {
     );
     await benoemBurgemeester(
       orgGraph,
-      burgemeesterUri,
+      benoemingRequest.burgemeesterUri,
       burgemeesterMandaat,
-      date,
+      benoemingRequest.date,
       benoeming,
       existing?.mandataris,
       existing?.persoon,
@@ -462,13 +446,13 @@ const onBurgemeesterBenoemingSafe = async (req: Request) => {
         orgGraph,
         existing.mandataris,
         benoeming,
-        date,
+        benoemingRequest.date,
       );
     }
   } else if (status === 'afgewezen') {
     await markCurrentBurgemeesterAsRejected(
       orgGraph,
-      burgemeesterUri,
+      benoemingRequest.burgemeesterUri,
       burgemeesterMandaat,
       benoeming,
     );
