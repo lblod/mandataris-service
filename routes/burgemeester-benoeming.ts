@@ -202,7 +202,9 @@ const createBurgemeesterBenoeming = async (
   const fileUri = await storeFile(benoemingRequest.file, orgGraph);
   const uuid = uuidv4();
   const benoemingUri = `http://mu.semte.ch/vocabularies/ext/burgemeester-benoemingen/${uuid}`;
-  const bestuurseenheidUri = sparqlEscapeUri(benoemingRequest.bestuurseenheidUri);
+  const bestuurseenheidUri = sparqlEscapeUri(
+    benoemingRequest.bestuurseenheidUri,
+  );
   const burgemeesterUri = sparqlEscapeUri(benoemingRequest.burgemeesterUri);
 
   await updateSudo(`
