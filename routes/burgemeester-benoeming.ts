@@ -105,12 +105,16 @@ const parseBody = (body) => {
   }
   const date = body.datum;
   const parsedDate = new Date(date);
+  const minAllowedDate = new Date('2024-10-15T00:00:00.000Z');
   if (
     !date ||
-    parsedDate.getTime() < new Date('2024-10-15T00:00:00.000Z').getTime() ||
+    parsedDate.getTime() < minAllowedDate.getTime() ||
     isNaN(parsedDate.getTime())
   ) {
-    throw new HttpError('Invalid date provided', 400);
+    throw new HttpError(
+      `Invalid date provided. Please use a date after ${minAllowedDate.toJSON()}`,
+      400,
+    );
   }
   return {
     bestuurseenheidUri,
