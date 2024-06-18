@@ -94,7 +94,7 @@ const parseBody = (body) => {
     throw new HttpError('No burgemeesterUri provided', 400);
   }
   const status = body.status;
-  if (status != 'benoemd' && status != 'afgewezen') {
+  if (status != BENOEMING_STATUS.BENOEMD && status != BENOEMING_STATUS.AFGEWEZEN) {
     throw new HttpError('Invalid status provided', 400);
   }
   const date = body.datum;
@@ -471,7 +471,7 @@ const onBurgemeesterBenoemingSafe = async (req: Request) => {
     file,
     orgGraph,
   );
-  if (status === 'benoemd') {
+  if (status === BENOEMING_STATUS.BENOEMD) {
     const existing = await findExistingMandataris(
       orgGraph,
       burgemeesterMandaat,
@@ -493,7 +493,7 @@ const onBurgemeesterBenoemingSafe = async (req: Request) => {
         date,
       );
     }
-  } else if (status === 'afgewezen') {
+  } else if (status === BENOEMING_STATUS.AFGEWEZEN) {
     await markCurrentBurgemeesterAsRejected(
       orgGraph,
       burgemeesterUri,
@@ -526,3 +526,8 @@ export const handleBurgemeesterBenoeming = async (app) => {
 burgemeesterRouter.post('/', upload.single('file'), onBurgemeesterBenoeming);
 
 export { burgemeesterRouter };
+
+enum BENOEMING_STATUS {
+  BENOEMD = "benoemd",
+  AFGEWEZEN = 'afgewezen'
+}
