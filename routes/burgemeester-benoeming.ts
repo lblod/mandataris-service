@@ -167,7 +167,10 @@ const findBurgemeesterMandaat = async (
     }  ORDER BY DESC(?start) LIMIT 1 `;
   const result = await querySudo(sparql);
   if (result.results.bindings.length === 0) {
-    throw new HttpError('No burgemeester mandaat found', 400);
+    throw new HttpError(
+      `No burgemeester mandaat found for bestuurseenheid (${bestuurseenheidUri})`,
+      400,
+    );
   }
   return {
     orgGraph: result.results.bindings[0].orgGraph.value as string,
@@ -283,7 +286,10 @@ const markCurrentBurgemeesterAsRejected = async (
   `);
 
   if (!result.results.bindings.length) {
-    throw new HttpError('No existing mandataris found for this person', 400);
+    throw new HttpError(
+      `No existing mandataris found for burgemeester(${burgemeesterUri})`,
+      400,
+    );
   }
   const mandataris = result.results.bindings[0].mandataris.value;
   const mandatarisUri = sparqlEscapeUri(mandataris);
@@ -418,7 +424,7 @@ const confirmKnownPerson = async (orgGraph, personUri) => {
     }
   `);
   if (!result.boolean) {
-    throw new HttpError('Given person not found', 400);
+    throw new HttpError(`Person with uri ${personUri} not found`, 400);
   }
 };
 
