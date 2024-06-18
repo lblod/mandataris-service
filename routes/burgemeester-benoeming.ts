@@ -11,7 +11,7 @@ const burgemeesterRouter = Router();
 
 const upload = multer({ dest: '/uploads/' });
 
-const storeFile = async (file, orgGraph) => {
+const storeFile = async (file, orgGraph: string) => {
   const originalFileName = file.originalname;
   const generatedName = file.filename;
   const format = file.mimetype;
@@ -188,7 +188,7 @@ const findBurgemeesterMandaat = async (
   };
 };
 
-const findExistingMandataris = async (orgGraph, mandaatUri) => {
+const findExistingMandataris = async (orgGraph: string, mandaatUri: string) => {
   const sparql = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
@@ -425,7 +425,7 @@ const benoemBurgemeester = async (
     }`);
 };
 
-const confirmKnownPerson = async (orgGraph, personUri) => {
+const confirmKnownPerson = async (orgGraph: string, personUri: string) => {
   const result = await querySudo(`
     ASK {
       GRAPH ${sparqlEscapeUri(orgGraph)} {
