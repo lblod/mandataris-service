@@ -94,8 +94,14 @@ const parseBody = (body) => {
     throw new HttpError('No burgemeesterUri provided', 400);
   }
   const status = body.status;
-  if (status != BENOEMING_STATUS.BENOEMD && status != BENOEMING_STATUS.AFGEWEZEN) {
-    throw new HttpError('Invalid status provided', 400);
+  const possibleStatuses = Object.values(BENOEMING_STATUS);
+  if (!possibleStatuses.includes(status)) {
+    throw new HttpError(
+      `Invalid status provided. Please use the following: ${possibleStatuses.join(
+        ', ',
+      )}`,
+      400,
+    );
   }
   const date = body.datum;
   const parsedDate = new Date(date);
@@ -528,6 +534,6 @@ burgemeesterRouter.post('/', upload.single('file'), onBurgemeesterBenoeming);
 export { burgemeesterRouter };
 
 enum BENOEMING_STATUS {
-  BENOEMD = "benoemd",
-  AFGEWEZEN = 'afgewezen'
+  BENOEMD = 'benoemd',
+  AFGEWEZEN = 'afgewezen',
 }
