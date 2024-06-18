@@ -1,3 +1,6 @@
+const { getDifferenceBetweenSources } = require('./util/mandatarissen');
+const { DIRECT_DATABASE_ENDPOINT } = require('./config');
+
 /**
  * Dispatch the fetched information to a target graph.
  * @param { mu, muAuthSudo, fetch } lib - The provided libraries from the host service.
@@ -13,7 +16,7 @@
  */
 async function dispatch(lib, data) {
   const { termObjectChangeSets } = data;
-
+  console.log(`|> DELTA SYNC`);
   console.log(
     `|> Found an amount of ${termObjectChangeSets.length} changesets`,
   );
@@ -31,6 +34,7 @@ async function dispatch(lib, data) {
         `In graph: ${o.graph}, triple: ${o.subject} ${o.predicate} ${o.object}.`,
     );
     insertStatements.forEach((s) => console.log(s));
+    await getDifferenceBetweenSources(inserts, DIRECT_DATABASE_ENDPOINT);
   }
 }
 

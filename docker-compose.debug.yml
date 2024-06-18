@@ -42,6 +42,7 @@ services:
       BATCH_SIZE: 500
       PARALLEL_CALLS: 20
       DCR_WAIT_FOR_INITIAL_SYNC: false
+      DIRECT_DATABASE_ENDPOINT: 'http://database:8890/sparql'
     networks:
       - debug
       - deltas-sync
