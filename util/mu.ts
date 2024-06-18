@@ -18,8 +18,9 @@ export function sparqlEscapeUri(uri: string) {
   if (!uri || typeof uri !== 'string') {
     throw Error(`Could not sparql escape uri from passed value: ${uri}`);
   }
+  const cleanUri = uri.replace(/^<|>$/g, '');
 
-  return mu_sparqlEscapeUri(uri);
+  return mu_sparqlEscapeUri(cleanUri);
 }
 
 export function sparqlEscapeDateTime(date: Date) {
