@@ -36,10 +36,10 @@ services:
       DCR_SYNC_FILES_PATH: '/sync/mandatees-decisions/files'
       DCR_KEEP_DELTA_FILES: true
       DCR_DELTA_FILE_FOLDER: '/deltas/mandatees-decisions/files'
-      DCR_CRON_PATTERN_DELTA_SYNC: '0/15 * * * * *' # Every 15 seconds minute This should be every hour on a running environment
+      DCR_CRON_PATTERN_DELTA_SYNC: '* 0/1 * * *' # Every minute This should be every hour on a running environment
       DCR_DISABLE_INITIAL_SYNC: false
       SLEEP_BETWEEN_BATCHES: 1
-      BATCH_SIZE: 500
+      BATCH_SIZE: 2
       PARALLEL_CALLS: 20
       DCR_WAIT_FOR_INITIAL_SYNC: false
       DIRECT_DATABASE_ENDPOINT: 'http://database:8890/sparql'
