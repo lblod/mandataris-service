@@ -1,5 +1,13 @@
 const { getDifferenceBetweenSources } = require('./util/mandatarissen');
-const { DIRECT_DATABASE_ENDPOINT } = require('./config');
+const { parallelisedBatchedUpdate } = require('./util/batch-update');
+const {
+  DIRECT_DATABASE_ENDPOINT,
+  PARALLEL_CALLS,
+  BATCH_SIZE,
+  SLEEP_BETWEEN_BATCHES,
+  INGEST_GRAPH,
+  BYPASS_MU_AUTH_FOR_EXPENSIVE_QUERIES,
+} = require('./config');
 
 /**
  * Dispatch the fetched information to a target graph.
@@ -17,24 +25,50 @@ const { DIRECT_DATABASE_ENDPOINT } = require('./config');
 async function dispatch(lib, data) {
   const { termObjectChangeSets } = data;
   console.log(`|> DELTA SYNC`);
-  console.log(
-    `|> Found an amount of ${termObjectChangeSets.length} changesets`,
-  );
-  for (let { deletes, inserts } of termObjectChangeSets) {
-    console.log('Logging delete information: ');
-    const deleteStatements = deletes.map(
-      (o) =>
-        `In graph: ${o.graph}, triple: ${o.subject} ${o.predicate} ${o.object}`,
-    );
-    deleteStatements.forEach((s) => console.log(s));
 
-    console.log('Logging insert information: ');
-    const insertStatements = inserts.map(
-      (o) =>
-        `In graph: ${o.graph}, triple: ${o.subject} ${o.predicate} ${o.object}.`,
+  for (let { deletes, inserts } of termObjectChangeSets) {
+    const deleteStatements = deletes.map(
+      (o) => `${o.subject} ${o.predicate} ${o.object}.`,
     );
-    insertStatements.forEach((s) => console.log(s));
-    await getDifferenceBetweenSources(inserts, DIRECT_DATABASE_ENDPOINT);
+    await parallelisedBatchedUpdate(
+      lib,
+      deleteStatements,
+      INGEST_GRAPH,
+      SLEEP_BETWEEN_BATCHES,
+      BATCH_SIZE,
+      {},
+      DIRECT_DATABASE_ENDPOINT,
+      'DELETE',
+      //If we don't bypass mu-auth already from the start, we provide a direct database endpoint
+      // as fallback
+      !BYPASS_MU_AUTH_FOR_EXPENSIVE_QUERIES ? DIRECT_DATABASE_ENDPOINT : '',
+      PARALLEL_CALLS,
+    );
+
+    const insertStatements = inserts.map(
+      (o) => `${o.subject} ${o.predicate} ${o.object}.`,
+    );
+    await parallelisedBatchedUpdate(
+      lib,
+      insertStatements,
+      INGEST_GRAPH,
+      SLEEP_BETWEEN_BATCHES,
+      BATCH_SIZE,
+      {},
+      DIRECT_DATABASE_ENDPOINT,
+      'INSERT',
+      //If we don't bypass mu-auth already from the start, we provide a direct database endpoint
+      // as fallback
+      !BYPASS_MU_AUTH_FOR_EXPENSIVE_QUERIES ? DIRECT_DATABASE_ENDPOINT : '',
+      PARALLEL_CALLS,
+    );
+
+    await getDifferenceBetweenSources(
+      inserts,
+      DIRECT_DATABASE_ENDPOINT,
+      'http://data.vlaanderen.be/ns/mandaat#Mandataris',
+      lib,
+    );
   }
 }
 
