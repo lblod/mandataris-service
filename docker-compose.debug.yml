@@ -32,16 +32,15 @@ services:
       DCR_SYNC_DATASET_SUBJECT: 'http://data.lblod.info/datasets/delta-producer/dumps/Mandatees-DecisionsCacheGraphDump'
       DCR_INITIAL_SYNC_JOB_OPERATION: 'http://redpencil.data.gift/id/jobs/concept/JobOperation/deltas/initialPublicationGraphSyncing/mandatees-decisions'
       DCR_DELTA_SYNC_JOB_OPERATION: 'http://redpencil.data.gift/id/jobs/concept/JobOperation/deltas/deltaDumpFileCreation/mandatees-decisions'
-      DCR_START_FROM_DELTA_TIMESTAMP: '2024-01-12T15:51:23.478Z'
       DCR_SYNC_FILES_PATH: '/sync/mandatees-decisions/files'
       DCR_KEEP_DELTA_FILES: true
       DCR_DELTA_FILE_FOLDER: '/deltas/mandatees-decisions/files'
-      DCR_CRON_PATTERN_DELTA_SYNC: '* 0/1 * * *' # Every minute This should be every hour on a running environment
-      DCR_DISABLE_INITIAL_SYNC: false
-      SLEEP_BETWEEN_BATCHES: 1
-      BATCH_SIZE: 2
-      PARALLEL_CALLS: 20
+      DCR_CRON_PATTERN_DELTA_SYNC: '*/15 * * * *' # Every 5 minute This should be every hour on a running environment
+      DCR_DISABLE_INITIAL_SYNC: true
       DCR_WAIT_FOR_INITIAL_SYNC: false
+      DCR_START_FROM_DELTA_TIMESTAMP: '2024-01-12T15:51:23.478Z'
+      SLEEP_BETWEEN_BATCHES: 1
+      BATCH_SIZE: 4
       DIRECT_DATABASE_ENDPOINT: 'http://database:8890/sparql'
     networks:
       - debug
