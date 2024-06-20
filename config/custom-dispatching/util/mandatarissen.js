@@ -1,6 +1,7 @@
 const { INGEST_GRAPH } = require('../config');
 
 async function getDifferenceBetweenSources(triples, target, typeUri, lib) {
+  console.log(`|> start getting differences between sources`);
   const { muAuthSudo, sparqlEscapeUri } = lib;
   const uniqueSubjects = Array.from(new Set(triples.map((t) => t.subject)));
   const subjectsOfTypeQuery = `
@@ -56,9 +57,11 @@ async function getDifferenceBetweenSources(triples, target, typeUri, lib) {
       };
     },
   );
-  console.log(`|> Incoming values: ${JSON.stringify(filteredTriplesOfType)}\n`);
-  console.log(`|> Target values: ${JSON.stringify(mappedResultsInTarget)}\n`);
-  console.log('|> --------------------------');
+  console.log(`|> Return the differences triples`);
+  return {
+    incomingTriples: filteredTriplesOfType,
+    currentTriples: mappedResultsInTarget,
+  };
 }
 
 module.exports = {

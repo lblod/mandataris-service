@@ -1,5 +1,6 @@
 const { getDifferenceBetweenSources } = require('./util/mandatarissen');
 const { parallelisedBatchedUpdate } = require('./util/batch-update');
+const { updateDifferences } = require('./util/compare-triples');
 const {
   DIRECT_DATABASE_ENDPOINT,
   PARALLEL_CALLS,
@@ -23,8 +24,8 @@ const {
  * @return {void} Nothing
  */
 async function dispatch(lib, data) {
-  const { termObjectChangeSets } = data;
   console.log(`|> DELTA SYNC`);
+  const { termObjectChangeSets } = data;
 
   for (let { deletes, inserts } of termObjectChangeSets) {
     const deleteStatements = deletes.map(
@@ -63,12 +64,20 @@ async function dispatch(lib, data) {
       PARALLEL_CALLS,
     );
 
-    await getDifferenceBetweenSources(
+    const differences = await getDifferenceBetweenSources(
       inserts,
       DIRECT_DATABASE_ENDPOINT,
       'http://data.vlaanderen.be/ns/mandaat#Mandataris',
       lib,
     );
+
+    console.log(
+      `|> Incoming values: ${JSON.stringify(differences.incomingTriples)}\n`,
+    );
+    console.log(
+      `|> Target values: ${JSON.stringify(differences.currentTriples)}\n`,
+    );
+    updateDifferences(differences.incomingTriples, differences.currentTriples);
   }
 }
 
