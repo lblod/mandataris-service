@@ -1,3 +1,14 @@
+const { parallelisedBatchedUpdate } = require('./util/batch-update');
+const {
+  DIRECT_DATABASE_ENDPOINT,
+  MU_CALL_SCOPE_ID_INITIAL_SYNC,
+  INGEST_GRAPH,
+  SLEEP_BETWEEN_BATCHES,
+  BATCH_SIZE,
+  PARALLEL_CALLS,
+  BYPASS_MU_AUTH_FOR_EXPENSIVE_QUERIES,
+} = require('./config');
+
 /**
  * Dispatch the fetched information to a target graph.
  * @param { mu, muAuthSudo, fech } lib - The provided libraries from the host service.
@@ -12,15 +23,23 @@
  * @return {void} Nothing
  */
 async function dispatch(lib, data) {
-  const triples = data.termObjects;
+  console.log(`|> INITAL SYNC`);
 
-  console.log(`|> Found ${triples.length} to be processed`);
-  console.log('Showing only the first 10.');
-  const info = triples
-    .slice(0, 10)
-    .map((t) => `triple: ${t.subject} ${t.predicate} ${t.object}`);
-  info.forEach((s) => console.log(s));
-  console.log('All triples were logged');
+  const triples = data.termObjects;
+  await parallelisedBatchedUpdate(
+    lib,
+    triples,
+    INGEST_GRAPH,
+    SLEEP_BETWEEN_BATCHES,
+    BATCH_SIZE,
+    { 'mu-call-scope-id': MU_CALL_SCOPE_ID_INITIAL_SYNC },
+    DIRECT_DATABASE_ENDPOINT,
+    'INSERT',
+    //If we don't bypass mu-auth already from the start, we provide a direct database endpoint
+    // as fallback
+    !BYPASS_MU_AUTH_FOR_EXPENSIVE_QUERIES ? DIRECT_DATABASE_ENDPOINT : '',
+    PARALLEL_CALLS,
+  );
 }
 
 /**
