@@ -64,20 +64,20 @@ async function dispatch(lib, data) {
       PARALLEL_CALLS,
     );
 
-    const differences = await getDifferenceBetweenSources(
-      inserts,
-      DIRECT_DATABASE_ENDPOINT,
-      'http://data.vlaanderen.be/ns/mandaat#Mandataris',
-      lib,
-    );
+    // const differences = await getDifferenceBetweenSources(
+    //   inserts,
+    //   DIRECT_DATABASE_ENDPOINT,
+    //   'http://data.vlaanderen.be/ns/mandaat#Mandataris',
+    //   lib,
+    // );
 
-    console.log(
-      `|> Incoming values: ${JSON.stringify(differences.incomingTriples)}\n`,
-    );
-    console.log(
-      `|> Target values: ${JSON.stringify(differences.currentTriples)}\n`,
-    );
-    updateDifferences(differences.incomingTriples, differences.currentTriples);
+    // console.log(
+    //   `|> Incoming values: ${JSON.stringify(differences.incomingTriples)}\n`,
+    // );
+    // console.log(
+    //   `|> Target values: ${JSON.stringify(differences.currentTriples)}\n`,
+    // );
+    // updateDifferences(differences.incomingTriples, differences.currentTriples);
   }
 }
 

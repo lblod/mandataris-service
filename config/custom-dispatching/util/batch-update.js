@@ -57,6 +57,7 @@ async function parallelisedBatchedUpdate(
       }
     }),
   );
+  console.log('|> parallelisedBatchedUpdate DONE');
 }
 
 async function batchedUpdate(
