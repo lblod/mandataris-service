@@ -41,6 +41,10 @@ export async function getDifferencesForTriples(changeSets: Array<Changeset>) {
     // Looking for persoon in every graph!
     const persoonOfMandataris = await findPersoonForMandataris(mandatarisUri);
     console.log('|> persoonOfMandataris', persoonOfMandataris);
+
+    if (!persoonOfMandataris) {
+      // TODO: LMB-520
+    }
   }
 
   const quadsForSubjects = insertsOfChangeSets.filter((quad: Quad) =>
