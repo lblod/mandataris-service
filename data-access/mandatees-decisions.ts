@@ -1,4 +1,4 @@
-import { querySudo } from '@lblod/mu-auth-sudo';
+import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
 import { sparqlEscapeUri } from 'mu';
 import { Quad } from '../util/types';
 
@@ -102,4 +102,114 @@ export async function findPersoonForMandataris(
   }
 
   return persoonForMandataris.results.bindings[0].persoonUri.value;
+}
+
+export async function updateDifferencesOfMandataris(
+  currentQuads: Array<Quad>,
+  incomingQuads: Array<Quad>,
+  toGraph: string,
+): Promise<void> {
+  for (const incomingQuad of incomingQuads) {
+    const currentQuad = currentQuads.find(
+      (quad: Quad) =>
+        quad.subject.value == incomingQuad.subject.value &&
+        quad.predicate.value == incomingQuad.predicate.value,
+    );
+    if (currentQuad) {
+      if (incomingQuad.object.value !== currentQuad.object.value) {
+        console.log(
+          `|> Value for predicate (${incomingQuad.predicate.value}) differ. Current: ${currentQuad.object.value} incoming: ${incomingQuad.object.value}. Updating value.`,
+        );
+        const escaped = {
+          subject: sparqlEscapeUri(currentQuad.subject.value),
+          predicate: sparqlEscapeUri(currentQuad.predicate.value),
+          graph: sparqlEscapeUri(currentQuad.graph.value),
+          currentObject:
+            currentQuad.object.value ??
+            sparqlEscapeUri(currentQuad.object.value),
+          incomingObject:
+            incomingQuad.object.value ??
+            sparqlEscapeUri(incomingQuad.object.value),
+        };
+        const subjectPredicate = `${escaped.subject} ${escaped.predicate}`;
+        const updateObjectValueQuery = `
+          DELETE {
+            GRAPH ?graph {
+              ${subjectPredicate} ${escaped.currentObject}
+            }
+          } INSERT {
+            GRAPH ${escaped.graph} {
+              ${subjectPredicate} ${escaped.incomingObject} .
+            }
+          } WHERE {
+             GRAPH ?graph {
+              ${escaped.subject} ${escaped.predicate} ${escaped.currentObject} .
+             } 
+             MINUS {
+              GRAPH ${sparqlEscapeUri(STAGING_GRAPH)} {
+                ${subjectPredicate} ${escaped.currentObject}
+              }
+            }
+          }
+        `;
+
+        try {
+          await updateSudo(updateObjectValueQuery, {}, { mayRetry: true });
+          console.log(
+            `|> Updated value for predicate (${incomingQuad.predicate.value}) to ${incomingQuad.object.value}.`,
+          );
+        } catch (error) {
+          throw Error(
+            `Could not update mandataris predicate value: ${subjectPredicate}`,
+          );
+        }
+      }
+    } else {
+      const escaped = {
+        subject: sparqlEscapeUri(incomingQuad.subject.value),
+        predicate: sparqlEscapeUri(incomingQuad.predicate.value),
+        incomingObject: sparqlEscapeUri(incomingQuad.object.value),
+        graph: sparqlEscapeUri(toGraph),
+      };
+      const insertIncomingQuery = `
+        INSERT DATA {
+          GRAPH ${escaped.graph} {
+            ${escaped.subject} ${escaped.predicate} ${escaped.incomingObject} .
+          }
+        }
+      `;
+      try {
+        await updateSudo(insertIncomingQuery, {}, { mayRetry: true });
+        console.log(`|> Inserted triple: ${JSON.stringify(incomingQuad)}`);
+      } catch (error) {
+        throw Error(
+          `Could not insert incoming triple: ${JSON.stringify(incomingQuad)}`,
+        );
+      }
+    }
+  }
+}
+
+export async function findGraphOfType(typeUri: string): Promise<string> {
+  const escapedTypeUri = sparqlEscapeUri(typeUri);
+  const queryForGraph = `
+    SELECT ?graph
+    WHERE {
+      GRAPH ?graph {
+      ?subject a ${escapedTypeUri} .
+      }
+      MINUS {
+        GRAPH ${sparqlEscapeUri(STAGING_GRAPH)} {
+          ?subject a ${escapedTypeUri} .
+        }
+      }
+    }  
+  `;
+  const graphQueryResult = await querySudo(queryForGraph);
+  if (graphQueryResult.results.bindings.length === 0) {
+    // Hard error as we do not want data to be inserted in an unknown graph
+    throw Error(`Could not find graph for type: ${typeUri}`);
+  }
+
+  return graphQueryResult.results.bindings[0].graph.value;
 }

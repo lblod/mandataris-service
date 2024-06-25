@@ -1,9 +1,11 @@
 import {
   MANDATARIS_TYPE_URI,
+  findGraphOfType,
   findPersoonForMandataris,
   getSubjectsOfType,
   getValuesForSubjectPredicateInTarget,
   isMandatarisInTarget,
+  updateDifferencesOfMandataris,
 } from '../data-access/mandatees-decisions';
 import { Changeset, Quad } from '../util/types';
 
@@ -17,8 +19,25 @@ export async function getDifferencesForTriples(changeSets: Array<Changeset>) {
   );
 
   for (const mandatarisUri of mandatarisSubjects) {
+    const incomingQuadsForSubject = insertsOfChangeSets.filter(
+      (quad: Quad) => mandatarisUri === quad.subject.value,
+    );
     const isExistingInTarget = await isMandatarisInTarget(mandatarisUri);
-    console.log('|> isExistingInTarget', isExistingInTarget);
+    if (isExistingInTarget) {
+      const currentQuads = await getValuesForSubjectPredicateInTarget(
+        incomingQuadsForSubject,
+      );
+
+      // This throws a hard error when no graph is found!
+      const mandatarisGraph = await findGraphOfType(mandatarisUri);
+
+      await updateDifferencesOfMandataris(
+        currentQuads,
+        incomingQuadsForSubject,
+        mandatarisGraph,
+      );
+    }
+
     // Looking for persoon in every graph!
     const persoonOfMandataris = await findPersoonForMandataris(mandatarisUri);
     console.log('|> persoonOfMandataris', persoonOfMandataris);
