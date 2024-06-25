@@ -81,3 +81,25 @@ export async function isMandatarisInTarget(subjectUri: string) {
 
   return result.boolean;
 }
+
+export async function findPersoonForMandataris(
+  subjectUri: string,
+): Promise<null | string> {
+  const escapedSubjectUri = sparqlEscapeUri(subjectUri);
+  const escapedPersoonPredicate = sparqlEscapeUri(
+    'http://data.vlaanderen.be/ns/mandaat#isBestuurlijkeAliasVan',
+  );
+  const queryForPersoon = `
+    SELECT ?persoonUri
+    WHERE {
+      ${escapedSubjectUri} ${escapedPersoonPredicate} ?persoonUri .
+    }
+  `;
+  const persoonForMandataris = await querySudo(queryForPersoon);
+
+  if (persoonForMandataris.results.bindings.length === 0) {
+    return null;
+  }
+
+  return persoonForMandataris.results.bindings[0].persoonUri.value;
+}

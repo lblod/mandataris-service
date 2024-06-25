@@ -1,5 +1,6 @@
 import {
   MANDATARIS_TYPE_URI,
+  findPersoonForMandataris,
   getSubjectsOfType,
   getValuesForSubjectPredicateInTarget,
   isMandatarisInTarget,
@@ -18,6 +19,9 @@ export async function getDifferencesForTriples(changeSets: Array<Changeset>) {
   for (const mandatarisUri of mandatarisSubjects) {
     const isExistingInTarget = await isMandatarisInTarget(mandatarisUri);
     console.log('|> isExistingInTarget', isExistingInTarget);
+    // Looking for persoon in every graph!
+    const persoonOfMandataris = await findPersoonForMandataris(mandatarisUri);
+    console.log('|> persoonOfMandataris', persoonOfMandataris);
   }
 
   const quadsForSubjects = insertsOfChangeSets.filter((quad: Quad) =>
