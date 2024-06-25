@@ -3,6 +3,8 @@ import { sparqlEscapeUri } from 'mu';
 import { Quad } from '../util/types';
 
 const STAGING_GRAPH = 'http://mu.semte.ch/graphs/besluiten-consumed';
+export const MANDATARIS_TYPE_URI =
+  'http://data.vlaanderen.be/ns/mandaat#Mandataris';
 
 export async function getSubjectsOfType(
   typeUri: string,
@@ -61,4 +63,21 @@ export async function getValuesForSubjectPredicateInTarget(
   const resultsInTarget = await querySudo(query);
 
   return resultsInTarget.results.bindings;
+}
+
+export async function isMandatarisInTarget(subjectUri: string) {
+  const escapedMandatarisUri = sparqlEscapeUri(MANDATARIS_TYPE_URI);
+  const askIfMandataris = `
+    ASK {
+      ${sparqlEscapeUri(subjectUri)} a ${escapedMandatarisUri} .
+      MINUS {
+        GRAPH ${sparqlEscapeUri(STAGING_GRAPH)} {
+          ${sparqlEscapeUri(subjectUri)} a ${escapedMandatarisUri} .
+        }
+      }
+    }
+  `;
+  const result = await querySudo(askIfMandataris);
+
+  return result.boolean;
 }

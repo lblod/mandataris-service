@@ -1,6 +1,8 @@
 import {
+  MANDATARIS_TYPE_URI,
   getSubjectsOfType,
   getValuesForSubjectPredicateInTarget,
+  isMandatarisInTarget,
 } from '../data-access/mandatees-decisions';
 import { Changeset, Quad } from '../util/types';
 
@@ -8,13 +10,18 @@ export async function getDifferencesForTriples(changeSets: Array<Changeset>) {
   const insertsOfChangeSets = changeSets
     .map((changeSet: Changeset) => changeSet.inserts)
     .flat();
-  const subjects = await getSubjectsOfType(
-    'http://data.vlaanderen.be/ns/mandaat#Mandataris',
+  const mandatarisSubjects = await getSubjectsOfType(
+    MANDATARIS_TYPE_URI,
     insertsOfChangeSets,
   );
 
+  for (const mandatarisUri of mandatarisSubjects) {
+    const isExistingInTarget = await isMandatarisInTarget(mandatarisUri);
+    console.log('|> isExistingInTarget', isExistingInTarget);
+  }
+
   const quadsForSubjects = insertsOfChangeSets.filter((quad: Quad) =>
-    subjects.includes(quad.subject.value),
+    mandatarisSubjects.includes(quad.subject.value),
   );
 
   const quadsInTarget =
