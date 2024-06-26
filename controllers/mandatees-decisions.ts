@@ -1,11 +1,10 @@
 import {
   TERM_MANDATARIS_TYPE,
-  findGraphOfType,
   findPersoonForMandataris,
   getMandateOfMandataris,
   getSubjectsOfType,
   getValuesForSubjectPredicateInTarget,
-  hasOverlappingMandaat,
+  findOverlappingMandataris,
   insertQuadsInGraph,
   isMandatarisInTarget,
   updateDifferencesOfMandataris,
@@ -48,18 +47,18 @@ export async function getDifferencesForTriples(changeSets: Array<Changeset>) {
     } else {
       console.log(`|> Person (${persoonOfMandataris.value}) found.`);
       const mandaat = await getMandateOfMandataris(mandatarisSubject);
-      const persoonHasOverlappingMandaat = await hasOverlappingMandaat(
+      const overlappingMandataris = await findOverlappingMandataris(
         persoonOfMandataris,
         mandaat,
       );
 
-      if (!persoonHasOverlappingMandaat) {
+      if (!overlappingMandataris) {
         console.log('|> No overlap with mandaat. Inserting triples.');
         await insertQuadsInGraph(incomingQuadsForSubject);
       } else {
         console.log(
           '|> Persoon Has Overlapping WithMandaat',
-          persoonHasOverlappingMandaat,
+          overlappingMandataris,
         );
       }
     }

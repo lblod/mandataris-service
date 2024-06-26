@@ -240,27 +240,28 @@ export async function getMandateOfMandataris(mandataris: Term): Promise<Term> {
   return mandaatQuad.object;
 }
 
-export async function hasOverlappingMandaat(
+export async function findOverlappingMandataris(
   persoon: Term,
   mandaat: Term,
-): Promise<boolean> {
+): Promise<Quad | null> {
   const statusEffectief =
     'http://data.vlaanderen.be/id/concept/MandatarisStatusCode/21063a5b-912c-4241-841c-cc7fb3c73e75';
-  const askQuery = `
+  const queryMandataris = `
   PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
   PREFIX org: <http://www.w3.org/ns/org#>
 
-  ASK {
-    ?mandataris a ${sparqlEscapeTermValue(TERM_MANDATARIS_TYPE)} ;
+  SELECT ?subject
+  WHERE {
+    ?subject a ${sparqlEscapeTermValue(TERM_MANDATARIS_TYPE)} ;
       mandaat:status ${statusEffectief};
       mandaat:isBestuurlijkeAliasVan ${sparqlEscapeTermValue(persoon)} ;
       org:holds ${sparqlEscapeTermValue(mandaat)} .
   }
   `;
 
-  const isOverlappingResult = await querySudo(askQuery);
+  const mandatarisResult = await querySudo(queryMandataris);
 
-  return getBooleanSparqlResult(isOverlappingResult);
+  return findFirstSparqlResult(mandatarisResult);
 }
 
 export async function insertQuadsInGraph(quads: Array<Quad>): Promise<void> {
