@@ -244,13 +244,15 @@ export async function hasOverlappingMandaat(
   persoon: Term,
   mandaat: Term,
 ): Promise<boolean> {
+  const statusEffectief =
+    'http://data.vlaanderen.be/id/concept/MandatarisStatusCode/21063a5b-912c-4241-841c-cc7fb3c73e75';
   const askQuery = `
   PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
   PREFIX org: <http://www.w3.org/ns/org#>
 
   ASK {
     ?mandataris a ${sparqlEscapeTermValue(TERM_MANDATARIS_TYPE)} ;
-
+      mandaat:status ${statusEffectief};
       mandaat:isBestuurlijkeAliasVan ${sparqlEscapeTermValue(persoon)} ;
       org:holds ${sparqlEscapeTermValue(mandaat)} .
   }
