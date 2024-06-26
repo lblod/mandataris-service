@@ -14,3 +14,8 @@ export type Changeset = {
   inserts: Quad[];
   deletes: Quad[];
 };
+
+export type SparqlResult = {
+  results: { bindings: Array<Quad> };
+  boolean?: boolean;
+};
