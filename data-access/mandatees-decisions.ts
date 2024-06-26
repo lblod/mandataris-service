@@ -262,3 +262,34 @@ export async function hasOverlappingMandaat(
 
   return getBooleanSparqlResult(isOverlappingResult);
 }
+
+export async function insertQuadsInGraph(
+  quads: Array<Quad>,
+  graph: string,
+): Promise<void> {
+  // TODO: escape values depending on type
+  const insertTriples = quads.map((quad: Quad) => {
+    const subject = sparqlEscapeUri(quad.subject.value);
+    const predicate = sparqlEscapeUri(quad.predicate.value);
+    const object = sparqlEscapeUri(quad.object.value);
+
+    return `${subject} ${predicate} ${object} .`;
+  });
+
+  const insertQuery = `
+    INSERT DATA {
+      GRAPH ${sparqlEscapeUri(graph)} {
+        ${insertTriples.join('\n')}
+      }
+    }
+  `;
+
+  try {
+    await updateSudo(insertQuery, {}, { mayRetry: true });
+    console.log(
+      `|> Inserted new mandataris quads (${quads.length}) in graph (${graph}).`,
+    );
+  } catch (error) {
+    throw Error(`Could not insert ${quads.length} quads in graph (${graph}).`);
+  }
+}

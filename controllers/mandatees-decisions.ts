@@ -6,6 +6,7 @@ import {
   getSubjectsOfType,
   getValuesForSubjectPredicateInTarget,
   hasOverlappingMandaat,
+  insertQuadsInGraph,
   isMandatarisInTarget,
   updateDifferencesOfMandataris,
 } from '../data-access/mandatees-decisions';
@@ -20,6 +21,9 @@ export async function getDifferencesForTriples(changeSets: Array<Changeset>) {
     insertsOfChangeSets,
   );
 
+  // This throws a hard error when no graph is found! + THIS IS INCORRECT
+  const mandatarisGraph = await findGraphOfType(MANDATARIS_TYPE_URI);
+
   for (const mandatarisUri of mandatarisSubjects) {
     const incomingQuadsForSubject = insertsOfChangeSets.filter(
       (quad: Quad) => mandatarisUri === quad.subject.value,
@@ -29,9 +33,6 @@ export async function getDifferencesForTriples(changeSets: Array<Changeset>) {
       const currentQuads = await getValuesForSubjectPredicateInTarget(
         incomingQuadsForSubject,
       );
-
-      // This throws a hard error when no graph is found!
-      const mandatarisGraph = await findGraphOfType(mandatarisUri);
 
       await updateDifferencesOfMandataris(
         currentQuads,
@@ -57,6 +58,10 @@ export async function getDifferencesForTriples(changeSets: Array<Changeset>) {
         '|> persoonHasOverlappingMandaat',
         persoonHasOverlappingMandaat,
       );
+
+      if (!persoonHasOverlappingMandaat) {
+        await insertQuadsInGraph(incomingQuadsForSubject, mandatarisGraph);
+      }
     }
   }
 }
