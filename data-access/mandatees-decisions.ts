@@ -90,13 +90,11 @@ export async function findPersoonForMandataris(
   subjectUri: string,
 ): Promise<null | string> {
   const escapedSubjectUri = sparqlEscapeUri(subjectUri);
-  const escapedPersoonPredicate = sparqlEscapeUri(
-    'http://data.vlaanderen.be/ns/mandaat#isBestuurlijkeAliasVan',
-  );
   const queryForPersoon = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     SELECT ?persoonUri
     WHERE {
-      ${escapedSubjectUri} ${escapedPersoonPredicate} ?persoonUri .
+      ${escapedSubjectUri} mandaat:isBestuurlijkeAliasVan ?persoonUri .
     }
   `;
   const persoonForMandataris = await querySudo(queryForPersoon);
@@ -221,19 +219,16 @@ export async function findGraphOfType(typeUri: string): Promise<string> {
 export async function getMandateOfMandataris(
   mandatarisUri: string,
 ): Promise<string> {
-  const escaped = {
-    mandatarisType: sparqlEscapeUri(MANDATARIS_TYPE_URI),
-    mandatarisUri: sparqlEscapeUri(mandatarisUri),
-    bekleedtPredicate: sparqlEscapeUri('http://www.w3.org/ns/org#holds'),
-  };
   const queryForMandatarisMandate = `
+    PREFIX org: <http://www.w3.org/ns/org#>
+
     SELECT ?object
     WHERE {
-      ?subject a ${escaped.mandatarisType} .
-      ?subject ${escaped.bekleedtPredicate} ?object .
+      ?subject a ${sparqlEscapeUri(MANDATARIS_TYPE_URI)} .
+      ?subject org:holds ?object .
       MINUS {
         GRAPH ${sparqlEscapeUri(STAGING_GRAPH)} {
-          ?subject a ${escaped.mandatarisType} .
+          ?subject a ${sparqlEscapeUri(MANDATARIS_TYPE_URI)} .
         }
       }
     }
