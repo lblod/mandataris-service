@@ -1,6 +1,10 @@
 import multer from 'multer';
 import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
-import { sparqlEscapeUri, sparqlEscapeString, sparqlEscapeDateTime } from 'mu';
+import {
+  sparqlEscapeUri,
+  sparqlEscapeString,
+  sparqlEscapeDateTime,
+} from '../util/mu';
 import { v4 as uuidv4 } from 'uuid';
 import { Request, Response } from 'express';
 import { HttpError } from '../util/http-error';
@@ -11,7 +15,7 @@ const burgemeesterRouter = Router();
 
 const upload = multer({ dest: '/uploads/' });
 
-const storeFile = async (file, orgGraph) => {
+const storeFile = async (file, orgGraph: string) => {
   const originalFileName = file.originalname;
   const generatedName = file.filename;
   const format = file.mimetype;
@@ -94,17 +98,27 @@ const parseBody = (body) => {
     throw new HttpError('No burgemeesterUri provided', 400);
   }
   const status = body.status;
-  if (status != 'benoemd' && status != 'afgewezen') {
-    throw new HttpError('Invalid status provided', 400);
+  const possibleStatuses = Object.values(BENOEMING_STATUS);
+  if (!possibleStatuses.includes(status)) {
+    throw new HttpError(
+      `Invalid status provided. Please use the following: ${possibleStatuses.join(
+        ', ',
+      )}`,
+      400,
+    );
   }
   const date = body.datum;
   const parsedDate = new Date(date);
+  const minAllowedDate = new Date('2024-10-15T00:00:00.000Z');
   if (
     !date ||
-    parsedDate.getTime() < new Date('2024-10-15T00:00:00.000Z').getTime() ||
+    parsedDate.getTime() < minAllowedDate.getTime() ||
     isNaN(parsedDate.getTime())
   ) {
-    throw new HttpError('Invalid date provided', 400);
+    throw new HttpError(
+      `Invalid date provided. Please use a date after ${minAllowedDate.toJSON()}`,
+      400,
+    );
   }
   return {
     bestuurseenheidUri,
@@ -167,7 +181,10 @@ const findBurgemeesterMandaat = async (
     }  ORDER BY DESC(?start) LIMIT 1 `;
   const result = await querySudo(sparql);
   if (result.results.bindings.length === 0) {
-    throw new HttpError('No burgemeester mandaat found', 400);
+    throw new HttpError(
+      `No burgemeester mandaat found for bestuurseenheid (${bestuurseenheidUri})`,
+      400,
+    );
   }
   return {
     orgGraph: result.results.bindings[0].orgGraph.value as string,
@@ -175,7 +192,7 @@ const findBurgemeesterMandaat = async (
   };
 };
 
-const findExistingMandataris = async (orgGraph, mandaatUri) => {
+const findExistingMandataris = async (orgGraph: string, mandaatUri: string) => {
   const sparql = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
@@ -283,7 +300,10 @@ const markCurrentBurgemeesterAsRejected = async (
   `);
 
   if (!result.results.bindings.length) {
-    throw new HttpError('No existing mandataris found for this person', 400);
+    throw new HttpError(
+      `No existing mandataris found for burgemeester(${burgemeesterUri})`,
+      400,
+    );
   }
   const mandataris = result.results.bindings[0].mandataris.value;
   const mandatarisUri = sparqlEscapeUri(mandataris);
@@ -409,7 +429,7 @@ const benoemBurgemeester = async (
     }`);
 };
 
-const confirmKnownPerson = async (orgGraph, personUri) => {
+const confirmKnownPerson = async (orgGraph: string, personUri: string) => {
   const result = await querySudo(`
     ASK {
       GRAPH ${sparqlEscapeUri(orgGraph)} {
@@ -418,7 +438,7 @@ const confirmKnownPerson = async (orgGraph, personUri) => {
     }
   `);
   if (!result.boolean) {
-    throw new HttpError('Given person not found', 400);
+    throw new HttpError(`Person with uri ${personUri} not found`, 400);
   }
 };
 
@@ -465,7 +485,7 @@ const onBurgemeesterBenoemingSafe = async (req: Request) => {
     file,
     orgGraph,
   );
-  if (status === 'benoemd') {
+  if (status === BENOEMING_STATUS.BENOEMD) {
     const existing = await findExistingMandataris(
       orgGraph,
       burgemeesterMandaat,
@@ -487,7 +507,7 @@ const onBurgemeesterBenoemingSafe = async (req: Request) => {
         date,
       );
     }
-  } else if (status === 'afgewezen') {
+  } else if (status === BENOEMING_STATUS.AFGEWEZEN) {
     await markCurrentBurgemeesterAsRejected(
       orgGraph,
       burgemeesterUri,
@@ -504,7 +524,9 @@ const onBurgemeesterBenoeming = async (req: Request, res: Response) => {
   try {
     await checkAuthorization(req);
     await onBurgemeesterBenoemingSafe(req);
-    res.status(200).send({ message: 'File uploaded' });
+    res
+      .status(200)
+      .send({ message: `Burgemeester-benoeming: ${req.body.status}` });
   } catch (e) {
     const status = e.status || 500;
     res.status(status).send({ error: e.message });
@@ -520,3 +542,8 @@ export const handleBurgemeesterBenoeming = async (app) => {
 burgemeesterRouter.post('/', upload.single('file'), onBurgemeesterBenoeming);
 
 export { burgemeesterRouter };
+
+enum BENOEMING_STATUS {
+  BENOEMD = 'benoemd',
+  AFGEWEZEN = 'afgewezen',
+}
