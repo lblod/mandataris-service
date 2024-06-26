@@ -1,6 +1,10 @@
 import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
 import { sparqlEscapeUri } from 'mu';
 import { Quad } from '../util/types';
+import {
+  findFirstSparqlResult,
+  getBooleanSparqlResult,
+} from '../util/sparql-result';
 
 const STAGING_GRAPH = 'http://mu.semte.ch/graphs/besluiten-consumed';
 export const MANDATARIS_TYPE_URI =
@@ -212,4 +216,53 @@ export async function findGraphOfType(typeUri: string): Promise<string> {
   }
 
   return graphQueryResult.results.bindings[0].graph.value;
+}
+
+export async function getMandateOfMandataris(
+  mandatarisUri: string,
+): Promise<string> {
+  const escaped = {
+    mandatarisType: sparqlEscapeUri(MANDATARIS_TYPE_URI),
+    mandatarisUri: sparqlEscapeUri(mandatarisUri),
+    bekleedtPredicate: sparqlEscapeUri('http://www.w3.org/ns/org#holds'),
+  };
+  const queryForMandatarisMandate = `
+    SELECT ?object
+    WHERE {
+      ?subject a ${escaped.mandatarisType} .
+      ?subject ${escaped.bekleedtPredicate} ?object .
+      MINUS {
+        GRAPH ${sparqlEscapeUri(STAGING_GRAPH)} {
+          ?subject a ${escaped.mandatarisType} .
+        }
+      }
+    }
+  `;
+  const mandateResult = await querySudo(queryForMandatarisMandate);
+  const mandaatQuad = findFirstSparqlResult(mandateResult);
+  if (!mandaatQuad) {
+    throw Error(`No mandaat found for mandataris uri ${mandatarisUri}`);
+  }
+
+  return mandaatQuad.object.value;
+}
+
+export async function hasOverlappingMandaat(
+  persoonUri: string,
+  mandaatUri: string,
+): Promise<boolean> {
+  const askQuery = `
+  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+  PREFIX org: <http://www.w3.org/ns/org#>
+
+  ASK {
+    ?mandataris a ${sparqlEscapeUri(MANDATARIS_TYPE_URI)} ;
+      mandaat:isBestuurlijkeAliasVan ${sparqlEscapeUri(persoonUri)} ;
+      org:holds ${sparqlEscapeUri(mandaatUri)} .
+  }
+  `;
+
+  const isOverlappingResult = await querySudo(askQuery);
+
+  return getBooleanSparqlResult(isOverlappingResult);
 }
