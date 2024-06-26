@@ -1,22 +1,25 @@
 import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
 import { sparqlEscapeUri } from 'mu';
-import { Quad } from '../util/types';
+import { Quad, Term } from '../util/types';
 import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
   getSparqlResults,
 } from '../util/sparql-result';
+import { TERM_TYPE, sparqlEscapeTermValue } from '../util/sparql-escape';
 
 const STAGING_GRAPH = 'http://mu.semte.ch/graphs/besluiten-consumed';
-export const MANDATARIS_TYPE_URI =
-  'http://data.vlaanderen.be/ns/mandaat#Mandataris';
+export const TERM_MANDATARIS_TYPE = {
+  type: TERM_TYPE.URI,
+  value: 'http://data.vlaanderen.be/ns/mandaat#Mandataris',
+} as Term;
 
 export async function getSubjectsOfType(
-  typeUri: string,
+  rdfType: Term,
   triples: Array<Quad>,
-): Promise<string[]> {
+): Promise<Term[]> {
   const uniqueSubjects = Array.from(
-    new Set(triples.map((t) => sparqlEscapeUri(t.subject.value))),
+    new Set(triples.map((quad: Quad) => sparqlEscapeUri(quad.subject.value))),
   );
   const queryForType = `
     SELECT ?subject 
@@ -25,7 +28,7 @@ export async function getSubjectsOfType(
           VALUES ?subject {
             ${uniqueSubjects.join('\n')}
           }
-          ?subject a ${sparqlEscapeUri(typeUri)}.
+          ?subject a ${sparqlEscapeTermValue(rdfType)}.
       }
     }
   `;
@@ -36,15 +39,15 @@ export async function getSubjectsOfType(
     return [];
   }
 
-  return results.map((binding: Quad) => binding.subject.value);
+  return results.map((binding: Quad) => binding.subject);
 }
 
 export async function getValuesForSubjectPredicateInTarget(
   quads: Array<Quad>,
 ): Promise<Array<Quad>> {
   const useAsValues = quads.map((quad: Quad) => {
-    return `(${sparqlEscapeUri(quad.subject.value)} ${sparqlEscapeUri(
-      quad.predicate.value,
+    return `(${sparqlEscapeTermValue(quad.subject)} ${sparqlEscapeTermValue(
+      quad.predicate,
     )}) \n`;
   });
   const query = `
@@ -68,14 +71,14 @@ export async function getValuesForSubjectPredicateInTarget(
   return getSparqlResults(resultsInTarget);
 }
 
-export async function isMandatarisInTarget(subjectUri: string) {
-  const escapedMandatarisUri = sparqlEscapeUri(MANDATARIS_TYPE_URI);
+export async function isMandatarisInTarget(subject: Term) {
+  const mandatarisType = sparqlEscapeTermValue(TERM_MANDATARIS_TYPE);
   const askIfMandataris = `
     ASK {
-      ${sparqlEscapeUri(subjectUri)} a ${escapedMandatarisUri} .
+      ${sparqlEscapeTermValue(subject)} a ${mandatarisType} .
       MINUS {
         GRAPH ${sparqlEscapeUri(STAGING_GRAPH)} {
-          ${sparqlEscapeUri(subjectUri)} a ${escapedMandatarisUri} .
+          ${sparqlEscapeTermValue(subject)} a ${mandatarisType} .
         }
       }
     }
@@ -86,15 +89,14 @@ export async function isMandatarisInTarget(subjectUri: string) {
 }
 
 export async function findPersoonForMandataris(
-  subjectUri: string,
-): Promise<null | string> {
-  const escapedSubjectUri = sparqlEscapeUri(subjectUri);
+  subject: Term,
+): Promise<null | Term> {
   const queryForPersoon = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
 
     SELECT ?object
     WHERE {
-      ${escapedSubjectUri} mandaat:isBestuurlijkeAliasVan ?object .
+      ${sparqlEscapeTermValue(subject)} mandaat:isBestuurlijkeAliasVan ?object .
     }
   `;
   const persoonForMandataris = await querySudo(queryForPersoon);
@@ -103,13 +105,13 @@ export async function findPersoonForMandataris(
     return null;
   }
 
-  return persoon.object.value;
+  return persoon.object;
 }
 
 export async function updateDifferencesOfMandataris(
   currentQuads: Array<Quad>,
   incomingQuads: Array<Quad>,
-  toGraph: string,
+  toGraph: Term,
 ): Promise<void> {
   for (const incomingQuad of incomingQuads) {
     const currentQuad = currentQuads.find(
@@ -123,15 +125,15 @@ export async function updateDifferencesOfMandataris(
           `|> Value for predicate (${incomingQuad.predicate.value}) differ. Current: ${currentQuad.object.value} incoming: ${incomingQuad.object.value}. Updating value.`,
         );
         const escaped = {
-          subject: sparqlEscapeUri(currentQuad.subject.value),
-          predicate: sparqlEscapeUri(currentQuad.predicate.value),
-          graph: sparqlEscapeUri(currentQuad.graph.value),
+          subject: sparqlEscapeTermValue(currentQuad.subject),
+          predicate: sparqlEscapeTermValue(currentQuad.predicate),
+          graph: sparqlEscapeTermValue(currentQuad.graph),
           currentObject:
             currentQuad.object.value ??
-            sparqlEscapeUri(currentQuad.object.value),
+            sparqlEscapeTermValue(currentQuad.object),
           incomingObject:
             incomingQuad.object.value ??
-            sparqlEscapeUri(incomingQuad.object.value),
+            sparqlEscapeTermValue(incomingQuad.object),
         };
         const subjectPredicate = `${escaped.subject} ${escaped.predicate}`;
         const updateObjectValueQuery = `
@@ -168,10 +170,10 @@ export async function updateDifferencesOfMandataris(
       }
     } else {
       const escaped = {
-        subject: sparqlEscapeUri(incomingQuad.subject.value),
-        predicate: sparqlEscapeUri(incomingQuad.predicate.value),
-        incomingObject: sparqlEscapeUri(incomingQuad.object.value),
-        graph: sparqlEscapeUri(toGraph),
+        subject: sparqlEscapeTermValue(incomingQuad.subject),
+        predicate: sparqlEscapeTermValue(incomingQuad.predicate),
+        incomingObject: sparqlEscapeTermValue(incomingQuad.object),
+        graph: sparqlEscapeTermValue(toGraph),
       };
       const insertIncomingQuery = `
         INSERT DATA {
@@ -192,17 +194,16 @@ export async function updateDifferencesOfMandataris(
   }
 }
 
-export async function findGraphOfType(typeUri: string): Promise<string> {
-  const escapedTypeUri = sparqlEscapeUri(typeUri);
+export async function findGraphOfType(rdfType: Term): Promise<Term> {
   const queryForGraph = `
     SELECT ?graph
     WHERE {
       GRAPH ?graph {
-      ?subject a ${escapedTypeUri} .
+      ?subject a ${sparqlEscapeTermValue(rdfType)} .
       }
       MINUS {
         GRAPH ${sparqlEscapeUri(STAGING_GRAPH)} {
-          ?subject a ${escapedTypeUri} .
+          ?subject a ${sparqlEscapeTermValue(rdfType)} .
         }
       }
     }  
@@ -211,25 +212,22 @@ export async function findGraphOfType(typeUri: string): Promise<string> {
   const graphResult = findFirstSparqlResult(graphQueryResult);
   if (!graphResult) {
     // Hard error as we do not want data to be inserted in an unknown graph
-    throw Error(`Could not find graph for type: ${typeUri}`);
+    throw Error(`Could not find graph for type: ${rdfType}`);
   }
 
-  return graphResult.graph.value;
+  return graphResult.graph;
 }
 
-export async function getMandateOfMandataris(
-  mandatarisUri: string,
-): Promise<string> {
+export async function getMandateOfMandataris(mandataris: Term): Promise<Term> {
   const queryForMandatarisMandate = `
     PREFIX org: <http://www.w3.org/ns/org#>
 
     SELECT ?object
     WHERE {
-      ?subject a ${sparqlEscapeUri(MANDATARIS_TYPE_URI)} .
-      ?subject org:holds ?object .
+      ${sparqlEscapeTermValue(mandataris)} org:holds ?object .
       MINUS {
         GRAPH ${sparqlEscapeUri(STAGING_GRAPH)} {
-          ?subject a ${sparqlEscapeUri(MANDATARIS_TYPE_URI)} .
+          ${sparqlEscapeTermValue(mandataris)} org:holds ?object .
         }
       }
     }
@@ -237,24 +235,24 @@ export async function getMandateOfMandataris(
   const mandateResult = await querySudo(queryForMandatarisMandate);
   const mandaatQuad = findFirstSparqlResult(mandateResult);
   if (!mandaatQuad) {
-    throw Error(`No mandaat found for mandataris uri ${mandatarisUri}`);
+    throw Error(`No mandaat found for mandataris uri ${mandataris.value}`);
   }
 
-  return mandaatQuad.object.value;
+  return mandaatQuad.object;
 }
 
 export async function hasOverlappingMandaat(
-  persoonUri: string,
-  mandaatUri: string,
+  persoon: Term,
+  mandaat: Term,
 ): Promise<boolean> {
   const askQuery = `
   PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
   PREFIX org: <http://www.w3.org/ns/org#>
 
   ASK {
-    ?mandataris a ${sparqlEscapeUri(MANDATARIS_TYPE_URI)} ;
-      mandaat:isBestuurlijkeAliasVan ${sparqlEscapeUri(persoonUri)} ;
-      org:holds ${sparqlEscapeUri(mandaatUri)} .
+    ?mandataris a ${sparqlEscapeTermValue(TERM_MANDATARIS_TYPE)} ;
+      mandaat:isBestuurlijkeAliasVan ${sparqlEscapeTermValue(persoon)} ;
+      org:holds ${sparqlEscapeTermValue(mandaat)} .
   }
   `;
 
@@ -265,20 +263,19 @@ export async function hasOverlappingMandaat(
 
 export async function insertQuadsInGraph(
   quads: Array<Quad>,
-  graph: string,
+  graph: Term,
 ): Promise<void> {
-  // TODO: escape values depending on type
   const insertTriples = quads.map((quad: Quad) => {
-    const subject = sparqlEscapeUri(quad.subject.value);
-    const predicate = sparqlEscapeUri(quad.predicate.value);
-    const object = sparqlEscapeUri(quad.object.value);
+    const subject = sparqlEscapeTermValue(quad.subject);
+    const predicate = sparqlEscapeTermValue(quad.predicate);
+    const object = sparqlEscapeTermValue(quad.object);
 
     return `${subject} ${predicate} ${object} .`;
   });
 
   const insertQuery = `
     INSERT DATA {
-      GRAPH ${sparqlEscapeUri(graph)} {
+      GRAPH ${sparqlEscapeTermValue(graph)} {
         ${insertTriples.join('\n')}
       }
     }
@@ -287,9 +284,11 @@ export async function insertQuadsInGraph(
   try {
     await updateSudo(insertQuery, {}, { mayRetry: true });
     console.log(
-      `|> Inserted new mandataris quads (${quads.length}) in graph (${graph}).`,
+      `|> Inserted new mandataris quads (${quads.length}) in graph (${graph.value}).`,
     );
   } catch (error) {
-    throw Error(`Could not insert ${quads.length} quads in graph (${graph}).`);
+    throw Error(
+      `Could not insert ${quads.length} quads in graph (${graph.value}).`,
+    );
   }
 }

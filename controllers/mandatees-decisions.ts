@@ -1,5 +1,5 @@
 import {
-  MANDATARIS_TYPE_URI,
+  TERM_MANDATARIS_TYPE,
   findGraphOfType,
   findPersoonForMandataris,
   getMandateOfMandataris,
@@ -13,27 +13,28 @@ import {
 import { Changeset, Quad } from '../util/types';
 
 export async function getDifferencesForTriples(changeSets: Array<Changeset>) {
+  console.log('|> process deltas');
   const insertsOfChangeSets = changeSets
     .map((changeSet: Changeset) => changeSet.inserts)
     .flat();
   const mandatarisSubjects = await getSubjectsOfType(
-    MANDATARIS_TYPE_URI,
+    TERM_MANDATARIS_TYPE,
     insertsOfChangeSets,
   );
 
   // This throws a hard error when no graph is found! + THIS IS INCORRECT
-  const mandatarisGraph = await findGraphOfType(MANDATARIS_TYPE_URI);
-
-  for (const mandatarisUri of mandatarisSubjects) {
+  const mandatarisGraph = await findGraphOfType(TERM_MANDATARIS_TYPE);
+  console.log(`|> Found ${mandatarisSubjects.length} mandataris subjects.`);
+  for (const mandatarisSubject of mandatarisSubjects) {
     const incomingQuadsForSubject = insertsOfChangeSets.filter(
-      (quad: Quad) => mandatarisUri === quad.subject.value,
+      (quad: Quad) => mandatarisSubject.value === quad.subject.value,
     );
-    const isExistingInTarget = await isMandatarisInTarget(mandatarisUri);
+    const isExistingInTarget = await isMandatarisInTarget(mandatarisSubject);
     if (isExistingInTarget) {
       const currentQuads = await getValuesForSubjectPredicateInTarget(
         incomingQuadsForSubject,
       );
-
+      console.log('|> Mandataris exists in LMB. updating predicate values.');
       await updateDifferencesOfMandataris(
         currentQuads,
         incomingQuadsForSubject,
@@ -42,25 +43,27 @@ export async function getDifferencesForTriples(changeSets: Array<Changeset>) {
     }
 
     // Looking for persoon in every graph!
-    const persoonUriOfMandataris =
-      await findPersoonForMandataris(mandatarisUri);
-    console.log('|> persoonOfMandataris', persoonUriOfMandataris);
+    const persoonOfMandataris =
+      await findPersoonForMandataris(mandatarisSubject);
 
-    if (!persoonUriOfMandataris) {
+    if (!persoonOfMandataris) {
       // TODO: LMB-520
     } else {
-      const mandaatUri = await getMandateOfMandataris(mandatarisUri);
+      console.log(`|> Person (${persoonOfMandataris.value}) found.`);
+      const mandaat = await getMandateOfMandataris(mandatarisSubject);
       const persoonHasOverlappingMandaat = await hasOverlappingMandaat(
-        persoonUriOfMandataris,
-        mandaatUri,
-      );
-      console.log(
-        '|> persoonHasOverlappingMandaat',
-        persoonHasOverlappingMandaat,
+        persoonOfMandataris,
+        mandaat,
       );
 
       if (!persoonHasOverlappingMandaat) {
+        console.log('|> No overlap with mandaat. Inserting triples.');
         await insertQuadsInGraph(incomingQuadsForSubject, mandatarisGraph);
+      } else {
+        console.log(
+          '|> Persoon Has Overlapping WithMandaat',
+          persoonHasOverlappingMandaat,
+        );
       }
     }
   }
