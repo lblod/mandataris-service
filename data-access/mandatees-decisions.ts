@@ -4,6 +4,7 @@ import { Quad } from '../util/types';
 import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
+  getSparqlResults,
 } from '../util/sparql-result';
 
 const STAGING_GRAPH = 'http://mu.semte.ch/graphs/besluiten-consumed';
@@ -30,14 +31,12 @@ export async function getSubjectsOfType(
   `;
 
   const subjectsOfType = await querySudo(queryForType);
-
-  if (subjectsOfType.results.bindings.length === 0) {
+  const results = getSparqlResults(subjectsOfType);
+  if (results.length === 0) {
     return [];
   }
 
-  return subjectsOfType.results.bindings.map(
-    (binding: Quad) => binding.subject.value,
-  );
+  return results.map((binding: Quad) => binding.subject.value);
 }
 
 export async function getValuesForSubjectPredicateInTarget(
@@ -66,7 +65,7 @@ export async function getValuesForSubjectPredicateInTarget(
   `;
   const resultsInTarget = await querySudo(query);
 
-  return resultsInTarget.results.bindings;
+  return getSparqlResults(resultsInTarget);
 }
 
 export async function isMandatarisInTarget(subjectUri: string) {
@@ -83,7 +82,7 @@ export async function isMandatarisInTarget(subjectUri: string) {
   `;
   const result = await querySudo(askIfMandataris);
 
-  return result.boolean;
+  return getBooleanSparqlResult(result);
 }
 
 export async function findPersoonForMandataris(
@@ -92,18 +91,19 @@ export async function findPersoonForMandataris(
   const escapedSubjectUri = sparqlEscapeUri(subjectUri);
   const queryForPersoon = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    SELECT ?persoonUri
+
+    SELECT ?object
     WHERE {
-      ${escapedSubjectUri} mandaat:isBestuurlijkeAliasVan ?persoonUri .
+      ${escapedSubjectUri} mandaat:isBestuurlijkeAliasVan ?object .
     }
   `;
   const persoonForMandataris = await querySudo(queryForPersoon);
-
-  if (persoonForMandataris.results.bindings.length === 0) {
+  const persoon = findFirstSparqlResult(persoonForMandataris);
+  if (!persoon) {
     return null;
   }
 
-  return persoonForMandataris.results.bindings[0].persoonUri.value;
+  return persoon.object.value;
 }
 
 export async function updateDifferencesOfMandataris(
@@ -208,12 +208,13 @@ export async function findGraphOfType(typeUri: string): Promise<string> {
     }  
   `;
   const graphQueryResult = await querySudo(queryForGraph);
-  if (graphQueryResult.results.bindings.length === 0) {
+  const graphResult = findFirstSparqlResult(graphQueryResult);
+  if (!graphResult) {
     // Hard error as we do not want data to be inserted in an unknown graph
     throw Error(`Could not find graph for type: ${typeUri}`);
   }
 
-  return graphQueryResult.results.bindings[0].graph.value;
+  return graphResult.graph.value;
 }
 
 export async function getMandateOfMandataris(
