@@ -111,7 +111,6 @@ export async function findPersoonForMandataris(
 export async function updateDifferencesOfMandataris(
   currentQuads: Array<Quad>,
   incomingQuads: Array<Quad>,
-  toGraph: Term,
 ): Promise<void> {
   for (const incomingQuad of incomingQuads) {
     const currentQuad = currentQuads.find(
@@ -173,7 +172,7 @@ export async function updateDifferencesOfMandataris(
         subject: sparqlEscapeTermValue(incomingQuad.subject),
         predicate: sparqlEscapeTermValue(incomingQuad.predicate),
         incomingObject: sparqlEscapeTermValue(incomingQuad.object),
-        graph: sparqlEscapeTermValue(toGraph),
+        graph: sparqlEscapeTermValue(incomingQuad.graph),
       };
       const insertIncomingQuery = `
         INSERT DATA {
@@ -251,6 +250,7 @@ export async function hasOverlappingMandaat(
 
   ASK {
     ?mandataris a ${sparqlEscapeTermValue(TERM_MANDATARIS_TYPE)} ;
+
       mandaat:isBestuurlijkeAliasVan ${sparqlEscapeTermValue(persoon)} ;
       org:holds ${sparqlEscapeTermValue(mandaat)} .
   }
@@ -261,10 +261,13 @@ export async function hasOverlappingMandaat(
   return getBooleanSparqlResult(isOverlappingResult);
 }
 
-export async function insertQuadsInGraph(
-  quads: Array<Quad>,
-  graph: Term,
-): Promise<void> {
+export async function insertQuadsInGraph(quads: Array<Quad>): Promise<void> {
+  if (quads.length === 0) {
+    return;
+  }
+
+  const graph = quads[0].graph;
+
   const insertTriples = quads.map((quad: Quad) => {
     const subject = sparqlEscapeTermValue(quad.subject);
     const predicate = sparqlEscapeTermValue(quad.predicate);

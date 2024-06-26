@@ -22,8 +22,6 @@ export async function getDifferencesForTriples(changeSets: Array<Changeset>) {
     insertsOfChangeSets,
   );
 
-  // This throws a hard error when no graph is found! + THIS IS INCORRECT
-  const mandatarisGraph = await findGraphOfType(TERM_MANDATARIS_TYPE);
   console.log(`|> Found ${mandatarisSubjects.length} mandataris subjects.`);
   for (const mandatarisSubject of mandatarisSubjects) {
     const incomingQuadsForSubject = insertsOfChangeSets.filter(
@@ -38,7 +36,6 @@ export async function getDifferencesForTriples(changeSets: Array<Changeset>) {
       await updateDifferencesOfMandataris(
         currentQuads,
         incomingQuadsForSubject,
-        mandatarisGraph,
       );
     }
 
@@ -58,7 +55,7 @@ export async function getDifferencesForTriples(changeSets: Array<Changeset>) {
 
       if (!persoonHasOverlappingMandaat) {
         console.log('|> No overlap with mandaat. Inserting triples.');
-        await insertQuadsInGraph(incomingQuadsForSubject, mandatarisGraph);
+        await insertQuadsInGraph(incomingQuadsForSubject);
       } else {
         console.log(
           '|> Persoon Has Overlapping WithMandaat',
