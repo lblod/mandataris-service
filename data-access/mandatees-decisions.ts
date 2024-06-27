@@ -7,6 +7,7 @@ import {
   getSparqlResults,
 } from '../util/sparql-result';
 import { TERM_TYPE, sparqlEscapeTermValue } from '../util/sparql-escape';
+import { MANDATARIS_STATUS } from '../util/constants';
 
 const STAGING_GRAPH = 'http://mu.semte.ch/graphs/besluiten-consumed';
 export const TERM_MANDATARIS_TYPE = {
@@ -244,16 +245,18 @@ export async function findOverlappingMandataris(
   persoon: Term,
   mandaat: Term,
 ): Promise<Quad | null> {
-  const statusEffectief =
-    'http://data.vlaanderen.be/id/concept/MandatarisStatusCode/21063a5b-912c-4241-841c-cc7fb3c73e75';
   const queryMandataris = `
   PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
   PREFIX org: <http://www.w3.org/ns/org#>
 
   SELECT ?subject
   WHERE {
+    VALUES ?status {
+      ${sparqlEscapeUri(MANDATARIS_STATUS.EFFECTIEF)}
+      ${sparqlEscapeUri(MANDATARIS_STATUS.DRAFT)}
+    }
     ?subject a ${sparqlEscapeTermValue(TERM_MANDATARIS_TYPE)} ;
-      mandaat:status ${statusEffectief};
+      mandaat:status ?status; 
       mandaat:isBestuurlijkeAliasVan ${sparqlEscapeTermValue(persoon)} ;
       org:holds ${sparqlEscapeTermValue(mandaat)} .
   }
