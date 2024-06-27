@@ -57,14 +57,16 @@ export async function handleDeltaChangeset(changeSets: Array<Changeset>) {
         mandaat,
       );
       console.log(
-        `|> persoon has overlapping mandaat? ${overlappingMandataris?.subject.value ?? false
+        `|> persoon has overlapping mandaat? ${
+          overlappingMandataris?.subject.value ?? false
         }`,
       );
 
       if (overlappingMandataris) {
         const startDate = await findStartDateOfMandataris(mandatarisSubject);
         console.log(
-          `|> Found start date for incoming mandataris? ${startDate?.value ?? null
+          `|> Found start date for incoming mandataris? ${
+            startDate?.value ?? null
           }`,
         );
         if (startDate) {
