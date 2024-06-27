@@ -249,7 +249,7 @@ export async function findOverlappingMandataris(
   PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
   PREFIX org: <http://www.w3.org/ns/org#>
 
-  SELECT ?subject
+  SELECT DISTINCT ?subject
   WHERE {
     VALUES ?status {
       ${sparqlEscapeUri(MANDATARIS_STATUS.EFFECTIEF)}
