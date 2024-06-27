@@ -15,7 +15,7 @@ import {
 } from '../data-access/mandatees-decisions';
 import { Changeset, Quad } from '../util/types';
 
-export async function getDifferencesForTriples(changeSets: Array<Changeset>) {
+export async function handleDeltaChangeset(changeSets: Array<Changeset>) {
   console.log('|> process deltas');
   const insertsOfChangeSets = changeSets
     .map((changeSet: Changeset) => changeSet.inserts)
