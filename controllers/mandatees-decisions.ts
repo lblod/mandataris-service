@@ -16,7 +16,7 @@ import {
 import { Changeset, Quad } from '../util/types';
 
 export async function handleDeltaChangeset(changeSets: Array<Changeset>) {
-  console.log('|> process deltas');
+  console.log('|> Handle delta changeset');
   const insertsOfChangeSets = changeSets
     .map((changeSet: Changeset) => changeSet.inserts)
     .flat();
@@ -27,15 +27,17 @@ export async function handleDeltaChangeset(changeSets: Array<Changeset>) {
 
   console.log(`|> Found ${mandatarisSubjects.length} mandataris subjects.`);
   for (const mandatarisSubject of mandatarisSubjects) {
+    console.log('|> \t Start new loop', mandatarisSubject.value);
     const incomingQuadsForSubject = insertsOfChangeSets.filter(
       (quad: Quad) => mandatarisSubject.value === quad.subject.value,
     );
     const isExistingInTarget = await isMandatarisInTarget(mandatarisSubject);
+    console.log(`|> Mandataris exists in LMB database? ${isExistingInTarget}`);
     if (isExistingInTarget) {
       const currentQuads = await getValuesForSubjectPredicateInTarget(
         incomingQuadsForSubject,
       );
-      console.log('|> Mandataris exists in LMB. updating predicate values.');
+      console.log('|> Updating mandataris predicate values.');
       await updateDifferencesOfMandataris(
         currentQuads,
         incomingQuadsForSubject,
@@ -45,30 +47,41 @@ export async function handleDeltaChangeset(changeSets: Array<Changeset>) {
     // Looking for persoon in every graph!
     const persoonOfMandataris =
       await findPersoonForMandataris(mandatarisSubject);
-
-    if (!persoonOfMandataris) {
-      // TODO: LMB-520
-    } else {
-      console.log(`|> Person (${persoonOfMandataris.value}) found.`);
+    console.log(
+      `|> Persoon from mandataris: ${persoonOfMandataris?.value ?? undefined}.`,
+    );
+    if (persoonOfMandataris) {
       const mandaat = await getMandateOfMandataris(mandatarisSubject);
       const overlappingMandataris = await findOverlappingMandataris(
         persoonOfMandataris,
         mandaat,
       );
+      console.log(
+        `|> persoon has overlapping mandaat? ${overlappingMandataris?.subject.value ?? false
+        }`,
+      );
 
-      if (!overlappingMandataris) {
-        console.log('|> No overlap with mandaat. Inserting triples.');
-        await insertQuadsInGraph(incomingQuadsForSubject);
-      } else {
+      if (overlappingMandataris) {
         const startDate = await findStartDateOfMandataris(mandatarisSubject);
+        console.log(
+          `|> Found start date for incoming mandataris? ${startDate?.value ?? null
+          }`,
+        );
         if (startDate) {
           await terminateMandataris(overlappingMandataris.subject, startDate);
         }
-        console.log(
-          '|> Persoon Has Overlapping WithMandaat',
-          overlappingMandataris,
-        );
       }
+      console.log(
+        '|> Before inserting incoming triples',
+        incomingQuadsForSubject,
+      );
+      await insertQuadsInGraph(incomingQuadsForSubject);
+
+      console.log(
+        `|> End of logic for mandataris subject: ${mandatarisSubject.value} \n\n`,
+      );
+    } else {
+      // TODO: LMB-520
     }
   }
 }
