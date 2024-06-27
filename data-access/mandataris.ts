@@ -240,12 +240,12 @@ export async function terminateMandataris(
   const terminateQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
 
-    DELETE {
+    DELETE DATA {
       ${sparqlEscapeTermValue(mandataris)} mandaat:status ?object .
       ${sparqlEscapeTermValue(mandataris)} mandaat:einde ?object .
 
     }
-    INSERT {
+    INSERT DATA {
       ${sparqlEscapeTermValue(mandataris)} mandaat:status ${statusBeeindigd} .
       ${sparqlEscapeTermValue(mandataris)} mandaat:einde ${datumBeeindigd} .
     }
