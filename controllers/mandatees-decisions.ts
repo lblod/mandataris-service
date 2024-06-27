@@ -1,4 +1,8 @@
 import {
+  findStartDateOfMandataris as findStartDateOfMandataris,
+  terminateMandataris,
+} from '../data-access/mandataris';
+import {
   TERM_MANDATARIS_TYPE,
   findPersoonForMandataris,
   getMandateOfMandataris,
@@ -56,6 +60,10 @@ export async function getDifferencesForTriples(changeSets: Array<Changeset>) {
         console.log('|> No overlap with mandaat. Inserting triples.');
         await insertQuadsInGraph(incomingQuadsForSubject);
       } else {
+        const startDate = await findStartDateOfMandataris(mandatarisSubject);
+        if (startDate) {
+          await terminateMandataris(overlappingMandataris.subject, startDate);
+        }
         console.log(
           '|> Persoon Has Overlapping WithMandaat',
           overlappingMandataris,
