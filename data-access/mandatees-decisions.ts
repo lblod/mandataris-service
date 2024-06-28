@@ -218,7 +218,9 @@ export async function findGraphOfType(rdfType: Term): Promise<Term> {
   return graphResult.graph;
 }
 
-export async function getMandateOfMandataris(mandataris: Term): Promise<Term> {
+export async function getMandateOfMandataris(
+  mandataris: Term,
+): Promise<Term | null> {
   const queryForMandatarisMandate = `
     PREFIX org: <http://www.w3.org/ns/org#>
 
@@ -234,11 +236,8 @@ export async function getMandateOfMandataris(mandataris: Term): Promise<Term> {
   `;
   const mandateResult = await querySudo(queryForMandatarisMandate);
   const mandaatQuad = findFirstSparqlResult(mandateResult);
-  if (!mandaatQuad) {
-    throw Error(`No mandaat found for mandataris uri ${mandataris.value}`);
-  }
 
-  return mandaatQuad.object;
+  return mandaatQuad?.object ?? null;
 }
 
 export async function findOverlappingMandataris(
@@ -267,12 +266,13 @@ export async function findOverlappingMandataris(
   return findFirstSparqlResult(mandatarisResult);
 }
 
-export async function insertQuadsInGraph(quads: Array<Quad>): Promise<void> {
+export async function insertQuadsInGraph(
+  quads: Array<Quad>,
+  graph: Term,
+): Promise<void> {
   if (quads.length === 0) {
     return;
   }
-
-  const graph = quads[0].graph;
 
   const insertTriples = quads.map((quad: Quad) => {
     const subject = sparqlEscapeTermValue(quad.subject);

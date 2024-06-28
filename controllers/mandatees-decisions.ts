@@ -1,3 +1,4 @@
+import { findBestuurseenheidForMandaat } from '../data-access/bestuurseenheid';
 import {
   findStartDateOfMandataris as findStartDateOfMandataris,
   terminateMandataris,
@@ -5,7 +6,7 @@ import {
 import {
   TERM_MANDATARIS_TYPE,
   findPersoonForMandataris,
-  getMandateOfMandataris,
+  getMandateOfMandataris as findMandateOfMandataris,
   getSubjectsOfType,
   getValuesForSubjectPredicateInTarget,
   findOverlappingMandataris,
@@ -50,8 +51,16 @@ export async function handleDeltaChangeset(changeSets: Array<Changeset>) {
     console.log(
       `|> Persoon from mandataris: ${persoonOfMandataris?.value ?? undefined}.`,
     );
+    const mandaat = await findMandateOfMandataris(mandatarisSubject);
+
+    if (!mandaat) {
+      console.log(
+        `|> No mandaat found for mandataris with subject: ${mandatarisSubject.value}`,
+      );
+      continue;
+    }
+
     if (persoonOfMandataris) {
-      const mandaat = await getMandateOfMandataris(mandatarisSubject);
       const overlappingMandataris = await findOverlappingMandataris(
         persoonOfMandataris,
         mandaat,
@@ -73,11 +82,16 @@ export async function handleDeltaChangeset(changeSets: Array<Changeset>) {
           await terminateMandataris(overlappingMandataris.subject, startDate);
         }
       }
-      console.log(
-        '|> Before inserting incoming triples',
-        incomingQuadsForSubject,
-      );
-      await insertQuadsInGraph(incomingQuadsForSubject);
+
+      const mandatarisGraph = await findBestuurseenheidForMandaat(mandaat);
+      if (!mandatarisGraph) {
+        throw Error(
+          `Could not find graph for mandataris. Not inserting incoming triples: ${JSON.stringify(
+            incomingQuadsForSubject,
+          )}`,
+        );
+      }
+      await insertQuadsInGraph(incomingQuadsForSubject, mandatarisGraph);
 
       console.log(
         `|> End of logic for mandataris subject: ${mandatarisSubject.value} \n\n`,
