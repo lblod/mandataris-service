@@ -240,14 +240,26 @@ export async function terminateMandataris(
   const terminateQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
 
-    DELETE DATA {
-      ${sparqlEscapeTermValue(mandataris)} mandaat:status ?object .
-      ${sparqlEscapeTermValue(mandataris)} mandaat:einde ?object .
-
+    DELETE {
+      GRAPH ?graph {
+      ${sparqlEscapeTermValue(mandataris)}
+        mandaat:status ?status ;
+        mandaat:einde ?einde .
+      }
     }
-    INSERT DATA {
-      ${sparqlEscapeTermValue(mandataris)} mandaat:status ${statusBeeindigd} .
-      ${sparqlEscapeTermValue(mandataris)} mandaat:einde ${datumBeeindigd} .
+    INSERT {
+      GRAPH ?graph {
+        ${sparqlEscapeTermValue(mandataris)}
+          mandaat:status ${statusBeeindigd} ;
+          mandaat:einde ${datumBeeindigd} .
+      }
+    }
+    WHERE {
+      GRAPH ?graph {
+        ${sparqlEscapeTermValue(mandataris)}
+          mandaat:status ?status ;
+          mandaat:einde ?einde .
+      }
     }
   `;
 
