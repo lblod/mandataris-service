@@ -1,6 +1,6 @@
 import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
 import { sparqlEscapeUri } from 'mu';
-import { Quad, Term } from '../types';
+import { Quad, Term, TermProperty } from '../types';
 import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
@@ -40,12 +40,12 @@ export async function getSubjectsOfType(
     return [];
   }
 
-  return results.map((binding: Quad) => binding.subject);
+  return results.map((binding: TermProperty) => binding.subject);
 }
 
 export async function getValuesForSubjectPredicateInTarget(
   quads: Array<Quad>,
-): Promise<Array<Quad>> {
+): Promise<Array<TermProperty>> {
   const useAsValues = quads.map((quad: Quad) => {
     return `(${sparqlEscapeTermValue(quad.subject)} ${sparqlEscapeTermValue(
       quad.predicate,
@@ -214,7 +214,7 @@ export async function getMandateOfMandataris(
 export async function findOverlappingMandataris(
   persoon: Term,
   mandaat: Term,
-): Promise<Quad | null> {
+): Promise<TermProperty | null> {
   const queryMandataris = `
   PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
   PREFIX org: <http://www.w3.org/ns/org#>

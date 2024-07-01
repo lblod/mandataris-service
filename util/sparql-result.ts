@@ -1,10 +1,14 @@
-import { Quad, SparqlResult } from './types';
+import { TermProperty, SparqlResult } from '../types';
 
-export function getSparqlResults(sparqlResult: SparqlResult): Array<Quad> {
+export function getSparqlResults(
+  sparqlResult: SparqlResult,
+): Array<TermProperty> {
   return sparqlResult.results.bindings;
 }
 
-export function findFirstSparqlResult(sparqlResult: SparqlResult): Quad | null {
+export function findFirstSparqlResult(
+  sparqlResult: SparqlResult,
+): TermProperty | null {
   const sparqlResults = getSparqlResults(sparqlResult);
 
   if (sparqlResults.length === 0) {

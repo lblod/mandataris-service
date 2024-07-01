@@ -46,7 +46,11 @@ export type Changeset = {
   deletes: Quad[];
 };
 
+export type TermProperty = {
+  [key: string]: Term;
+};
+
 export type SparqlResult = {
-  results: { bindings: Array<Quad> };
+  results: { bindings: Array<TermProperty> };
   boolean?: boolean;
 };
