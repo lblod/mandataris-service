@@ -194,30 +194,6 @@ export async function updateDifferencesOfMandataris(
   }
 }
 
-export async function findGraphOfType(rdfType: Term): Promise<Term> {
-  const queryForGraph = `
-    SELECT ?graph
-    WHERE {
-      GRAPH ?graph {
-      ?subject a ${sparqlEscapeTermValue(rdfType)} .
-      }
-      MINUS {
-        GRAPH ${sparqlEscapeUri(STAGING_GRAPH)} {
-          ?subject a ${sparqlEscapeTermValue(rdfType)} .
-        }
-      }
-    }  
-  `;
-  const graphQueryResult = await querySudo(queryForGraph);
-  const graphResult = findFirstSparqlResult(graphQueryResult);
-  if (!graphResult) {
-    // Hard error as we do not want data to be inserted in an unknown graph
-    throw Error(`Could not find graph for type: ${rdfType}`);
-  }
-
-  return graphResult.graph;
-}
-
 export async function getMandateOfMandataris(
   mandataris: Term,
 ): Promise<Term | null> {
