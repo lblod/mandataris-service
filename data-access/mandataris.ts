@@ -8,7 +8,7 @@ import {
 import { CSVRow, CsvUploadState, MandateHit } from '../types';
 import moment from 'moment';
 import { v4 as uuidv4 } from 'uuid';
-import { Term } from '../util/types';
+import { Term } from '../types';
 import { MANDATARIS_STATUS } from '../util/constants';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import { findFirstSparqlResult } from '../util/sparql-result';

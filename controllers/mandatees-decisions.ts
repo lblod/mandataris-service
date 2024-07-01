@@ -14,7 +14,7 @@ import {
   isMandatarisInTarget,
   updateDifferencesOfMandataris,
 } from '../data-access/mandatees-decisions';
-import { Changeset, Quad } from '../util/types';
+import { Changeset, Quad } from '../types';
 
 export async function handleDeltaChangeset(changeSets: Array<Changeset>) {
   console.log('|> 1. Handle delta changeset');

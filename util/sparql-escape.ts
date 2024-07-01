@@ -1,4 +1,4 @@
-import { Term } from './types';
+import { Term } from '../types';
 import { sparqlEscapeUri, sparqlEscapeDateTime, sparqlEscapeString } from 'mu';
 
 export enum TERM_TYPE {
