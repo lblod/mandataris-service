@@ -4,76 +4,72 @@ import {
   terminateMandataris,
 } from '../data-access/mandataris';
 import {
-  TERM_MANDATARIS_TYPE,
   findPersoonForMandatarisInGraph,
   getMandateOfMandataris as findMandateOfMandataris,
-  getSubjectsOfType,
-  getValuesForSubjectPredicateInTarget,
+  getQuadsInLmbFromTriples,
   findOverlappingMandataris,
-  insertQuadsInGraph,
-  isMandatarisInTarget,
+  insertTriplesInGraph,
+  isMandatarisInTarget as isMandatarisInLmbDatabase,
   updateDifferencesOfMandataris,
+  getTriplesOfSubject,
+  TERM_STAGING_GRAPH,
 } from '../data-access/mandatees-decisions';
-import { Changeset, Quad } from '../types';
+import { Term } from '../types';
 
-export async function handleDeltaChangeset(changeSets: Array<Changeset>) {
-  console.log('|> 1. Handle delta changeset');
-  const insertsOfChangeSets = changeSets
-    .map((changeSet: Changeset) => changeSet.inserts)
-    .flat();
-  const mandatarisSubjects = await getSubjectsOfType(
-    TERM_MANDATARIS_TYPE,
-    insertsOfChangeSets,
-  );
-
+export async function handleTriplesForMandatarisSubjects(
+  mandatarisSubjects: Array<Term>,
+) {
   console.log(
-    `|> 2.Found ${mandatarisSubjects.length} unique mandataris subjects.`,
+    `|> Handle Triples For Mandataris Subjects (${mandatarisSubjects.length})`,
   );
-  for (const mandatarisSubject of mandatarisSubjects) {
-    console.log('|> 3.1 Start new loop', mandatarisSubject.value);
-    const incomingQuadsForSubject = insertsOfChangeSets.filter(
-      (quad: Quad) => mandatarisSubject.value === quad.subject.value,
-    );
-    const isExistingInTarget = await isMandatarisInTarget(mandatarisSubject);
-    console.log(
-      `|> 3.2 Mandataris exists in LMB database? ${isExistingInTarget}`,
-    );
-    if (isExistingInTarget) {
-      const currentQuads = await getValuesForSubjectPredicateInTarget(
-        incomingQuadsForSubject,
-      );
-      console.log('|> 3.3 Updating mandataris predicate values.');
-      await updateDifferencesOfMandataris(
-        currentQuads,
-        incomingQuadsForSubject,
-      );
 
-      console.log(
-        '|> 3.4 Going to the next mandataris subeject as triples are updated. \n|>\n',
-      );
-      continue;
-    }
+  for (const mandatarisSubject of mandatarisSubjects) {
+    console.log(`|> Mandataris uri: ${mandatarisSubject.value}`);
+    const isExitingInLmbDatabase =
+      await isMandatarisInLmbDatabase(mandatarisSubject);
+    console.log(
+      `|> Mandataris exists in LMB database? ${isExitingInLmbDatabase}`,
+    );
 
     const mandaat = await findMandateOfMandataris(mandatarisSubject);
-    console.log('|> 4.1 Mandaat for mandataris', mandaat);
+    console.log('|> Mandaat for mandataris', mandaat);
     if (!mandaat) {
       console.log(
-        `|> 4.2 No mandaat found for mandataris with subject: ${mandatarisSubject.value} \n|>\n`,
+        `|> No mandaat found for mandataris with subject: ${mandatarisSubject.value} \n|>\n`,
       );
       continue;
     }
 
     const mandatarisGraph = await findBestuurseenheidForMandaat(mandaat);
-    console.log(
-      `|> 5 mandataris graph: ${mandatarisGraph?.value ?? undefined}.`,
-    );
+    console.log(`|> mandataris graph: ${mandatarisGraph?.value ?? undefined}.`);
 
     if (!mandatarisGraph) {
-      throw Error(
-        `Could not find graph for mandataris. Not inserting incoming triples: ${JSON.stringify(
-          incomingQuadsForSubject,
-        )}`,
+      console.log(
+        `|> Could not find graph from mandaat: ${mandaat.value}. Continueing to the next subject.\n|>\n`,
       );
+      continue;
+    }
+
+    const incomingTriples = await getTriplesOfSubject(
+      mandatarisSubject,
+      TERM_STAGING_GRAPH,
+    );
+    console.log(
+      `|> Found ${incomingTriples.length} in the staging graph for mandataris.`,
+    );
+    if (isExitingInLmbDatabase) {
+      const currentQuads = await getQuadsInLmbFromTriples(incomingTriples);
+      console.log('|> Updating mandataris predicate values.');
+      await updateDifferencesOfMandataris(
+        currentQuads,
+        incomingTriples,
+        mandatarisGraph,
+      );
+
+      console.log(
+        '|> Going to the next mandataris subeject as triples are updated. \n|>\n',
+      );
+      continue;
     }
 
     // Looking for persoon in graph of the mandataris
@@ -82,9 +78,7 @@ export async function handleDeltaChangeset(changeSets: Array<Changeset>) {
       mandatarisGraph,
     );
     console.log(
-      `|> 6.1 Persoon from mandataris: ${
-        persoonOfMandataris?.value ?? undefined
-      }.`,
+      `|> Persoon from mandataris: ${persoonOfMandataris?.value ?? undefined}.`,
     );
 
     if (persoonOfMandataris) {
@@ -93,7 +87,7 @@ export async function handleDeltaChangeset(changeSets: Array<Changeset>) {
         mandaat,
       );
       console.log(
-        `|> 6.2 persoon has overlapping mandaat? ${
+        `|> Persoon has overlapping mandaat? ${
           overlappingMandataris?.value ?? false
         }`,
       );
@@ -101,18 +95,18 @@ export async function handleDeltaChangeset(changeSets: Array<Changeset>) {
       if (overlappingMandataris) {
         const startDate = await findStartDateOfMandataris(mandatarisSubject);
         console.log(
-          `|> 6.3 Found start date for incoming mandataris? ${startDate}`,
+          `|> Found start date for incoming mandataris? ${startDate}`,
         );
         if (startDate) {
           await terminateMandataris(overlappingMandataris, startDate);
         }
       }
 
-      console.log('|> 6.4 inserting incoming triples');
-      await insertQuadsInGraph(incomingQuadsForSubject, mandatarisGraph);
+      console.log('|> Inserting incoming triples');
+      await insertTriplesInGraph(incomingTriples, mandatarisGraph);
     } else {
       // TODO: LMB-520
-      console.log('|> 7 Persoon does not exist: TODO in LMB-520');
+      console.log('|> Persoon does not exist: TODO in LMB-520');
     }
     console.log(
       `|> End of logic for mandataris subject: ${mandatarisSubject.value} \n|>\n`,
