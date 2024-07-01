@@ -34,6 +34,12 @@ export type Term = {
   value: string;
 };
 
+export type Triple = {
+  subject: Term;
+  predicate: Term;
+  object: Term;
+};
+
 export type Quad = {
   subject: Term;
   predicate: Term;

@@ -3,15 +3,29 @@ import Router from 'express-promise-router';
 import { Request, Response } from 'express';
 
 import { Changeset } from '../types';
-import { handleDeltaChangeset } from '../controllers/mandatees-decisions';
+import { handleTriplesForMandatarisSubjects } from '../controllers/mandatees-decisions';
 import { ProcessingQueue } from '../services/processing-queue';
+import {
+  getSubjectsOfType,
+  TERM_MANDATARIS_TYPE,
+} from '../data-access/mandatees-decisions';
 
 const mandateesDecisionsRouter = Router();
 const todo = new ProcessingQueue();
 
 mandateesDecisionsRouter.post('/', async (req: Request, res: Response) => {
-  const changeSets: Changeset[] = req.body;
-  todo.addToQueue(async () => await handleDeltaChangeset(changeSets));
+  const changesets: Changeset[] = req.body;
+  const insertTriples = changesets
+    .map((changeset: Changeset) => changeset.inserts)
+    .flat();
+  const mandatarisSubjects = await getSubjectsOfType(
+    TERM_MANDATARIS_TYPE,
+    insertTriples,
+  );
+
+  todo.addToQueue(
+    async () => await handleTriplesForMandatarisSubjects(mandatarisSubjects),
+  );
 
   return res.status(200).send({ status: 'ok' });
 });

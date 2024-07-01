@@ -1,6 +1,6 @@
 import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
 import { sparqlEscapeUri } from 'mu';
-import { Quad, Term, TermProperty } from '../types';
+import { Quad, Term, TermProperty, Triple } from '../types';
 import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
@@ -9,7 +9,10 @@ import {
 import { TERM_TYPE, sparqlEscapeTermValue } from '../util/sparql-escape';
 import { MANDATARIS_STATUS } from '../util/constants';
 
-const STAGING_GRAPH = 'http://mu.semte.ch/graphs/besluiten-consumed';
+export const TERM_STAGING_GRAPH = {
+  type: TERM_TYPE.URI,
+  value: 'http://mu.semte.ch/graphs/besluiten-consumed',
+};
 export const TERM_MANDATARIS_TYPE = {
   type: TERM_TYPE.URI,
   value: 'http://data.vlaanderen.be/ns/mandaat#Mandataris',
@@ -25,7 +28,7 @@ export async function getSubjectsOfType(
   const queryForType = `
     SELECT ?subject 
       WHERE {
-        GRAPH ${sparqlEscapeUri(STAGING_GRAPH)} {
+        GRAPH ${sparqlEscapeTermValue(TERM_STAGING_GRAPH)} {
           VALUES ?subject {
             ${uniqueSubjects.join('\n')}
           }
@@ -43,12 +46,36 @@ export async function getSubjectsOfType(
   return results.map((binding: TermProperty) => binding.subject);
 }
 
-export async function getValuesForSubjectPredicateInTarget(
-  quads: Array<Quad>,
+export async function getTriplesOfSubject(
+  subject: Term,
+  graph: Term,
+): Promise<Array<Triple>> {
+  const queryForsubject = `
+    SELECT ?predicate ?object ?graph
+    WHERE {
+      GRAPH ${sparqlEscapeTermValue(graph)} {
+        ${sparqlEscapeTermValue(subject)} ?predicate ?object .
+      }
+    }
+  `;
+
+  const results = await querySudo(queryForsubject);
+
+  return getSparqlResults(results).map((po) => {
+    return {
+      subject: subject,
+      predicate: po.predicate,
+      object: po.object,
+    } as Triple;
+  });
+}
+
+export async function getQuadsInLmbFromTriples(
+  triples: Array<Triple>,
 ): Promise<Array<Quad>> {
-  const useAsValues = quads.map((quad: Quad) => {
-    return `(${sparqlEscapeTermValue(quad.subject)} ${sparqlEscapeTermValue(
-      quad.predicate,
+  const useAsValues = triples.map((triple: Triple) => {
+    return `(${sparqlEscapeTermValue(triple.subject)} ${sparqlEscapeTermValue(
+      triple.predicate,
     )}) \n`;
   });
   const query = `
@@ -60,7 +87,7 @@ export async function getValuesForSubjectPredicateInTarget(
         }
         ?subject ?predicate ?object .
         MINUS {
-          GRAPH ${sparqlEscapeUri(STAGING_GRAPH)} {
+          GRAPH ${sparqlEscapeTermValue(TERM_STAGING_GRAPH)} {
             ?subject ?predicate ?object .
           }
         }
@@ -78,7 +105,7 @@ export async function isMandatarisInTarget(subject: Term) {
     ASK {
       ${sparqlEscapeTermValue(subject)} a ${mandatarisType} .
       MINUS {
-        GRAPH ${sparqlEscapeUri(STAGING_GRAPH)} {
+        GRAPH ${sparqlEscapeTermValue(TERM_STAGING_GRAPH)} {
           ${sparqlEscapeTermValue(subject)} a ${mandatarisType} .
         }
       }
@@ -116,29 +143,30 @@ export async function findPersoonForMandatarisInGraph(
 
 export async function updateDifferencesOfMandataris(
   currentQuads: Array<Quad>,
-  incomingQuads: Array<Quad>,
+  incomingTriples: Array<Triple>,
+  insertGraph: Term,
 ): Promise<void> {
-  for (const incomingQuad of incomingQuads) {
+  for (const incomingTriple of incomingTriples) {
     const currentQuad = currentQuads.find(
       (quad: Quad) =>
-        quad.subject.value == incomingQuad.subject.value &&
-        quad.predicate.value == incomingQuad.predicate.value,
+        quad.subject.value == incomingTriple.subject.value &&
+        quad.predicate.value == incomingTriple.predicate.value,
     );
     if (currentQuad) {
-      if (incomingQuad.object.value !== currentQuad.object.value) {
+      if (incomingTriple.object.value !== currentQuad.object.value) {
         console.log(
-          `|> Value for predicate (${incomingQuad.predicate.value}) differ. Current: ${currentQuad.object.value} incoming: ${incomingQuad.object.value}. Updating value.`,
+          `|> Value for predicate (${incomingTriple.predicate.value}) differ. Current: ${currentQuad.object.value} incoming: ${incomingTriple.object.value}. Updating value.`,
         );
         const escaped = {
           subject: sparqlEscapeTermValue(currentQuad.subject),
           predicate: sparqlEscapeTermValue(currentQuad.predicate),
-          graph: sparqlEscapeTermValue(currentQuad.graph),
+          graph: sparqlEscapeTermValue(insertGraph),
           currentObject:
             currentQuad.object.value ??
             sparqlEscapeTermValue(currentQuad.object),
           incomingObject:
-            incomingQuad.object.value ??
-            sparqlEscapeTermValue(incomingQuad.object),
+            incomingTriple.object.value ??
+            sparqlEscapeTermValue(incomingTriple.object),
         };
         const subjectPredicate = `${escaped.subject} ${escaped.predicate}`;
         const updateObjectValueQuery = `
@@ -155,7 +183,7 @@ export async function updateDifferencesOfMandataris(
               ${escaped.subject} ${escaped.predicate} ${escaped.currentObject} .
              } 
              MINUS {
-              GRAPH ${sparqlEscapeUri(STAGING_GRAPH)} {
+              GRAPH ${sparqlEscapeTermValue(TERM_STAGING_GRAPH)} {
                 ${subjectPredicate} ${escaped.currentObject}
               }
             }
@@ -165,7 +193,7 @@ export async function updateDifferencesOfMandataris(
         try {
           await updateSudo(updateObjectValueQuery, {}, { mayRetry: true });
           console.log(
-            `|> Updated value for predicate (${incomingQuad.predicate.value}) to ${incomingQuad.object.value}.`,
+            `|> Updated value for predicate (${incomingTriple.predicate.value}) to ${incomingTriple.object.value}.`,
           );
         } catch (error) {
           throw Error(
@@ -175,10 +203,10 @@ export async function updateDifferencesOfMandataris(
       }
     } else {
       const escaped = {
-        subject: sparqlEscapeTermValue(incomingQuad.subject),
-        predicate: sparqlEscapeTermValue(incomingQuad.predicate),
-        incomingObject: sparqlEscapeTermValue(incomingQuad.object),
-        graph: sparqlEscapeTermValue(incomingQuad.graph),
+        subject: sparqlEscapeTermValue(incomingTriple.subject),
+        predicate: sparqlEscapeTermValue(incomingTriple.predicate),
+        incomingObject: sparqlEscapeTermValue(incomingTriple.object),
+        graph: sparqlEscapeTermValue(insertGraph),
       };
       const insertIncomingQuery = `
         INSERT DATA {
@@ -189,10 +217,10 @@ export async function updateDifferencesOfMandataris(
       `;
       try {
         await updateSudo(insertIncomingQuery, {}, { mayRetry: true });
-        console.log(`|> Inserted triple: ${JSON.stringify(incomingQuad)}`);
+        console.log(`|> Inserted triple: ${JSON.stringify(incomingTriple)}`);
       } catch (error) {
         throw Error(
-          `Could not insert incoming triple: ${JSON.stringify(incomingQuad)}`,
+          `Could not insert incoming triple: ${JSON.stringify(incomingTriple)}`,
         );
       }
     }
@@ -242,18 +270,18 @@ export async function findOverlappingMandataris(
   return findFirstSparqlResult(mandatarisResult)?.mandataris ?? null;
 }
 
-export async function insertQuadsInGraph(
-  quads: Array<Quad>,
+export async function insertTriplesInGraph(
+  triples: Array<Triple>,
   graph: Term,
 ): Promise<void> {
-  if (quads.length === 0) {
+  if (triples.length === 0) {
     return;
   }
 
-  const insertTriples = quads.map((quad: Quad) => {
-    const subject = sparqlEscapeTermValue(quad.subject);
-    const predicate = sparqlEscapeTermValue(quad.predicate);
-    const object = sparqlEscapeTermValue(quad.object);
+  const insertTriples = triples.map((triple: Triple) => {
+    const subject = sparqlEscapeTermValue(triple.subject);
+    const predicate = sparqlEscapeTermValue(triple.predicate);
+    const object = sparqlEscapeTermValue(triple.object);
 
     return `${subject} ${predicate} ${object} .`;
   });
@@ -269,11 +297,11 @@ export async function insertQuadsInGraph(
   try {
     await updateSudo(insertQuery, {}, { mayRetry: true });
     console.log(
-      `|> Inserted new mandataris quads (${quads.length}) in graph (${graph.value}).`,
+      `|> Inserted new mandataris triples (${triples.length}) in graph (${graph.value}).`,
     );
   } catch (error) {
     throw Error(
-      `Could not insert ${quads.length} quads in graph (${graph.value}).`,
+      `Could not insert ${triples.length} triples in graph (${graph.value}).`,
     );
   }
 }
