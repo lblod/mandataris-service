@@ -23,8 +23,6 @@ const {
  * @return {void} Nothing
  */
 async function dispatch(lib, data) {
-  console.log(`|> INITAL SYNC`);
-
   const triples = data.termObjects;
   await parallelisedBatchedUpdate(
     lib,

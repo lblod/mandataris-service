@@ -22,7 +22,6 @@ const {
  * @return {void} Nothing
  */
 async function dispatch(lib, data) {
-  console.log(`|> DELTA SYNC`);
   const { termObjectChangeSets } = data;
 
   for (let { deletes, inserts } of termObjectChangeSets) {
