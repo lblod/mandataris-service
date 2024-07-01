@@ -14,9 +14,9 @@ export async function findBestuurseenheidForMandaat(
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
-    SELECT ?object WHERE {
+    SELECT ?id WHERE {
       ?bestuurseenheid a besluit:Bestuurseenheid.
-      ?bestuurseenheid mu:uuid ?object.
+      ?bestuurseenheid mu:uuid ?id.
       ?bestuursorgaan besluit:bestuurt ?bestuurseenheid .
       ?bestuursorgaanInTijd mandaat:isTijdspecialisatieVan ?bestuursorgaan .
       ?bestuursorgaanInTijd org:hasPost ${sparqlEscapeTermValue(mandaat)} .
@@ -24,9 +24,9 @@ export async function findBestuurseenheidForMandaat(
   `;
 
   const idResult = await querySudo(queryForId);
-  const id = findFirstSparqlResult(idResult)?.object;
+  const result = findFirstSparqlResult(idResult);
 
-  if (!id) {
+  if (!result) {
     return null;
   }
 
@@ -34,7 +34,7 @@ export async function findBestuurseenheidForMandaat(
     type: TERM_TYPE.URI,
     value:
       'http://mu.semte.ch/graph/organizations/' +
-      id.value +
+      result.id.value +
       '/LoketLB-mandaatGebruiker',
   } as Term;
 }

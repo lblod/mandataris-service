@@ -101,20 +101,17 @@ export async function findPersoonForMandatarisInGraph(
   const queryForPersoon = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
 
-    SELECT ?object
+    SELECT ?persoon
     WHERE {
       GRAPH ${escaped.graph}{
-        ${escaped.mandataris} mandaat:isBestuurlijkeAliasVan ?object .
+        ${escaped.mandataris} mandaat:isBestuurlijkeAliasVan ?persoon .
       }
     }
   `;
   const persoonForMandataris = await querySudo(queryForPersoon);
-  const persoon = findFirstSparqlResult(persoonForMandataris);
-  if (!persoon) {
-    return null;
-  }
+  const result = findFirstSparqlResult(persoonForMandataris);
 
-  return persoon.object;
+  return result?.persoon ?? null;
 }
 
 export async function updateDifferencesOfMandataris(
@@ -208,32 +205,32 @@ export async function getMandateOfMandataris(
   const queryForMandatarisMandate = `
     PREFIX org: <http://www.w3.org/ns/org#>
 
-    SELECT ?object
+    SELECT ?mandaat
     WHERE {
-      ${sparqlEscapeTermValue(mandataris)} org:holds ?object .
+      ${sparqlEscapeTermValue(mandataris)} org:holds ?mandaat .
     }
   `;
   const mandateResult = await querySudo(queryForMandatarisMandate);
   const mandaatQuad = findFirstSparqlResult(mandateResult);
 
-  return mandaatQuad?.object ?? null;
+  return mandaatQuad?.mandaat ?? null;
 }
 
 export async function findOverlappingMandataris(
   persoon: Term,
   mandaat: Term,
-): Promise<TermProperty | null> {
+): Promise<Term | null> {
   const queryMandataris = `
   PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
   PREFIX org: <http://www.w3.org/ns/org#>
 
-  SELECT DISTINCT ?subject
+  SELECT DISTINCT ?mandataris
   WHERE {
     VALUES ?status {
       ${sparqlEscapeUri(MANDATARIS_STATUS.EFFECTIEF)}
       ${sparqlEscapeUri(MANDATARIS_STATUS.DRAFT)}
     }
-    ?subject a ${sparqlEscapeTermValue(TERM_MANDATARIS_TYPE)} ;
+    ?mandataris a ${sparqlEscapeTermValue(TERM_MANDATARIS_TYPE)} ;
       mandaat:status ?status; 
       mandaat:isBestuurlijkeAliasVan ${sparqlEscapeTermValue(persoon)} ;
       org:holds ${sparqlEscapeTermValue(mandaat)} .
@@ -242,7 +239,7 @@ export async function findOverlappingMandataris(
 
   const mandatarisResult = await querySudo(queryMandataris);
 
-  return findFirstSparqlResult(mandatarisResult);
+  return findFirstSparqlResult(mandatarisResult)?.mandataris ?? null;
 }
 
 export async function insertQuadsInGraph(

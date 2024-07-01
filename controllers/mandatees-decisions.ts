@@ -49,7 +49,7 @@ export async function handleDeltaChangeset(changeSets: Array<Changeset>) {
       );
 
       console.log(
-        '|> 3.4 Going to the next mandataris subeject as triples are updated.',
+        '|> 3.4 Going to the next mandataris subeject as triples are updated. \n|>\n',
       );
       continue;
     }
@@ -58,7 +58,7 @@ export async function handleDeltaChangeset(changeSets: Array<Changeset>) {
     console.log('|> 4.1 Mandaat for mandataris', mandaat);
     if (!mandaat) {
       console.log(
-        `|> 4.2 No mandaat found for mandataris with subject: ${mandatarisSubject.value}`,
+        `|> 4.2 No mandaat found for mandataris with subject: ${mandatarisSubject.value} \n|>\n`,
       );
       continue;
     }
@@ -94,7 +94,7 @@ export async function handleDeltaChangeset(changeSets: Array<Changeset>) {
       );
       console.log(
         `|> 6.2 persoon has overlapping mandaat? ${
-          overlappingMandataris?.subject.value ?? false
+          overlappingMandataris?.value ?? false
         }`,
       );
 
@@ -104,7 +104,7 @@ export async function handleDeltaChangeset(changeSets: Array<Changeset>) {
           `|> 6.3 Found start date for incoming mandataris? ${startDate}`,
         );
         if (startDate) {
-          await terminateMandataris(overlappingMandataris.subject, startDate);
+          await terminateMandataris(overlappingMandataris, startDate);
         }
       }
 

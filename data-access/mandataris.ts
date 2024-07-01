@@ -276,17 +276,17 @@ export async function findStartDateOfMandataris(
   const startDateQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
 
-    SELECT ?object
+    SELECT ?startDate
     WHERE {
-      ${sparqlEscapeTermValue(mandataris)} mandaat:start ?object .
+      ${sparqlEscapeTermValue(mandataris)} mandaat:start ?startDate .
     }
   `;
 
   const dateResult = await querySudo(startDateQuery);
-  const firstResult = findFirstSparqlResult(dateResult);
+  const result = findFirstSparqlResult(dateResult);
 
-  if (firstResult?.object) {
-    return new Date(firstResult?.object.value);
+  if (result) {
+    return new Date(result.startDate.value);
   }
 
   return null;
