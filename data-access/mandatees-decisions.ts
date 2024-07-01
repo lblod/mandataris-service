@@ -89,15 +89,23 @@ export async function isMandatarisInTarget(subject: Term) {
   return getBooleanSparqlResult(result);
 }
 
-export async function findPersoonForMandataris(
+export async function findPersoonForMandatarisInGraph(
   subject: Term,
+  graph: Term,
 ): Promise<null | Term> {
+  const escaped = {
+    graph: sparqlEscapeTermValue(graph),
+    mandataris: sparqlEscapeTermValue(subject),
+  };
+
   const queryForPersoon = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
 
     SELECT ?object
     WHERE {
-      ${sparqlEscapeTermValue(subject)} mandaat:isBestuurlijkeAliasVan ?object .
+      GRAPH ${escaped.graph}{
+        ${escaped.mandataris} mandaat:isBestuurlijkeAliasVan ?object .
+      }
     }
   `;
   const persoonForMandataris = await querySudo(queryForPersoon);
