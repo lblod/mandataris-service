@@ -227,11 +227,6 @@ export async function getMandateOfMandataris(
     SELECT ?object
     WHERE {
       ${sparqlEscapeTermValue(mandataris)} org:holds ?object .
-      MINUS {
-        GRAPH ${sparqlEscapeUri(STAGING_GRAPH)} {
-          ${sparqlEscapeTermValue(mandataris)} org:holds ?object .
-        }
-      }
     }
   `;
   const mandateResult = await querySudo(queryForMandatarisMandate);
