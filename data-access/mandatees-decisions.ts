@@ -45,7 +45,7 @@ export async function getSubjectsOfType(
 
 export async function getValuesForSubjectPredicateInTarget(
   quads: Array<Quad>,
-): Promise<Array<TermProperty>> {
+): Promise<Array<Quad>> {
   const useAsValues = quads.map((quad: Quad) => {
     return `(${sparqlEscapeTermValue(quad.subject)} ${sparqlEscapeTermValue(
       quad.predicate,
@@ -69,7 +69,7 @@ export async function getValuesForSubjectPredicateInTarget(
   `;
   const resultsInTarget = await querySudo(query);
 
-  return getSparqlResults(resultsInTarget);
+  return getSparqlResults(resultsInTarget) as Array<Quad>;
 }
 
 export async function isMandatarisInTarget(subject: Term) {
