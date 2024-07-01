@@ -2,7 +2,7 @@ import Router from 'express-promise-router';
 
 import { Request, Response } from 'express';
 
-import { Changeset } from '../util/types';
+import { Changeset } from '../types';
 import { handleDeltaChangeset } from '../controllers/mandatees-decisions';
 import { ProcessingQueue } from '../services/processing-queue';
 

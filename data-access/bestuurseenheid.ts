@@ -1,6 +1,6 @@
 import { TERM_TYPE, sparqlEscapeTermValue } from '../util/sparql-escape';
 import { findFirstSparqlResult } from '../util/sparql-result';
-import { Term } from '../util/types';
+import { Term } from '../types';
 import { querySudo } from '@lblod/mu-auth-sudo';
 
 export async function findBestuurseenheidForMandaat(

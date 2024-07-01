@@ -1,6 +1,6 @@
 import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
 import { sparqlEscapeUri } from 'mu';
-import { Quad, Term } from '../util/types';
+import { Quad, Term } from '../types';
 import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
