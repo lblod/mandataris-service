@@ -138,7 +138,7 @@ export async function updateDifferencesOfMandataris(
         const subjectPredicate = `${escaped.subject} ${escaped.predicate}`;
         const updateObjectValueQuery = `
           DELETE {
-            GRAPH ?graph {
+            GRAPH ${escaped.graph} {
               ${subjectPredicate} ${escaped.currentObject}
             }
           } INSERT {
@@ -146,7 +146,7 @@ export async function updateDifferencesOfMandataris(
               ${subjectPredicate} ${escaped.incomingObject} .
             }
           } WHERE {
-             GRAPH ?graph {
+             GRAPH ${escaped.graph} {
               ${escaped.subject} ${escaped.predicate} ${escaped.currentObject} .
              } 
              MINUS {
