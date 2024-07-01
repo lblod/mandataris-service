@@ -80,9 +80,7 @@ export async function handleDeltaChangeset(changeSets: Array<Changeset>) {
       if (overlappingMandataris) {
         const startDate = await findStartDateOfMandataris(mandatarisSubject);
         console.log(
-          `|> 6.2 Found start date for incoming mandataris? ${
-            startDate?.value ?? null
-          }`,
+          `|> 6.2 Found start date for incoming mandataris? ${startDate}`,
         );
         if (startDate) {
           await terminateMandataris(overlappingMandataris.subject, startDate);

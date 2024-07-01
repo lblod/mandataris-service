@@ -227,7 +227,7 @@ export const validateNoOverlappingMandate = async (
 
 export async function terminateMandataris(
   mandataris: Term,
-  endDate: Term,
+  endDate: Date,
 ): Promise<void> {
   if (!endDate) {
     throw Error(
@@ -236,7 +236,7 @@ export async function terminateMandataris(
   }
 
   const statusBeeindigd = sparqlEscapeUri(MANDATARIS_STATUS.BEEINDIGD);
-  const datumBeeindigd = sparqlEscapeTermValue(endDate);
+  const datumBeeindigd = sparqlEscapeDateTime(endDate);
   const terminateQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
 
@@ -273,7 +273,7 @@ export async function terminateMandataris(
 
 export async function findStartDateOfMandataris(
   mandataris: Term,
-): Promise<Term | null> {
+): Promise<Date | null> {
   const startDateQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
 
@@ -284,6 +284,11 @@ export async function findStartDateOfMandataris(
   `;
 
   const dateResult = await querySudo(startDateQuery);
+  const firstResult = findFirstSparqlResult(dateResult);
 
-  return findFirstSparqlResult(dateResult)?.object ?? null;
+  if (firstResult?.object) {
+    return new Date(firstResult?.object.value);
+  }
+
+  return null;
 }
