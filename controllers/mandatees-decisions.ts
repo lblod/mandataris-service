@@ -90,8 +90,9 @@ export async function handleDeltaChangeset(changeSets: Array<Changeset>) {
             incomingQuadsForSubject,
           )}`,
         );
+      } else {
+        await insertQuadsInGraph(incomingQuadsForSubject, mandatarisGraph);
       }
-      await insertQuadsInGraph(incomingQuadsForSubject, mandatarisGraph);
 
       console.log(
         `|> End of logic for mandataris subject: ${mandatarisSubject.value} \n\n`,
