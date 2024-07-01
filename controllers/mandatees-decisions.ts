@@ -47,6 +47,11 @@ export async function handleDeltaChangeset(changeSets: Array<Changeset>) {
         currentQuads,
         incomingQuadsForSubject,
       );
+
+      console.log(
+        '|> 3.4 Going to the next mandataris subeject as triples are updated.',
+      );
+      continue;
     }
 
     // Looking for persoon in every graph!
