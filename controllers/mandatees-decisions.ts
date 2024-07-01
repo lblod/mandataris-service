@@ -17,7 +17,7 @@ import {
 import { Changeset, Quad } from '../util/types';
 
 export async function handleDeltaChangeset(changeSets: Array<Changeset>) {
-  console.log('|> Handle delta changeset');
+  console.log('|> 1. Handle delta changeset');
   const insertsOfChangeSets = changeSets
     .map((changeSet: Changeset) => changeSet.inserts)
     .flat();
@@ -26,19 +26,23 @@ export async function handleDeltaChangeset(changeSets: Array<Changeset>) {
     insertsOfChangeSets,
   );
 
-  console.log(`|> Found ${mandatarisSubjects.length} mandataris subjects.`);
+  console.log(
+    `|> 2.Found ${mandatarisSubjects.length} unique mandataris subjects.`,
+  );
   for (const mandatarisSubject of mandatarisSubjects) {
-    console.log('|> \t Start new loop', mandatarisSubject.value);
+    console.log('|> \t 3.1 Start new loop', mandatarisSubject.value);
     const incomingQuadsForSubject = insertsOfChangeSets.filter(
       (quad: Quad) => mandatarisSubject.value === quad.subject.value,
     );
     const isExistingInTarget = await isMandatarisInTarget(mandatarisSubject);
-    console.log(`|> Mandataris exists in LMB database? ${isExistingInTarget}`);
+    console.log(
+      `|> 3.2 Mandataris exists in LMB database? ${isExistingInTarget}`,
+    );
     if (isExistingInTarget) {
       const currentQuads = await getValuesForSubjectPredicateInTarget(
         incomingQuadsForSubject,
       );
-      console.log('|> Updating mandataris predicate values.');
+      console.log('|> 3.3 Updating mandataris predicate values.');
       await updateDifferencesOfMandataris(
         currentQuads,
         incomingQuadsForSubject,
@@ -49,13 +53,15 @@ export async function handleDeltaChangeset(changeSets: Array<Changeset>) {
     const persoonOfMandataris =
       await findPersoonForMandataris(mandatarisSubject);
     console.log(
-      `|> Persoon from mandataris: ${persoonOfMandataris?.value ?? undefined}.`,
+      `|> 4 Persoon from mandataris: ${
+        persoonOfMandataris?.value ?? undefined
+      }.`,
     );
     const mandaat = await findMandateOfMandataris(mandatarisSubject);
-
+    console.log('|> 5 Mandaat for mandataris', mandaat);
     if (!mandaat) {
       console.log(
-        `|> No mandaat found for mandataris with subject: ${mandatarisSubject.value}`,
+        `|> 5.2 No mandaat found for mandataris with subject: ${mandatarisSubject.value}`,
       );
       continue;
     }
@@ -66,7 +72,7 @@ export async function handleDeltaChangeset(changeSets: Array<Changeset>) {
         mandaat,
       );
       console.log(
-        `|> persoon has overlapping mandaat? ${
+        `|> 6.1 persoon has overlapping mandaat? ${
           overlappingMandataris?.subject.value ?? false
         }`,
       );
@@ -74,7 +80,7 @@ export async function handleDeltaChangeset(changeSets: Array<Changeset>) {
       if (overlappingMandataris) {
         const startDate = await findStartDateOfMandataris(mandatarisSubject);
         console.log(
-          `|> Found start date for incoming mandataris? ${
+          `|> 6.2 Found start date for incoming mandataris? ${
             startDate?.value ?? null
           }`,
         );
@@ -84,6 +90,9 @@ export async function handleDeltaChangeset(changeSets: Array<Changeset>) {
       }
 
       const mandatarisGraph = await findBestuurseenheidForMandaat(mandaat);
+      console.log(
+        `|> 6.3 mandataris graph: ${mandatarisGraph?.value ?? undefined}.`,
+      );
       if (!mandatarisGraph) {
         throw Error(
           `Could not find graph for mandataris. Not inserting incoming triples: ${JSON.stringify(
@@ -91,14 +100,15 @@ export async function handleDeltaChangeset(changeSets: Array<Changeset>) {
           )}`,
         );
       } else {
+        console.log('|> 6.4 inserting incoming triples');
         await insertQuadsInGraph(incomingQuadsForSubject, mandatarisGraph);
       }
-
-      console.log(
-        `|> End of logic for mandataris subject: ${mandatarisSubject.value} \n\n`,
-      );
     } else {
       // TODO: LMB-520
+      console.log('|> 6.1 Persoon does not exist: TODO in LMB-520');
     }
+    console.log(
+      `|> End of logic for mandataris subject: ${mandatarisSubject.value} \n\n`,
+    );
   }
 }
