@@ -1,13 +1,16 @@
-import { querySudo } from '@lblod/mu-auth-sudo';
+import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
 import {
   query,
   sparqlEscapeString,
   sparqlEscapeDateTime,
   sparqlEscapeUri,
 } from 'mu';
-import { CSVRow, CsvUploadState, MandateHit } from '../types';
+import { CSVRow, CsvUploadState, MandateHit, Term } from '../types';
 import moment from 'moment';
 import { v4 as uuidv4 } from 'uuid';
+import { MANDATARIS_STATUS } from '../util/constants';
+import { sparqlEscapeTermValue } from '../util/sparql-escape';
+import { findFirstSparqlResult } from '../util/sparql-result';
 
 export const findGraphAndMandates = async (row: CSVRow) => {
   const mandates = await findMandatesByName(row);
@@ -220,3 +223,71 @@ export const validateNoOverlappingMandate = async (
   }
   return false;
 };
+
+export async function terminateMandataris(
+  mandataris: Term,
+  endDate: Date,
+): Promise<void> {
+  if (!endDate) {
+    throw Error(
+      `|> End date not set! Mandataris with uri "${mandataris.value}" will not be terminated.`,
+    );
+  }
+
+  const statusBeeindigd = sparqlEscapeUri(MANDATARIS_STATUS.BEEINDIGD);
+  const datumBeeindigd = sparqlEscapeDateTime(endDate);
+  const terminateQuery = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+
+    DELETE {
+      GRAPH ?graph {
+      ${sparqlEscapeTermValue(mandataris)}
+        mandaat:status ?status ;
+        mandaat:einde ?einde .
+      }
+    }
+    INSERT {
+      GRAPH ?graph {
+        ${sparqlEscapeTermValue(mandataris)}
+          mandaat:status ${statusBeeindigd} ;
+          mandaat:einde ${datumBeeindigd} .
+      }
+    }
+    WHERE {
+      GRAPH ?graph {
+        ${sparqlEscapeTermValue(mandataris)}
+          mandaat:status ?status ;
+          mandaat:einde ?einde .
+      }
+    }
+  `;
+
+  try {
+    await updateSudo(terminateQuery, {}, { mayRetry: true });
+    console.log(`|> Terminated mandataris with uri: ${mandataris.value}.`);
+  } catch (error) {
+    throw Error(`Could not terminate mandataris with uri: ${mandataris.value}`);
+  }
+}
+
+export async function findStartDateOfMandataris(
+  mandataris: Term,
+): Promise<Date | null> {
+  const startDateQuery = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+
+    SELECT ?startDate
+    WHERE {
+      ${sparqlEscapeTermValue(mandataris)} mandaat:start ?startDate .
+    }
+  `;
+
+  const dateResult = await querySudo(startDateQuery);
+  const result = findFirstSparqlResult(dateResult);
+
+  if (result) {
+    return new Date(result.startDate.value);
+  }
+
+  return null;
+}
