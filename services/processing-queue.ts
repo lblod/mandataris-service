@@ -51,8 +51,7 @@ export class ProcessingQueue {
       (term: Term) => !subjectsInQueue.includes(term.value),
     );
     console.log(
-      `|> Found ${
-        subjects.length - nonDuplicates.length
+      `|> Found ${subjects.length - nonDuplicates.length
       } subjects that where already in the queue.`,
     );
     this.queue.push(...nonDuplicates);
@@ -76,6 +75,7 @@ export class ProcessingQueue {
       `|> Moving ${this.manualQueue.length} items from manual queue to the acutal executing queue.`,
     );
     this.addToQueue(this.manualQueue);
+    this.manualQueue = [];
   }
 
   setMethodToExecute(method: (args: any) => Promise<unknown>) {
