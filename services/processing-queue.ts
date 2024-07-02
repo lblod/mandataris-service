@@ -4,11 +4,13 @@ import { Term } from '../types';
 export class ProcessingQueue {
   toExecute: (args: any) => Promise<unknown> | null;
   queue: Array<Term>;
+  manualQueue: Array<Term>;
   executing: boolean;
   queuePollInterval: number;
 
   constructor() {
     this.queue = [];
+    this.manualQueue = [];
     this.run();
     this.executing = false;
     this.queuePollInterval = 60000;
@@ -54,6 +56,26 @@ export class ProcessingQueue {
       } subjects that where already in the queue.`,
     );
     this.queue.push(...nonDuplicates);
+  }
+
+  addToManualQueue(subjects: Array<Term>) {
+    const subjectsInQueue = this.manualQueue.map(
+      (subject: Term) => subject.value,
+    );
+    const nonDuplicates = subjects.filter(
+      (term: Term) => !subjectsInQueue.includes(term.value),
+    );
+    this.manualQueue.push(...nonDuplicates);
+    console.log(
+      `|> Currently ${this.manualQueue.length} items in manual queue.`,
+    );
+  }
+
+  moveManualQueueToQueue() {
+    console.log(
+      `|> Moving ${this.manualQueue.length} items from manual queue to the acutal executing queue.`,
+    );
+    this.addToQueue(this.manualQueue);
   }
 
   setMethodToExecute(method: (args: any) => Promise<unknown>) {

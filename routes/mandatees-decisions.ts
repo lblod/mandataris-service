@@ -11,7 +11,7 @@ import {
 } from '../data-access/mandatees-decisions';
 
 const mandateesDecisionsRouter = Router();
-const todo = new ProcessingQueue();
+export const mandatarisQueue = new ProcessingQueue();
 
 mandateesDecisionsRouter.post('/', async (req: Request, res: Response) => {
   const changesets: Changeset[] = req.body;
@@ -22,8 +22,10 @@ mandateesDecisionsRouter.post('/', async (req: Request, res: Response) => {
     TERM_MANDATARIS_TYPE,
     insertTriples,
   );
-  todo.setMethodToExecute(handleTriplesForMandatarisSubjects);
-  todo.addToQueue(mandatarisSubjects);
+  console.log('|> Triggered by Delta');
+  mandatarisQueue.setMethodToExecute(handleTriplesForMandatarisSubjects);
+  mandatarisQueue.addToQueue(mandatarisSubjects);
+  mandatarisQueue.moveManualQueueToQueue();
 
   return res.status(200).send({ status: 'ok' });
 });

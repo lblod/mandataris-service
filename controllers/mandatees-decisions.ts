@@ -14,6 +14,7 @@ import {
   getTriplesOfSubject,
   TERM_STAGING_GRAPH,
 } from '../data-access/mandatees-decisions';
+import { mandatarisQueue } from '../routes/mandatees-decisions';
 import { Term } from '../types';
 
 export async function handleTriplesForMandatarisSubjects(
@@ -37,6 +38,7 @@ export async function handleTriplesForMandatarisSubjects(
       console.log(
         `|> No mandaat found for mandataris with subject: ${mandatarisSubject.value} \n|>\n`,
       );
+      mandatarisQueue.addToManualQueue([mandatarisSubject]);
       continue;
     }
 
@@ -47,6 +49,7 @@ export async function handleTriplesForMandatarisSubjects(
       console.log(
         `|> Could not find graph from mandaat: ${mandaat.value}. Continueing to the next subject.\n|>\n`,
       );
+      mandatarisQueue.addToManualQueue([mandatarisSubject]);
       continue;
     }
 
