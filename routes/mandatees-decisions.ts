@@ -22,7 +22,7 @@ mandateesDecisionsRouter.post('/', async (req: Request, res: Response) => {
     TERM_MANDATARIS_TYPE,
     insertTriples,
   );
-  console.log('|> Triggered by Delta');
+
   mandatarisQueue.setMethodToExecute(handleTriplesForMandatarisSubjects);
   mandatarisQueue.addToQueue(mandatarisSubjects);
   mandatarisQueue.moveManualQueueToQueue();

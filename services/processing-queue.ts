@@ -29,11 +29,14 @@ export class ProcessingQueue {
         console.error(`|> Error while processing delta in queue ${error}`);
       } finally {
         this.executing = false;
-        console.log('|> Run action');
+        console.log('|> Done with action for queue item');
         this.run();
       }
     } else {
       setTimeout(() => {
+        console.log(
+          `|> Trigger run, ${this.queue.length} remaining queue items and ${this.manualQueue.length} manual queued items`,
+        );
         this.run();
       }, this.queuePollInterval);
     }
