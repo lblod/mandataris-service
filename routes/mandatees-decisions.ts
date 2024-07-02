@@ -22,10 +22,8 @@ mandateesDecisionsRouter.post('/', async (req: Request, res: Response) => {
     TERM_MANDATARIS_TYPE,
     insertTriples,
   );
-
-  todo.addToQueue(
-    async () => await handleTriplesForMandatarisSubjects(mandatarisSubjects),
-  );
+  todo.setMethodToExecute(handleTriplesForMandatarisSubjects);
+  todo.addToQueue(mandatarisSubjects);
 
   return res.status(200).send({ status: 'ok' });
 });
