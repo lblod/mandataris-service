@@ -17,102 +17,98 @@ import {
 import { mandatarisQueue } from '../routes/mandatees-decisions';
 import { Term } from '../types';
 
-export async function handleTriplesForMandatarisSubjects(
-  mandatarisSubjects: Array<Term>,
+export async function handleTriplesForMandatarisSubject(
+  mandatarisSubject: Term,
 ) {
   console.log(
-    `|> Handle Triples For Mandataris Subjects (${mandatarisSubjects.length})`,
+    `|> Handle Triples For Mandataris Subject (${mandatarisSubject.value})`,
   );
 
-  for (const mandatarisSubject of mandatarisSubjects) {
-    console.log(`|> Mandataris uri: ${mandatarisSubject.value}`);
-    const isExitingInLmbDatabase =
-      await isMandatarisInLmbDatabase(mandatarisSubject);
+  console.log(`|> Mandataris uri: ${mandatarisSubject.value}`);
+  const isExitingInLmbDatabase =
+    await isMandatarisInLmbDatabase(mandatarisSubject);
+  console.log(
+    `|> Mandataris exists in LMB database? ${isExitingInLmbDatabase}`,
+  );
+
+  const mandaat = await findMandateOfMandataris(mandatarisSubject);
+  console.log('|> Mandaat for mandataris', mandaat);
+  if (!mandaat) {
     console.log(
-      `|> Mandataris exists in LMB database? ${isExitingInLmbDatabase}`,
+      `|> No mandaat found for mandataris with subject: ${mandatarisSubject.value} \n|>\n`,
     );
+    mandatarisQueue.addToManualQueue([mandatarisSubject]);
+    return;
+  }
 
-    const mandaat = await findMandateOfMandataris(mandatarisSubject);
-    console.log('|> Mandaat for mandataris', mandaat);
-    if (!mandaat) {
-      console.log(
-        `|> No mandaat found for mandataris with subject: ${mandatarisSubject.value} \n|>\n`,
-      );
-      mandatarisQueue.addToManualQueue([mandatarisSubject]);
-      continue;
-    }
+  const mandatarisGraph = await findBestuurseenheidForMandaat(mandaat);
+  console.log(`|> mandataris graph: ${mandatarisGraph?.value ?? undefined}.`);
 
-    const mandatarisGraph = await findBestuurseenheidForMandaat(mandaat);
-    console.log(`|> mandataris graph: ${mandatarisGraph?.value ?? undefined}.`);
-
-    if (!mandatarisGraph) {
-      console.log(
-        `|> Could not find graph from mandaat: ${mandaat.value}. Continueing to the next subject.\n|>\n`,
-      );
-      mandatarisQueue.addToManualQueue([mandatarisSubject]);
-      continue;
-    }
-
-    const incomingTriples = await getTriplesOfSubject(
-      mandatarisSubject,
-      TERM_STAGING_GRAPH,
-    );
+  if (!mandatarisGraph) {
     console.log(
-      `|> Found ${incomingTriples.length} in the staging graph for mandataris.`,
+      `|> Could not find graph from mandaat: ${mandaat.value}. Continueing to the next subject.\n|>\n`,
     );
-    if (isExitingInLmbDatabase) {
-      const currentQuads = await getQuadsInLmbFromTriples(incomingTriples);
-      console.log('|> Updating mandataris predicate values.');
-      await updateDifferencesOfMandataris(
-        currentQuads,
-        incomingTriples,
-        mandatarisGraph,
-      );
+    mandatarisQueue.addToManualQueue([mandatarisSubject]);
+    return;
+  }
 
-      console.log(
-        '|> Going to the next mandataris subeject as triples are updated. \n|>\n',
-      );
-      continue;
-    }
-
-    // Looking for persoon in graph of the mandataris
-    const persoonOfMandataris = await findPersoonForMandatarisInGraph(
-      mandatarisSubject,
+  const incomingTriples = await getTriplesOfSubject(
+    mandatarisSubject,
+    TERM_STAGING_GRAPH,
+  );
+  console.log(
+    `|> Found ${incomingTriples.length} in the staging graph for mandataris.`,
+  );
+  if (isExitingInLmbDatabase) {
+    const currentQuads = await getQuadsInLmbFromTriples(incomingTriples);
+    console.log('|> Updating mandataris predicate values.');
+    await updateDifferencesOfMandataris(
+      currentQuads,
+      incomingTriples,
       mandatarisGraph,
     );
+
     console.log(
-      `|> Persoon from mandataris: ${persoonOfMandataris?.value ?? undefined}.`,
+      '|> Going to the next mandataris subeject as triples are updated. \n|>\n',
     );
-
-    if (persoonOfMandataris) {
-      const overlappingMandataris = await findOverlappingMandataris(
-        persoonOfMandataris,
-        mandaat,
-      );
-      console.log(
-        `|> Persoon has overlapping mandaat? ${
-          overlappingMandataris?.value ?? false
-        }`,
-      );
-
-      if (overlappingMandataris) {
-        const startDate = await findStartDateOfMandataris(mandatarisSubject);
-        console.log(
-          `|> Found start date for incoming mandataris? ${startDate}`,
-        );
-        if (startDate) {
-          await terminateMandataris(overlappingMandataris, startDate);
-        }
-      }
-
-      console.log('|> Inserting incoming triples');
-      await insertTriplesInGraph(incomingTriples, mandatarisGraph);
-    } else {
-      // TODO: LMB-520
-      console.log('|> Persoon does not exist: TODO in LMB-520');
-    }
-    console.log(
-      `|> End of logic for mandataris subject: ${mandatarisSubject.value} \n|>\n`,
-    );
+    return;
   }
+
+  // Looking for persoon in graph of the mandataris
+  const persoonOfMandataris = await findPersoonForMandatarisInGraph(
+    mandatarisSubject,
+    mandatarisGraph,
+  );
+  console.log(
+    `|> Persoon from mandataris: ${persoonOfMandataris?.value ?? undefined}.`,
+  );
+
+  if (persoonOfMandataris) {
+    const overlappingMandataris = await findOverlappingMandataris(
+      persoonOfMandataris,
+      mandaat,
+    );
+    console.log(
+      `|> Persoon has overlapping mandaat? ${
+        overlappingMandataris?.value ?? false
+      }`,
+    );
+
+    if (overlappingMandataris) {
+      const startDate = await findStartDateOfMandataris(mandatarisSubject);
+      console.log(`|> Found start date for incoming mandataris? ${startDate}`);
+      if (startDate) {
+        await terminateMandataris(overlappingMandataris, startDate);
+      }
+    }
+
+    console.log('|> Inserting incoming triples');
+    await insertTriplesInGraph(incomingTriples, mandatarisGraph);
+  } else {
+    // TODO: LMB-520
+    console.log('|> Persoon does not exist: TODO in LMB-520');
+  }
+  console.log(
+    `|> End of logic for mandataris subject: ${mandatarisSubject.value} \n|>\n`,
+  );
 }

@@ -22,7 +22,7 @@ export class ProcessingQueue {
         this.executing = true;
         const subject = this.queue?.shift();
         if (subject) {
-          await this.toExecute([subject]);
+          await this.toExecute(subject);
         }
         console.log(`|> Remaining number of tasks ${this.queue.length}`);
       } catch (error) {
@@ -54,7 +54,8 @@ export class ProcessingQueue {
       (term: Term) => !subjectsInQueue.includes(term.value),
     );
     console.log(
-      `|> Found ${subjects.length - nonDuplicates.length
+      `|> Found ${
+        subjects.length - nonDuplicates.length
       } subjects that where already in the queue.`,
     );
     this.queue.push(...nonDuplicates);

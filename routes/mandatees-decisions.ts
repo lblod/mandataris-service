@@ -3,7 +3,7 @@ import Router from 'express-promise-router';
 import { Request, Response } from 'express';
 
 import { Changeset } from '../types';
-import { handleTriplesForMandatarisSubjects } from '../controllers/mandatees-decisions';
+import { handleTriplesForMandatarisSubject } from '../controllers/mandatees-decisions';
 import { ProcessingQueue } from '../services/processing-queue';
 import {
   getSubjectsOfType,
@@ -23,7 +23,7 @@ mandateesDecisionsRouter.post('/', async (req: Request, res: Response) => {
     insertTriples,
   );
 
-  mandatarisQueue.setMethodToExecute(handleTriplesForMandatarisSubjects);
+  mandatarisQueue.setMethodToExecute(handleTriplesForMandatarisSubject);
   mandatarisQueue.addToQueue(mandatarisSubjects);
   mandatarisQueue.moveManualQueueToQueue();
 
