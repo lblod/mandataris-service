@@ -26,8 +26,8 @@ export class ProcessingQueue {
           await this.toExecute(subject);
         }
         console.log(
-          `|> Remaining number of tasks ${this.queue.length}`,
-          this.queue.map((q) => q.value),
+          `|> Remaining number of tasks ${this.queue.length} \n`,
+          this.queue.map((q) => `|> \t${q.value}`).join('\n'),
         );
       } catch (error) {
         console.error(`|> Error while processing delta in queue ${error}`);
@@ -50,32 +50,30 @@ export class ProcessingQueue {
     if (!this.toExecute) {
       throw Error('|> No method is set to execute the queue items on.');
     }
-    console.log(
-      `|> [${new Date().toJSON()}] Added ${subjects.length} to queue.`,
-    );
+
     const subjectsInQueue = this.queue.map((subject: Term) => subject.value);
     const nonDuplicates = subjects.filter(
       (term: Term) => !subjectsInQueue.includes(term.value),
     );
+
     console.log(
-      `|> Found ${
-        subjects.length - nonDuplicates.length
-      } subjects that where already in the queue.`,
+      `|> [${new Date().toISOString()}] Added ${
+        nonDuplicates.length
+      } to queue.`,
     );
+
     this.queue.push(...nonDuplicates);
   }
 
-  addToManualQueue(subjects: Array<Term>) {
+  addToManualQueue(subject: Term) {
     const subjectsInQueue = this.manualQueue.map(
       (subject: Term) => subject.value,
     );
-    const nonDuplicates = subjects.filter(
-      (term: Term) => !subjectsInQueue.includes(term.value),
-    );
-    this.manualQueue.push(...nonDuplicates);
-    console.log(
-      `|> Currently ${this.manualQueue.length} items in manual queue.`,
-    );
+
+    if (!subjectsInQueue.includes(subject.value)) {
+      this.manualQueue.push(subject);
+      console.log(`|> Added to manual queue: ${JSON.stringify(subject)}`);
+    }
   }
 
   moveManualQueueToQueue() {

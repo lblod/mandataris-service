@@ -40,7 +40,7 @@ export async function handleTriplesForMandatarisSubject(
     console.log(
       `|> No mandaat found for mandataris with subject: ${mandatarisSubject.value} \n|>\n`,
     );
-    mandatarisQueue.addToManualQueue([mandatarisSubject]);
+    mandatarisQueue.addToManualQueue(mandatarisSubject);
     return;
   }
 
@@ -51,7 +51,7 @@ export async function handleTriplesForMandatarisSubject(
     console.log(
       `|> Could not find graph from mandaat: ${mandaat.value}. Continueing to the next subject.\n|>\n`,
     );
-    mandatarisQueue.addToManualQueue([mandatarisSubject]);
+    mandatarisQueue.addToManualQueue(mandatarisSubject);
     return;
   }
 
@@ -108,11 +108,10 @@ export async function handleTriplesForMandatarisSubject(
     console.log('|> Inserting incoming triples');
     await insertTriplesInGraph(incomingTriples, mandatarisGraph);
   } else {
-    console.log('|> Persoon does not exist: TODO in LMB-520');
     const persoon = await findNameOfPersoonFromStaging(mandatarisSubject);
     console.log('|> Looking for persoon names', persoon);
     if (!persoon || (!persoon.firstname && !persoon.lastname)) {
-      mandatarisQueue.addToManualQueue([mandatarisSubject]);
+      mandatarisQueue.addToManualQueue(mandatarisSubject);
       return;
     }
 

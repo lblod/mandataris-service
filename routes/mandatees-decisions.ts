@@ -19,10 +19,6 @@ mandateesDecisionsRouter.post('/', async (req: Request, res: Response) => {
   const insertTriples = changesets
     .map((changeset: Changeset) => changeset.inserts)
     .flat();
-  console.log(
-    '<> insert from delta',
-    insertTriples.map((s) => JSON.stringify(s)),
-  );
   const mandatarisSubjects = await getSubjectsOfType(
     TERM_MANDATARIS_TYPE,
     insertTriples,
