@@ -111,18 +111,21 @@ export async function handleTriplesForMandatarisSubject(
     console.log('|> Persoon does not exist: TODO in LMB-520');
     const persoon = await findNameOfPersoonFromStaging(mandatarisSubject);
     console.log('|> Looking for persoon names', persoon);
-    if (persoon && persoon.firstname && persoon.lastname) {
-      console.log('|> ... creating persoon');
-      const RRN = '';
-      const createdPerson = await createPerson(
-        RRN,
-        persoon.firstname.value,
-        persoon.lastname.value,
-      );
-      console.log(
-        `|> Created new person "${createdPerson.voornaam} ${createdPerson.naam}" with uri: ${createdPerson.uri}`,
-      );
+    if (!persoon || (!persoon.firstname && !persoon.lastname)) {
+      mandatarisQueue.addToManualQueue([mandatarisSubject]);
+      return;
     }
+
+    console.log('|> ... creating persoon');
+    const RRN = '';
+    const createdPerson = await createPerson(
+      RRN,
+      persoon.firstname.value,
+      persoon.lastname.value,
+    );
+    console.log(
+      `|> Created new person "${createdPerson.voornaam} ${createdPerson.naam}" with uri: ${createdPerson.uri}`,
+    );
   }
   console.log(
     `|> End of logic for mandataris subject: ${mandatarisSubject.value} \n|>\n`,
