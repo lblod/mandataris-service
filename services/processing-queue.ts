@@ -5,44 +5,32 @@ export class ProcessingQueue {
   toExecute: (args: any) => Promise<unknown> | null;
   queue: Array<Term>;
   manualQueue: Array<Term>;
-  executing: boolean;
-  queuePollInterval: number;
+  isExecuting: boolean;
 
   constructor() {
     this.queue = [];
     this.manualQueue = [];
     this.run();
-    this.executing = false;
-    this.queuePollInterval = 60000;
+    this.isExecuting = false;
   }
 
   async run() {
-    if (this.queue.length >= 1 && !this.executing) {
+    if (this.queue.length >= 1 && !this.isExecuting) {
       try {
-        this.executing = true;
+        this.isExecuting = true;
         const subject = this.queue?.shift();
         if (subject) {
-          console.log(`|> Execute action on mandataris: ${subject.value}`);
+          console.log(`|> TASK start for ${subject.value}`);
           await this.toExecute(subject);
         }
-        console.log(
-          `|> Remaining number of tasks ${this.queue.length} \n`,
-          this.queue.map((q) => `|> \t${q.value}`).join('\n'),
-        );
+        console.log(`|> Remaining number of tasks ${this.queue.length} \n`);
       } catch (error) {
         console.error(`|> Error while processing delta in queue ${error}`);
       } finally {
-        this.executing = false;
-        console.log('|> Done with action for queue item');
+        this.isExecuting = false;
+        console.log('|> TASK done \n|>\n');
         this.run();
       }
-    } else {
-      setTimeout(() => {
-        console.log(
-          `|> Trigger run, ${this.queue.length} remaining queue items and ${this.manualQueue.length} manual queued items`,
-        );
-        this.run();
-      }, this.queuePollInterval);
     }
   }
 
@@ -63,6 +51,12 @@ export class ProcessingQueue {
     );
 
     this.queue.push(...nonDuplicates);
+    console.log(`|> Currently ${this.queue.length} items in queue.`);
+
+    if (this.queue.length >= 1 && !this.isExecuting) {
+      console.log('|> Queue was not empty triggering run()');
+      this.run();
+    }
   }
 
   addToManualQueue(subject: Term) {
