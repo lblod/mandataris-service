@@ -15,6 +15,8 @@ import {
   getTriplesOfSubject,
   TERM_STAGING_GRAPH,
   findNameOfPersoonFromStaging,
+  isSubjectOfType,
+  TERM_MANDATARIS_TYPE,
 } from '../data-access/mandatees-decisions';
 import { createPerson } from '../data-access/persoon';
 import { mandatarisQueue } from '../routes/mandatees-decisions';
@@ -23,9 +25,16 @@ import { Term } from '../types';
 export async function handleTriplesForMandatarisSubject(
   mandatarisSubject: Term,
 ) {
-  console.log(
-    `|> Handle Triples For Mandataris Subject (${mandatarisSubject.value})`,
+  const isMandataris = await isSubjectOfType(
+    TERM_MANDATARIS_TYPE,
+    mandatarisSubject,
   );
+  if (!isMandataris) {
+    console.log(
+      `|> URI: ${mandatarisSubject.value} is not of type: ${TERM_MANDATARIS_TYPE.value}`,
+    );
+    return;
+  }
 
   console.log(`|> Mandataris uri: ${mandatarisSubject.value}`);
   const isExitingInLmbDatabase =
@@ -35,7 +44,7 @@ export async function handleTriplesForMandatarisSubject(
   );
 
   const mandaat = await findMandateOfMandataris(mandatarisSubject);
-  console.log('|> Mandaat for mandataris', mandaat);
+  console.log('|> Mandaat for mandataris', mandaat?.value);
   if (!mandaat) {
     console.log(
       `|> No mandaat found for mandataris with subject: ${mandatarisSubject.value} \n|>\n`,
