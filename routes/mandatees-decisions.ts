@@ -14,10 +14,12 @@ const mandateesDecisionsRouter = Router();
 export const mandatarisQueue = new ProcessingQueue();
 
 mandateesDecisionsRouter.post('/', async (req: Request, res: Response) => {
+  console.log('|> Trigger endpoint mandatees-decisions');
   const changesets: Changeset[] = req.body;
   const insertTriples = changesets
     .map((changeset: Changeset) => changeset.inserts)
     .flat();
+  console.log('<> insert from delta', insertTriples.map(s => JSON.stringify(s)));
   const mandatarisSubjects = await getSubjectsOfType(
     TERM_MANDATARIS_TYPE,
     insertTriples,

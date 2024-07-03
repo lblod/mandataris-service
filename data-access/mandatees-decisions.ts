@@ -305,3 +305,28 @@ export async function insertTriplesInGraph(
     );
   }
 }
+
+export async function findNameOfPersoonFromStaging(
+  mandataris: Term,
+): Promise<TermProperty | null> {
+  const mandatarisUri = sparqlEscapeTermValue(mandataris);
+  const queryMandatarisPerson = `
+    PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+    PREFIX persoon: <https://data.vlaanderen.be/ns/persoon#>
+
+    SELECT ?firstname ?lastname
+    WHERE {
+      GRAPH ${sparqlEscapeTermValue(TERM_STAGING_GRAPH)} {
+        ${mandatarisUri} a <http://data.vlaanderen.be/ns/mandaat#Mandataris> ;
+                      persoon:isBestuurlijkeAliasVan ?persoon .
+        OPTIONAL {
+            ${mandatarisUri} persoon:gebruikteVoornaam ?firstname .
+            ${mandatarisUri} foaf:familyName ?lastname .
+        }
+      }
+    }
+  `;
+  const result = await querySudo(queryMandatarisPerson);
+
+  return findFirstSparqlResult(result);
+}

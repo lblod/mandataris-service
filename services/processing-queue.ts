@@ -22,9 +22,13 @@ export class ProcessingQueue {
         this.executing = true;
         const subject = this.queue?.shift();
         if (subject) {
+          console.log(`|> Execute action on mandataris: ${subject.value}`);
           await this.toExecute(subject);
         }
-        console.log(`|> Remaining number of tasks ${this.queue.length}`);
+        console.log(
+          `|> Remaining number of tasks ${this.queue.length}`,
+          this.queue.map((q) => q.value),
+        );
       } catch (error) {
         console.error(`|> Error while processing delta in queue ${error}`);
       } finally {
