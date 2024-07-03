@@ -23,7 +23,9 @@ export class ProcessingQueue {
           console.log(`|> TASK start for ${subject.value}`);
           await this.toExecute(subject);
         }
-        console.log(`|> Remaining number of tasks ${this.queue.length} \n`);
+        console.log(
+          `|> Remaining number of tasks in queue:${this.queue.length} in manual queue:${this.manualQueue.length} \n`,
+        );
       } catch (error) {
         console.error(`|> Error while processing delta in queue ${error}`);
       } finally {
@@ -60,14 +62,8 @@ export class ProcessingQueue {
   }
 
   addToManualQueue(subject: Term) {
-    const subjectsInQueue = this.manualQueue.map(
-      (subject: Term) => subject.value,
-    );
-
-    if (!subjectsInQueue.includes(subject.value)) {
-      this.manualQueue.push(subject);
-      console.log(`|> Added to manual queue: ${JSON.stringify(subject)}`);
-    }
+    this.manualQueue.push(subject);
+    console.log(`|> Added to manual queue: ${JSON.stringify(subject)}`);
   }
 
   moveManualQueueToQueue() {

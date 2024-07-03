@@ -18,10 +18,10 @@ mandateesDecisionsRouter.post('/', async (req: Request, res: Response) => {
   const incomingSubjects = Array.from(
     new Set(insertTriples.map((quad: Quad) => quad.subject)),
   );
-  console.log('|> CURRENT QUEUE ITEMS', mandatarisQueue.queue.length);
+
   mandatarisQueue.setMethodToExecute(handleTriplesForMandatarisSubject);
-  mandatarisQueue.addToQueue(incomingSubjects);
   mandatarisQueue.moveManualQueueToQueue();
+  mandatarisQueue.addToQueue(incomingSubjects);
 
   return res.status(200).send({ status: 'ok' });
 });
