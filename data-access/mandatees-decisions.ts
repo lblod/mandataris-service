@@ -310,9 +310,10 @@ export async function findNameOfPersoonFromStaging(
     SELECT ?firstname ?lastname
     WHERE {
       GRAPH ${sparqlEscapeTermValue(TERM_STAGING_GRAPH)} {
-        ${mandatarisUri} a <http://data.vlaanderen.be/ns/mandaat#Mandataris> ;
-                      persoon:isBestuurlijkeAliasVan ?persoon .
+        ${mandatarisUri} a <http://data.vlaanderen.be/ns/mandaat#Mandataris> .
+                      
         OPTIONAL {
+            ${mandatarisUri} persoon:isBestuurlijkeAliasVan ?persoon .
             ${mandatarisUri} persoon:gebruikteVoornaam ?firstname .
             ${mandatarisUri} foaf:familyName ?lastname .
         }
