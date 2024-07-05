@@ -120,9 +120,7 @@ export async function findPersoonForMandatarisInGraph(
     SELECT ?persoon
     WHERE {
       GRAPH ${escaped.graph}{
-        OPTIONAL {
-          ${escaped.mandataris} mandaat:isBestuurlijkeAliasVan ?persoon .
-        }
+        ${escaped.mandataris} mandaat:isBestuurlijkeAliasVan ?persoon .
       }
     }
   `;
