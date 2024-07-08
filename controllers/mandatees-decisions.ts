@@ -73,7 +73,7 @@ export async function handleTriplesForMandatarisSubject(
     TERM_STAGING_GRAPH,
   );
   console.log(
-    `|> Found ${incomingTriples.length} in the staging graph for mandataris.`,
+    `|> Found ${incomingTriples.length} triples in the staging graph for mandataris.`,
   );
   if (isExitingInLmbDatabase) {
     const currentQuads = await getQuadsInLmbFromTriples(incomingTriples);
@@ -112,7 +112,11 @@ export async function handleTriplesForMandatarisSubject(
     mandatarisSubject,
     mandatarisGraph,
   );
-
+  console.log(
+    `|> Is persoon in graph of mandataris (LMB)? ${
+      persoonInLMBGraph ? true : false
+    }`,
+  );
   if (persoonInLMBGraph) {
     const overlappingMandataris = await findOverlappingMandataris(
       persoonOfMandataris,
@@ -141,6 +145,9 @@ export async function handleTriplesForMandatarisSubject(
   // If person exists in another graph, copy that person.
   const personInOtherGraph =
     await checkPersonExistsAllGraphs(persoonOfMandataris);
+  console.log(
+    `|> Is persoon in other graphs of the LMB application?: ${personInOtherGraph}`,
+  );
   if (personInOtherGraph) {
     await copyPerson(persoonOfMandataris, mandatarisGraph);
     return;
