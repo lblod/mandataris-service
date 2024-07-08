@@ -5,6 +5,7 @@ import { Term } from '../types';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import { TERM_STAGING_GRAPH } from './mandatees-decisions';
 import { getBooleanSparqlResult } from '../util/sparql-result';
+import { findUuidFromUri } from '../util/find-uuid-in-uri';
 
 // note since we use the regular query, not sudo queries, be sure to log in when using this endpoint. E.g. use the vendor login
 
@@ -100,6 +101,44 @@ export async function checkPersonExistsAllGraphs(
   const result = await querySudo(askIfPersoonExists);
 
   return getBooleanSparqlResult(result);
+}
+
+export async function createrPersonFromUri(
+  personUri: Term,
+  firstname: Term,
+  lastname: Term,
+  graph: Term,
+): Promise<void> {
+  const uuidOfPersoon = findUuidFromUri(personUri.value);
+
+  if (!uuidOfPersoon) {
+    console.log(`|> Could not find uuid in persoon URI: ${personUri.value}`);
+    return;
+  }
+
+  const createQuery = `
+  PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+  PREFIX person: <http://www.w3.org/ns/person#>
+  PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
+  PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+  
+  INSERT DATA {
+      GRAPH ${sparqlEscapeTermValue(graph)} {
+        ${sparqlEscapeTermValue(personUri)} a person:Person; 
+          mu:uuid ${sparqlEscapeString(uuidOfPersoon)};
+          persoon:gebruikteVoornaam ${sparqlEscapeTermValue(firstname)};
+          foaf:familyName ${sparqlEscapeTermValue(lastname)}.
+        }
+    }
+  `;
+  const baseLogText = `person with uri ${personUri.value} for ${firstname.value} ${lastname.value}`;
+
+  try {
+    await updateSudo(createQuery);
+    console.log('|> Created ' + baseLogText);
+  } catch (error) {
+    console.log('|> Could not create ' + baseLogText);
+  }
 }
 
 export async function copyPerson(subject: Term, graph: Term) {
