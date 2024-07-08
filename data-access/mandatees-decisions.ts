@@ -18,32 +18,19 @@ export const TERM_MANDATARIS_TYPE = {
   value: 'http://data.vlaanderen.be/ns/mandaat#Mandataris',
 } as Term;
 
-export async function getSubjectsOfType(
+export async function isSubjectOfType(
   rdfType: Term,
-  triples: Array<Quad>,
-): Promise<Term[]> {
-  const uniqueSubjects = Array.from(
-    new Set(triples.map((quad: Quad) => sparqlEscapeUri(quad.subject.value))),
-  );
+  subject: Term,
+): Promise<boolean> {
   const queryForType = `
-    SELECT ?subject 
-      WHERE {
-        GRAPH ${sparqlEscapeTermValue(TERM_STAGING_GRAPH)} {
-          VALUES ?subject {
-            ${uniqueSubjects.join('\n')}
-          }
-          ?subject a ${sparqlEscapeTermValue(rdfType)}.
-      }
+    ASK {
+      ${sparqlEscapeTermValue(subject)} a ${sparqlEscapeTermValue(rdfType)} .
     }
   `;
 
-  const subjectsOfType = await querySudo(queryForType);
-  const results = getSparqlResults(subjectsOfType);
-  if (results.length === 0) {
-    return [];
-  }
+  const isOfSubject = await querySudo(queryForType);
 
-  return results.map((binding: TermProperty) => binding.subject);
+  return getBooleanSparqlResult(isOfSubject);
 }
 
 export async function getTriplesOfSubject(
@@ -85,7 +72,9 @@ export async function getQuadsInLmbFromTriples(
         VALUES (?subject ?predicate) {
             ${useAsValues.join('')}
         }
-        ?subject ?predicate ?object .
+        OPTIONAL {
+          ?subject ?predicate ?object .
+        }
         MINUS {
           GRAPH ${sparqlEscapeTermValue(TERM_STAGING_GRAPH)} {
             ?subject ?predicate ?object .
@@ -131,7 +120,9 @@ export async function findPersoonForMandatarisInGraph(
     SELECT ?persoon
     WHERE {
       GRAPH ${escaped.graph}{
-        ${escaped.mandataris} mandaat:isBestuurlijkeAliasVan ?persoon .
+        OPTIONAL {
+          ${escaped.mandataris} mandaat:isBestuurlijkeAliasVan ?persoon .
+        }
       }
     }
   `;
@@ -235,7 +226,9 @@ export async function getMandateOfMandataris(
 
     SELECT ?mandaat
     WHERE {
-      ${sparqlEscapeTermValue(mandataris)} org:holds ?mandaat .
+      OPTIONAL {
+        ${sparqlEscapeTermValue(mandataris)} org:holds ?mandaat .
+      }
     }
   `;
   const mandateResult = await querySudo(queryForMandatarisMandate);
@@ -304,4 +297,30 @@ export async function insertTriplesInGraph(
       `Could not insert ${triples.length} triples in graph (${graph.value}).`,
     );
   }
+}
+
+export async function findNameOfPersoonFromStaging(
+  mandataris: Term,
+): Promise<TermProperty | null> {
+  const mandatarisUri = sparqlEscapeTermValue(mandataris);
+  const queryMandatarisPerson = `
+    PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+    PREFIX persoon: <https://data.vlaanderen.be/ns/persoon#>
+
+    SELECT ?firstname ?lastname
+    WHERE {
+      GRAPH ${sparqlEscapeTermValue(TERM_STAGING_GRAPH)} {
+        ${mandatarisUri} a <http://data.vlaanderen.be/ns/mandaat#Mandataris> .
+                      
+        OPTIONAL {
+            ${mandatarisUri} persoon:isBestuurlijkeAliasVan ?persoon .
+            ${mandatarisUri} persoon:gebruikteVoornaam ?firstname .
+            ${mandatarisUri} foaf:familyName ?lastname .
+        }
+      }
+    }
+  `;
+  const result = await querySudo(queryMandatarisPerson);
+
+  return findFirstSparqlResult(result);
 }
