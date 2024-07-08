@@ -1,4 +1,5 @@
 import { findBestuurseenheidForMandaat } from '../data-access/bestuurseenheid';
+
 import {
   findStartDateOfMandataris as findStartDateOfMandataris,
   terminateMandataris,
@@ -13,16 +14,31 @@ import {
   updateDifferencesOfMandataris,
   getTriplesOfSubject,
   TERM_STAGING_GRAPH,
+  findNameOfPersoonFromStaging,
+  isSubjectOfType,
+  TERM_MANDATARIS_TYPE,
 } from '../data-access/mandatees-decisions';
+import {
+  checkPersonExistsAllGraphs,
+  copyPerson,
+  createPerson,
+} from '../data-access/persoon';
 import { mandatarisQueue } from '../routes/mandatees-decisions';
 import { Term } from '../types';
 
 export async function handleTriplesForMandatarisSubject(
   mandatarisSubject: Term,
 ) {
-  console.log(
-    `|> Handle Triples For Mandataris Subject (${mandatarisSubject.value})`,
+  const isMandataris = await isSubjectOfType(
+    TERM_MANDATARIS_TYPE,
+    mandatarisSubject,
   );
+  if (!isMandataris) {
+    console.log(
+      `|> URI: ${mandatarisSubject.value} is not of type: ${TERM_MANDATARIS_TYPE.value}`,
+    );
+    return;
+  }
 
   console.log(`|> Mandataris uri: ${mandatarisSubject.value}`);
   const isExitingInLmbDatabase =
@@ -32,12 +48,12 @@ export async function handleTriplesForMandatarisSubject(
   );
 
   const mandaat = await findMandateOfMandataris(mandatarisSubject);
-  console.log('|> Mandaat for mandataris', mandaat);
+  console.log('|> Mandaat for mandataris', mandaat?.value);
   if (!mandaat) {
     console.log(
       `|> No mandaat found for mandataris with subject: ${mandatarisSubject.value} \n|>\n`,
     );
-    mandatarisQueue.addToManualQueue([mandatarisSubject]);
+    mandatarisQueue.addToManualQueue(mandatarisSubject);
     return;
   }
 
@@ -48,7 +64,7 @@ export async function handleTriplesForMandatarisSubject(
     console.log(
       `|> Could not find graph from mandaat: ${mandaat.value}. Continueing to the next subject.\n|>\n`,
     );
-    mandatarisQueue.addToManualQueue([mandatarisSubject]);
+    mandatarisQueue.addToManualQueue(mandatarisSubject);
     return;
   }
 
@@ -77,13 +93,27 @@ export async function handleTriplesForMandatarisSubject(
   // Looking for persoon in graph of the mandataris
   const persoonOfMandataris = await findPersoonForMandatarisInGraph(
     mandatarisSubject,
-    mandatarisGraph,
+    TERM_STAGING_GRAPH,
   );
+
+  if (!persoonOfMandataris) {
+    console.log(
+      `|> Could not find person of mandataris: ${mandatarisSubject.value}. Continuing to the next subject.\n|>\n`,
+    );
+    mandatarisQueue.addToManualQueue(mandatarisSubject);
+    return;
+  }
+
   console.log(
     `|> Persoon from mandataris: ${persoonOfMandataris?.value ?? undefined}.`,
   );
 
-  if (persoonOfMandataris) {
+  const persoonInLMBGraph = await findPersoonForMandatarisInGraph(
+    mandatarisSubject,
+    mandatarisGraph,
+  );
+
+  if (persoonInLMBGraph) {
     const overlappingMandataris = await findOverlappingMandataris(
       persoonOfMandataris,
       mandaat,
@@ -104,10 +134,37 @@ export async function handleTriplesForMandatarisSubject(
 
     console.log('|> Inserting incoming triples');
     await insertTriplesInGraph(incomingTriples, mandatarisGraph);
-  } else {
-    // TODO: LMB-520
-    console.log('|> Persoon does not exist: TODO in LMB-520');
+
+    return;
   }
+
+  // If person exists in another graph, copy that person.
+  const personInOtherGraph =
+    await checkPersonExistsAllGraphs(persoonOfMandataris);
+  if (personInOtherGraph) {
+    await copyPerson(persoonOfMandataris, mandatarisGraph);
+    return;
+  }
+
+  // Create new person with given firstname and lastname
+  const persoon = await findNameOfPersoonFromStaging(mandatarisSubject);
+  console.log('|> Looking for persoon names', persoon);
+  if (!persoon || (!persoon.firstname && !persoon.lastname)) {
+    mandatarisQueue.addToManualQueue(mandatarisSubject);
+    return;
+  }
+
+  console.log('|> ... creating persoon');
+  const RRN = '';
+  const createdPerson = await createPerson(
+    RRN,
+    persoon.firstname.value,
+    persoon.lastname.value,
+  );
+  console.log(
+    `|> Created new person "${createdPerson.voornaam} ${createdPerson.naam}" with uri: ${createdPerson.uri}`,
+  );
+
   console.log(
     `|> End of logic for mandataris subject: ${mandatarisSubject.value} \n|>\n`,
   );
