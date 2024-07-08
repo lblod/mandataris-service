@@ -5,78 +5,7 @@ import {
   sparqlEscapeDateTime,
 } from '../util/mu';
 import { v4 as uuidv4 } from 'uuid';
-import { Request } from 'express';
 import { HttpError } from '../util/http-error';
-
-export const storeFile = async (file, orgGraph: string) => {
-  const originalFileName = file.originalname;
-  const generatedName = file.filename;
-  const format = file.mimetype;
-  const size = file.size;
-  const extension = file.originalname.split('.').pop();
-  const uuid = uuidv4();
-  const uuidDataObject = uuidv4();
-  const now = sparqlEscapeDateTime(new Date());
-  const fileUri = `http://mu.semte.ch/services/file-service/files/${uuid}`;
-  await updateSudo(`
-    INSERT DATA {
-      GRAPH ${sparqlEscapeUri(orgGraph)} {
-        <${fileUri}> a <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#FileDataObject> ;
-          <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#fileName> "${originalFileName}" ;
-          <http://mu.semte.ch/vocabularies/core/uuid> "${uuid}" ;
-          <http://purl.org/dc/terms/format> "${format}" ;
-          <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#fileSize> "${size}"^^xsd:integer ;
-          <http://dbpedia.org/ontology/fileExtension> "${extension}" ;
-          <http://purl.org/dc/terms/created> ${now};
-          <http://purl.org/dc/terms/modified> ${now} .
-        <share://burgemeester-benoemingen/${generatedName}> a <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#FileDataObject> ;
-          <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#dataSource> <${fileUri}> ;
-          <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#fileName> "${generatedName}" ;
-          <http://mu.semte.ch/vocabularies/core/uuid> "${uuidDataObject}" ;
-          <http://purl.org/dc/terms/format> "${format}" ;
-          <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#fileSize> "${size}"^^xsd:integer ;
-          <http://dbpedia.org/ontology/fileExtension> "${extension}" ;
-          <http://purl.org/dc/terms/created> ${now} ;
-          <http://purl.org/dc/terms/modified> ${now} .
-      }
-    }`);
-  return fileUri;
-};
-
-export const checkAuthorization = async (req: Request) => {
-  const authorization = req.get('authorization');
-  if (!authorization) {
-    throw new HttpError('Unauthorized', 401);
-  }
-  const token = authorization.split('Basic ')[1];
-  if (!token) {
-    throw new HttpError('Unauthorized', 401);
-  }
-  const decodedToken = decodeURIComponent(atob(token));
-  const [http, username, password] = decodedToken.split(':');
-  const reconstructedUsername = [http, username].join(':');
-
-  const sparql = `
-    PREFIX muAccount: <http://mu.semte.ch/vocabularies/account/>
-    PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-
-    SELECT ?vendor WHERE {
-      GRAPH <http://mu.semte.ch/graphs/automatic-submission> {
-        ?vendor a foaf:Agent, ext:Vendor ;
-        muAccount:canActOnBehalfOf <http://data.lblod.info/vendors/kalliope> ;
-        muAccount:key ${sparqlEscapeString(password)} .
-        VALUES ?vendor {
-          ${sparqlEscapeUri(reconstructedUsername)}
-        }
-      }
-    } LIMIT 1`;
-
-  const result = await querySudo(sparql);
-  if (result.results.bindings.length == 0) {
-    throw new HttpError('Unauthorized', 401);
-  }
-};
 
 export const findBurgemeesterMandaat = async (
   bestuurseenheidUri: string,
