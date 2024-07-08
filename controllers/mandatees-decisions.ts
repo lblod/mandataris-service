@@ -21,7 +21,7 @@ import {
 import {
   checkPersonExistsAllGraphs,
   copyPerson,
-  createPerson,
+  createrPersonFromUri,
 } from '../data-access/persoon';
 import { mandatarisQueue } from '../routes/mandatees-decisions';
 import { Term } from '../types';
@@ -73,7 +73,7 @@ export async function handleTriplesForMandatarisSubject(
     TERM_STAGING_GRAPH,
   );
   console.log(
-    `|> Found ${incomingTriples.length} in the staging graph for mandataris.`,
+    `|> Found ${incomingTriples.length} triples in the staging graph for mandataris.`,
   );
   if (isExitingInLmbDatabase) {
     const currentQuads = await getQuadsInLmbFromTriples(incomingTriples);
@@ -112,7 +112,11 @@ export async function handleTriplesForMandatarisSubject(
     mandatarisSubject,
     mandatarisGraph,
   );
-
+  console.log(
+    `|> Is persoon in graph of mandataris (LMB)? ${
+      persoonInLMBGraph ? true : false
+    }`,
+  );
   if (persoonInLMBGraph) {
     const overlappingMandataris = await findOverlappingMandataris(
       persoonOfMandataris,
@@ -141,6 +145,9 @@ export async function handleTriplesForMandatarisSubject(
   // If person exists in another graph, copy that person.
   const personInOtherGraph =
     await checkPersonExistsAllGraphs(persoonOfMandataris);
+  console.log(
+    `|> Is persoon in other graphs of the LMB application?: ${personInOtherGraph}`,
+  );
   if (personInOtherGraph) {
     await copyPerson(persoonOfMandataris, mandatarisGraph);
     return;
@@ -149,23 +156,15 @@ export async function handleTriplesForMandatarisSubject(
   // Create new person with given firstname and lastname
   const persoon = await findNameOfPersoonFromStaging(mandatarisSubject);
   console.log('|> Looking for persoon names', persoon);
-  if (!persoon || (!persoon.firstname && !persoon.lastname)) {
+  if (!persoon) {
     mandatarisQueue.addToManualQueue(mandatarisSubject);
     return;
   }
 
-  console.log('|> ... creating persoon');
-  const RRN = '';
-  const createdPerson = await createPerson(
-    RRN,
-    persoon.firstname.value,
-    persoon.lastname.value,
-  );
-  console.log(
-    `|> Created new person "${createdPerson.voornaam} ${createdPerson.naam}" with uri: ${createdPerson.uri}`,
-  );
-
-  console.log(
-    `|> End of logic for mandataris subject: ${mandatarisSubject.value} \n|>\n`,
+  await createrPersonFromUri(
+    persoon.persoonUri,
+    persoon.firstname,
+    persoon.lastname,
+    mandatarisGraph,
   );
 }
