@@ -12,3 +12,7 @@ export enum STATUS_CODE {
   INTERNAL_SERVER_ERROR = 500,
   BAD_REQUEST = 400,
 }
+export enum BENOEMING_STATUS {
+  BENOEMD = 'benoemd',
+  AFGEWEZEN = 'afgewezen',
+}
