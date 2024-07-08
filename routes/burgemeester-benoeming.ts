@@ -520,26 +520,24 @@ const onBurgemeesterBenoemingSafe = async (req: Request) => {
   }
 };
 
-const onBurgemeesterBenoeming = async (req: Request, res: Response) => {
-  try {
-    await checkAuthorization(req);
-    await onBurgemeesterBenoemingSafe(req);
-    res
-      .status(200)
-      .send({ message: `Burgemeester-benoeming: ${req.body.status}` });
-  } catch (e) {
-    const status = e.status || 500;
-    res.status(status).send({ error: e.message });
-    console.error(`[${status}]: ${e.message}`);
-    console.error(e.stack);
-  }
-};
-
-export const handleBurgemeesterBenoeming = async (app) => {
-  app.post('/burgemeester-benoeming', onBurgemeesterBenoeming);
-};
-
-burgemeesterRouter.post('/', upload.single('file'), onBurgemeesterBenoeming);
+burgemeesterRouter.post(
+  '/',
+  upload.single('file'),
+  async (req: Request, res: Response) => {
+    try {
+      await checkAuthorization(req);
+      await onBurgemeesterBenoemingSafe(req);
+      res
+        .status(200)
+        .send({ message: `Burgemeester-benoeming: ${req.body.status}` });
+    } catch (e) {
+      const status = e.status || 500;
+      res.status(status).send({ error: e.message });
+      console.error(`[${status}]: ${e.message}`);
+      console.error(e.stack);
+    }
+  },
+);
 
 export { burgemeesterRouter };
 
