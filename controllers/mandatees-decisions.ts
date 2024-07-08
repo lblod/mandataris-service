@@ -18,7 +18,11 @@ import {
   isSubjectOfType,
   TERM_MANDATARIS_TYPE,
 } from '../data-access/mandatees-decisions';
-import { createPerson } from '../data-access/persoon';
+import {
+  checkPersonExistsAllGraphs,
+  copyPerson,
+  createPerson,
+} from '../data-access/persoon';
 import { mandatarisQueue } from '../routes/mandatees-decisions';
 import { Term } from '../types';
 
@@ -134,7 +138,13 @@ export async function handleTriplesForMandatarisSubject(
     return;
   }
 
-  // TODO Check if person in another graph.
+  // If person exists in another graph, copy that person.
+  const personInOtherGraph =
+    await checkPersonExistsAllGraphs(persoonOfMandataris);
+  if (personInOtherGraph) {
+    await copyPerson(persoonOfMandataris, mandatarisGraph);
+    return;
+  }
 
   // Create new person with given firstname and lastname
   const persoon = await findNameOfPersoonFromStaging(mandatarisSubject);

@@ -1,5 +1,10 @@
 import { query, update, sparqlEscapeString, sparqlEscapeUri } from 'mu';
+import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
 import { v4 as uuidv4 } from 'uuid';
+import { Term } from '../types';
+import { sparqlEscapeTermValue } from '../util/sparql-escape';
+import { TERM_STAGING_GRAPH } from './mandatees-decisions';
+import { getBooleanSparqlResult } from '../util/sparql-result';
 
 // note since we use the regular query, not sudo queries, be sure to log in when using this endpoint. E.g. use the vendor login
 
@@ -73,3 +78,96 @@ export const createPerson = async (
     naam: lName,
   };
 };
+
+// All graphs except the staging graph
+export async function checkPersonExistsAllGraphs(
+  subject: Term,
+): Promise<boolean> {
+  const escaped = {
+    person: sparqlEscapeTermValue(subject),
+  };
+
+  const askIfPersoonExists = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+
+    ASK {
+      GRAPH ?g {
+        ${escaped.person} ?p ?o.
+      }
+      FILTER (?g != ${sparqlEscapeTermValue(TERM_STAGING_GRAPH)}).
+    }
+  `;
+  const result = await querySudo(askIfPersoonExists);
+
+  return getBooleanSparqlResult(result);
+}
+
+export async function copyPerson(subject: Term, graph: Term) {
+  const escaped = {
+    graph: sparqlEscapeTermValue(graph),
+    person: sparqlEscapeTermValue(subject),
+  };
+
+  const q = `
+  PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+  PREFIX person: <http://www.w3.org/ns/person#>
+  PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
+  PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+  PREFIX adms: <http://www.w3.org/ns/adms#>
+  PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+  INSERT {
+    GRAPH ${escaped.graph} {
+      ${escaped.person} a person:Person;
+          mu:uuid ?uuid;
+          persoon:gebruikteVoornaam ?voornaam;
+          adms:identifier ?identifier;
+          foaf:familyName ?achternaam;
+          persoon:geslacht ?geslacht;
+          foaf:name ?altName;
+          persoon:heeftGeboorte ?geboorte.
+
+      ?identifier a adms:Identifier;
+          mu:uuid ?idUuid;
+          skos:notation ?rrn.
+
+      ?geboorte a persoon:Geboorte;
+          mu:uuid ?geboorteUuid;
+          persoon:datum ?geboorteDatum.
+    }
+  }
+  WHERE {
+    GRAPH ?g {
+      ${escaped.person} a person:Person;
+          mu:uuid ?uuid;
+          persoon:gebruikteVoornaam ?voornaam;
+          adms:identifier ?identifier;
+          foaf:familyName ?achternaam.
+
+      ?identifier a adms:Identifier;
+          mu:uuid ?idUuid;
+          skos:notation ?rrn.
+      OPTIONAL {
+        ${escaped.person} persoon:geslacht ?geslacht.
+      }
+      OPTIONAL {
+        ${escaped.person} foaf:name ?altName.
+      }
+      OPTIONAL {
+        ${escaped.person} persoon:heeftGeboorte ?geboorte.
+        ?geboorte a persoon:Geboorte;
+          mu:uuid ?geboorteUuid;
+          persoon:datum ?geboorteDatum.
+      }
+    }
+  }`;
+
+  try {
+    await updateSudo(q);
+    console.log(
+      `|> Copied person with uri ${escaped.person} to graph ${escaped.graph}.`,
+    );
+  } catch (error) {
+    throw Error(`Could not copy person with uri: ${escaped.person}`);
+  }
+}
