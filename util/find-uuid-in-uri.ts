@@ -1,8 +1,10 @@
-export function findUuidFromUri(uri: string) {
-  const regex = new RegExp(
-    /([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|[0-9a-fA-F]{24})$/,
-  );
-  const match = uri.match(regex);
+import { v4 as uuidv4 } from 'uuid';
 
-  return match ? match[0] : null;
+export function getIdentifierFromPersonUri(uri: string) {
+  const personBaseUri = 'http://data.lblod.info/id/personen/';
+  if (!uri.includes(personBaseUri)) {
+    return uuidv4();
+  }
+
+  return uri.replace(personBaseUri, '').trim();
 }

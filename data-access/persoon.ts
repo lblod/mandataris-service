@@ -5,7 +5,7 @@ import { Term } from '../types';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import { TERM_STAGING_GRAPH } from './mandatees-decisions';
 import { getBooleanSparqlResult } from '../util/sparql-result';
-import { findUuidFromUri } from '../util/find-uuid-in-uri';
+import { getIdentifierFromPersonUri } from '../util/find-uuid-in-uri';
 
 // note since we use the regular query, not sudo queries, be sure to log in when using this endpoint. E.g. use the vendor login
 
@@ -109,13 +109,7 @@ export async function createrPersonFromUri(
   lastname: Term,
   graph: Term,
 ): Promise<void> {
-  const uuidOfPersoon = findUuidFromUri(personUri.value);
-
-  if (!uuidOfPersoon) {
-    console.log(`|> Could not find uuid in persoon URI: ${personUri.value}`);
-    return;
-  }
-
+  const personIdentifier = getIdentifierFromPersonUri(personUri.value);
   const createQuery = `
   PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
   PREFIX person: <http://www.w3.org/ns/person#>
@@ -125,7 +119,7 @@ export async function createrPersonFromUri(
   INSERT DATA {
       GRAPH ${sparqlEscapeTermValue(graph)} {
         ${sparqlEscapeTermValue(personUri)} a person:Person; 
-          mu:uuid ${sparqlEscapeString(uuidOfPersoon)};
+          mu:uuid ${sparqlEscapeString(personIdentifier)};
           persoon:gebruikteVoornaam ${sparqlEscapeTermValue(firstname)};
           foaf:familyName ${sparqlEscapeTermValue(lastname)}.
         }
