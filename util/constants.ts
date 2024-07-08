@@ -3,3 +3,8 @@ export enum MANDATARIS_STATUS {
   DRAFT = 'http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/588ce330-4abb-4448-9776-a17d9305df07',
   EFFECTIEF = 'http://data.vlaanderen.be/id/concept/MandatarisStatusCode/21063a5b-912c-4241-841c-cc7fb3c73e75',
 }
+
+export enum BENOEMING_STATUS {
+  BENOEMD = 'benoemd',
+  AFGEWEZEN = 'afgewezen',
+}
