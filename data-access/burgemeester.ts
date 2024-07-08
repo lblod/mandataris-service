@@ -6,6 +6,7 @@ import {
 } from '../util/mu';
 import { v4 as uuidv4 } from 'uuid';
 import { HttpError } from '../util/http-error';
+import { storeFile } from './file';
 
 export const findBurgemeesterMandaat = async (
   bestuurseenheidUri: string,

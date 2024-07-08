@@ -3,7 +3,6 @@ import { HttpError } from '../util/http-error';
 
 import {
   benoemBurgemeester,
-  checkAuthorization,
   confirmKnownPerson,
   createBurgemeesterBenoeming,
   endExistingMandataris,
@@ -12,6 +11,7 @@ import {
   markCurrentBurgemeesterAsRejected,
 } from '../data-access/burgemeester';
 import { BENOEMING_STATUS } from '../util/constants';
+import { checkAuthorization } from '../data-access/authorization';
 
 const parseBody = (body) => {
   if (body == null) {
