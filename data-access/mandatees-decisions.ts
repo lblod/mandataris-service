@@ -305,16 +305,14 @@ export async function findNameOfPersoonFromStaging(
     PREFIX foaf: <http://xmlns.com/foaf/0.1/>
     PREFIX persoon: <https://data.vlaanderen.be/ns/persoon#>
 
-    SELECT ?firstname ?lastname
+    SELECT ?persoonUri ?firstname ?lastname
     WHERE {
       GRAPH ${sparqlEscapeTermValue(TERM_STAGING_GRAPH)} {
-        ${mandatarisUri} a <http://data.vlaanderen.be/ns/mandaat#Mandataris> .
+        ${mandatarisUri} a ${sparqlEscapeTermValue(TERM_MANDATARIS_TYPE)} .
                       
-        OPTIONAL {
-            ${mandatarisUri} persoon:isBestuurlijkeAliasVan ?persoon .
-            ${mandatarisUri} persoon:gebruikteVoornaam ?firstname .
-            ${mandatarisUri} foaf:familyName ?lastname .
-        }
+        ${mandatarisUri} persoon:isBestuurlijkeAliasVan ?persoonUri .
+        ${mandatarisUri} persoon:gebruikteVoornaam ?firstname .
+        ${mandatarisUri} foaf:familyName ?lastname .
       }
     }
   `;
