@@ -1,8 +1,9 @@
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { HttpError } from '../util/http-error';
 
 import {
   benoemBurgemeester,
+  checkAuthorization,
   confirmKnownPerson,
   createBurgemeesterBenoeming,
   endExistingMandataris,
@@ -84,7 +85,7 @@ const validateAndParseRequest = async (req: Request) => {
   };
 };
 
-export const onBurgemeesterBenoemingSafe = async (req: Request) => {
+const onBurgemeesterBenoemingSafe = async (req: Request) => {
   const {
     bestuurseenheidUri,
     burgemeesterUri,
@@ -135,5 +136,20 @@ export const onBurgemeesterBenoemingSafe = async (req: Request) => {
   } else {
     // this was already checked during validation, just for clarity
     throw new HttpError('Invalid status provided', 400);
+  }
+};
+
+export const onBurgemeesterBenoeming = async (req: Request, res: Response) => {
+  try {
+    await checkAuthorization(req);
+    await onBurgemeesterBenoemingSafe(req);
+    res
+      .status(200)
+      .send({ message: `Burgemeester-benoeming: ${req.body.status}` });
+  } catch (e) {
+    const status = e.status || 500;
+    res.status(status).send({ error: e.message });
+    console.error(`[${status}]: ${e.message}`);
+    console.error(e.stack);
   }
 };
