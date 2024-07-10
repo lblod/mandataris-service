@@ -1,6 +1,7 @@
 import { findBestuurseenheidForMandaat } from '../data-access/bestuurseenheid';
 
 import {
+  findDecisionForMandataris,
   findStartDateOfMandataris as findStartDateOfMandataris,
   terminateMandataris,
 } from '../data-access/mandataris';
@@ -26,9 +27,9 @@ import {
 import { mandatarisQueue } from '../routes/delta';
 import { Term } from '../types';
 
-export async function handleTriplesForMandatarisSubject(
+export async function processMandatarisForDecisions(
   mandatarisSubject: Term,
-) {
+): Promise<void> {
   const isMandataris = await isSubjectOfType(
     TERM_MANDATARIS_TYPE,
     mandatarisSubject,
@@ -40,6 +41,21 @@ export async function handleTriplesForMandatarisSubject(
     return;
   }
 
+  const decision = await findDecisionForMandataris(mandatarisSubject);
+  if (!decision) {
+    console.log(
+      `|> Could not find a decision for mandataris: ${mandatarisSubject.value}`,
+    );
+    mandatarisQueue.addToManualQueue(mandatarisSubject);
+    return;
+  }
+
+  await this.handleTriplesForMandatarisSubject(mandatarisSubject);
+}
+
+export async function handleTriplesForMandatarisSubject(
+  mandatarisSubject: Term,
+) {
   console.log(`|> Mandataris uri: ${mandatarisSubject.value}`);
   const isExitingInLmbDatabase =
     await isMandatarisInLmbDatabase(mandatarisSubject);
