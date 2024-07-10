@@ -23,7 +23,7 @@ import {
   copyPerson,
   createrPersonFromUri,
 } from '../data-access/persoon';
-import { mandatarisQueue } from '../routes/mandatees-decisions';
+import { mandatarisQueue } from '../routes/delta';
 import { Term } from '../types';
 
 export async function handleTriplesForMandatarisSubject(

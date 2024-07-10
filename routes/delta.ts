@@ -2,14 +2,19 @@ import Router from 'express-promise-router';
 
 import { Request, Response } from 'express';
 
+
 import { Changeset, Quad } from '../types';
 import { handleTriplesForMandatarisSubject } from '../controllers/mandatees-decisions';
 import { ProcessingQueue } from '../services/processing-queue';
 
-const mandateesDecisionsRouter = Router();
+const deltaRouter = Router();
 export const mandatarisQueue = new ProcessingQueue();
 
-mandateesDecisionsRouter.post('/', async (req: Request, res: Response) => {
+deltaRouter.post('/decisions', async (req: Request, res: Response) => {
+  return res.status(200).send({ status: 'ok' });
+});
+
+deltaRouter.post('/mandatees', async (req: Request, res: Response) => {
   console.log('|> Trigger endpoint mandatees-decisions');
   const changesets: Changeset[] = req.body;
   const insertTriples = changesets
@@ -26,4 +31,4 @@ mandateesDecisionsRouter.post('/', async (req: Request, res: Response) => {
   return res.status(200).send({ status: 'ok' });
 });
 
-export { mandateesDecisionsRouter };
+export { deltaRouter };
