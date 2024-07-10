@@ -1,6 +1,8 @@
 import { findBestuurseenheidForMandaat } from '../data-access/bestuurseenheid';
+import { findLinkToDocumentOfDecision } from '../data-access/decision';
 
 import {
+  addLinkToDecisionDocumentToMandataris,
   findDecisionForMandataris,
   findStartDateOfMandataris as findStartDateOfMandataris,
   terminateMandataris,
@@ -51,6 +53,7 @@ export async function processMandatarisForDecisions(
   }
 
   await this.handleTriplesForMandatarisSubject(mandatarisSubject);
+  await linkBesluitToMandataris(mandatarisSubject, decision);
 }
 
 export async function handleTriplesForMandatarisSubject(
@@ -183,4 +186,19 @@ export async function handleTriplesForMandatarisSubject(
     persoon.lastname,
     mandatarisGraph,
   );
+}
+
+export async function linkBesluitToMandataris(
+  mandataris: Term,
+  decision: Term,
+): Promise<void> {
+  const linkToDocument = await findLinkToDocumentOfDecision(decision);
+  if (!linkToDocument) {
+    console.log(
+      `|> Could not find the link to the besluit document: ${decision.value}`,
+    );
+    return;
+  }
+
+  await addLinkToDecisionDocumentToMandataris(mandataris, decision);
 }

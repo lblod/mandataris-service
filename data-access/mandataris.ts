@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { MANDATARIS_STATUS } from '../util/constants';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import { findFirstSparqlResult } from '../util/sparql-result';
+import { TERM_MANDATARIS_TYPE } from './mandatees-decisions';
 
 export const findGraphAndMandates = async (row: CSVRow) => {
   const mandates = await findMandatesByName(row);
@@ -315,4 +316,46 @@ export async function findDecisionForMandataris(
   }
 
   return null;
+}
+
+export async function addLinkToDecisionDocumentToMandataris(
+  mandataris: Term,
+  linkToDocument: Term,
+): Promise<void> {
+  const escaped = {
+    mandataris: sparqlEscapeTermValue(mandataris),
+    link: sparqlEscapeTermValue(linkToDocument),
+    mandatarisType: sparqlEscapeTermValue(TERM_MANDATARIS_TYPE),
+  };
+  const addQuery = `
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    DELETE {
+      GRAPH ?graph {
+        OPTIONAL {
+          ${escaped.mandataris} ext:linkToBesluit ?link.
+        }
+      }
+    }
+    INSERT {
+      GRAPH ?graph {
+        ${escaped.mandataris} ext:linkToBesluit ${escaped.link}.
+      }
+    }
+    WHERE {
+      GRAPH ?graph {
+        ${escaped.mandataris} a ${escaped.mandatarisType}.
+      }
+    }
+  `;
+
+  try {
+    await updateSudo(addQuery);
+    console.log(
+      `|> Added decision document link: ${linkToDocument.value} to mandataris: ${mandataris.value}`,
+    );
+  } catch (error) {
+    console.log(
+      `|> Something went wrongwhen adding the decision document link: ${linkToDocument.value} to the mandataris: ${mandataris.value}`,
+    );
+  }
 }
