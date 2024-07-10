@@ -6,6 +6,7 @@ import {
   findDecisionForMandataris,
   findStartDateOfMandataris as findStartDateOfMandataris,
   terminateMandataris,
+  updateStatusOfMandataris,
 } from '../data-access/mandataris';
 import {
   findPersoonForMandatarisInGraph,
@@ -28,6 +29,7 @@ import {
 } from '../data-access/persoon';
 import { mandatarisQueue } from '../routes/delta';
 import { Term } from '../types';
+import { MANDATARIS_STATUS } from '../util/constants';
 
 export async function processMandatarisForDecisions(
   mandatarisSubject: Term,
@@ -201,4 +203,5 @@ export async function linkBesluitToMandataris(
   }
 
   await addLinkToDecisionDocumentToMandataris(mandataris, decision);
+  await updateStatusOfMandataris(mandataris, MANDATARIS_STATUS.BEKRACHTIGD);
 }

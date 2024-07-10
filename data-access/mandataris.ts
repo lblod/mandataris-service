@@ -360,3 +360,47 @@ export async function addLinkToDecisionDocumentToMandataris(
     );
   }
 }
+
+export async function updateStatusOfMandataris(
+  mandataris: Term,
+  status: MANDATARIS_STATUS,
+): Promise<void> {
+  const escaped = {
+    mandataris: sparqlEscapeTermValue(mandataris),
+    status: sparqlEscapeUri(status),
+    mandatarisType: sparqlEscapeTermValue(TERM_MANDATARIS_TYPE),
+  };
+  const updateStatusQuery = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+
+    DELETE {
+      GRAPH ?graph {
+        ${escaped.mandataris} mandaat:status ?status.
+      }
+    }
+    INSERT {
+      GRAPH ?graph {
+        ${escaped.mandataris} mandaat:status ${status}.
+      }
+    }
+    WHERE {
+      GRAPH ?graph {
+        ${escaped.mandataris} a ${escaped.mandatarisType}.
+        OPTIONAL {
+          ${escaped.mandataris} mandaat:status ?status.
+        }
+      }
+    }
+  `;
+
+  try {
+    await updateSudo(updateStatusQuery);
+    console.log(
+      `|> Updated status to ${status} for mandataris: ${mandataris.value}.`,
+    );
+  } catch (error) {
+    console.log(
+      `|> Could not update mandataris: ${mandataris.value} status to ${status}`,
+    );
+  }
+}
