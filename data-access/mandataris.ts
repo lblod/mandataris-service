@@ -331,9 +331,7 @@ export async function addLinkToDecisionDocumentToMandataris(
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     DELETE {
       GRAPH ?graph {
-        OPTIONAL {
-          ${escaped.mandataris} ext:linkToBesluit ?link.
-        }
+        ${escaped.mandataris} ext:linkToBesluit ?link.
       }
     }
     INSERT {
@@ -344,6 +342,9 @@ export async function addLinkToDecisionDocumentToMandataris(
     WHERE {
       GRAPH ?graph {
         ${escaped.mandataris} a ${escaped.mandatarisType}.
+        OPTIONAL {
+          ${escaped.mandataris} ext:linkToBesluit ?link.
+        }
       }
     }
   `;
