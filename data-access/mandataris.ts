@@ -302,17 +302,16 @@ export async function findDecisionForMandataris(
    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/> 
    
-   SELECT ?besluit WHERE {
+   SELECT ?artikel WHERE {
       ?artikel ext:bekrachtigtAanstellingVan ${mandatarisSubject}.
-      ?besluit ?p ?artikel .
     }
   `;
 
   const result = await updateSudo(besluiteQuery);
   const sparqlresult = findFirstSparqlResult(result);
 
-  if (sparqlresult?.besluit) {
-    return sparqlresult.besluit;
+  if (sparqlresult?.artikel) {
+    return sparqlresult.artikel;
   }
 
   return null;
@@ -380,7 +379,7 @@ export async function updateStatusOfMandataris(
     }
     INSERT {
       GRAPH ?graph {
-        ${escaped.mandataris} mandaat:status ${status}.
+        ${escaped.mandataris} mandaat:status ${escaped.status}.
       }
     }
     WHERE {

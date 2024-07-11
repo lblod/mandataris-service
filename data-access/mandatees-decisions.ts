@@ -224,9 +224,7 @@ export async function getMandateOfMandataris(
 
     SELECT ?mandaat
     WHERE {
-      OPTIONAL {
         ${sparqlEscapeTermValue(mandataris)} org:holds ?mandaat .
-      }
     }
   `;
   const mandateResult = await querySudo(queryForMandatarisMandate);
