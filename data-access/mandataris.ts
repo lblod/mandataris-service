@@ -370,23 +370,23 @@ export async function updateStatusOfMandataris(
     mandatarisType: sparqlEscapeTermValue(TERM_MANDATARIS_TYPE),
   };
   const updateStatusQuery = `
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
 
     DELETE {
       GRAPH ?graph {
-        ${escaped.mandataris} mandaat:status ?status.
+        ${escaped.mandataris} extlmb:hasPublicationStatus ?status.
       }
     }
     INSERT {
       GRAPH ?graph {
-        ${escaped.mandataris} mandaat:status ${escaped.status}.
+        ${escaped.mandataris} extlmb:hasPublicationStatus ${escaped.status}.
       }
     }
     WHERE {
       GRAPH ?graph {
         ${escaped.mandataris} a ${escaped.mandatarisType}.
         OPTIONAL {
-          ${escaped.mandataris} mandaat:status ?status.
+          ${escaped.mandataris} extlmb:hasPublicationStatus ?status.
         }
       }
     }
