@@ -6,7 +6,7 @@ import {
   findDecisionForMandataris,
   findStartDateOfMandataris as findStartDateOfMandataris,
   terminateMandataris,
-  updateStatusOfMandataris,
+  updatePublicationStatusOfMandataris,
 } from '../data-access/mandataris';
 import {
   findPersoonForMandatarisInGraph,
@@ -205,5 +205,8 @@ export async function linkBesluitToMandataris(
   }
 
   await addLinkToDecisionDocumentToMandataris(mandataris, linkToDocument);
-  await updateStatusOfMandataris(mandataris, MANDATARIS_STATUS.BEKRACHTIGD);
+  await updatePublicationStatusOfMandataris(
+    mandataris,
+    MANDATARIS_STATUS.BEKRACHTIGD,
+  );
 }

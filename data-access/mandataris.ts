@@ -360,7 +360,7 @@ export async function addLinkToDecisionDocumentToMandataris(
   }
 }
 
-export async function updateStatusOfMandataris(
+export async function updatePublicationStatusOfMandataris(
   mandataris: Term,
   status: MANDATARIS_STATUS,
 ): Promise<void> {
