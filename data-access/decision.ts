@@ -8,12 +8,10 @@ export async function findLinkToDocumentOfDecision(
   decision: Term,
 ): Promise<Term | null> {
   const queryUrl = `
-    PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
     PREFIX prov: <http://www.w3.org/ns/prov#>
 
     SELECT ?linkToDocument WHERE {
-      ${sparqlEscapeTermValue(decision)} a besluit:Besluit;
-       	prov:wasDerivedFrom ?linkToDocument.
+      ${sparqlEscapeTermValue(decision)} prov:wasDerivedFrom ?linkToDocument.
     }  
   `;
 

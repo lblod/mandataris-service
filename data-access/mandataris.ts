@@ -8,7 +8,7 @@ import {
 import { CSVRow, CsvUploadState, MandateHit, Term } from '../types';
 import moment from 'moment';
 import { v4 as uuidv4 } from 'uuid';
-import { MANDATARIS_STATUS } from '../util/constants';
+import { MANDATARIS_STATUS, PUBLICATION_STATUS } from '../util/constants';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import { findFirstSparqlResult } from '../util/sparql-result';
 import { TERM_MANDATARIS_TYPE } from './mandatees-decisions';
@@ -302,17 +302,16 @@ export async function findDecisionForMandataris(
    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/> 
    
-   SELECT ?besluit WHERE {
+   SELECT ?artikel WHERE {
       ?artikel ext:bekrachtigtAanstellingVan ${mandatarisSubject}.
-      ?besluit ?p ?artikel .
     }
   `;
 
   const result = await updateSudo(besluiteQuery);
   const sparqlresult = findFirstSparqlResult(result);
 
-  if (sparqlresult?.besluit) {
-    return sparqlresult.besluit;
+  if (sparqlresult?.artikel) {
+    return sparqlresult.artikel;
   }
 
   return null;
@@ -357,6 +356,50 @@ export async function addLinkToDecisionDocumentToMandataris(
   } catch (error) {
     console.log(
       `|> Something went wrongwhen adding the decision document link: ${linkToDocument.value} to the mandataris: ${mandataris.value}`,
+    );
+  }
+}
+
+export async function updatePublicationStatusOfMandataris(
+  mandataris: Term,
+  status: PUBLICATION_STATUS,
+): Promise<void> {
+  const escaped = {
+    mandataris: sparqlEscapeTermValue(mandataris),
+    status: sparqlEscapeUri(status),
+    mandatarisType: sparqlEscapeTermValue(TERM_MANDATARIS_TYPE),
+  };
+  const updateStatusQuery = `
+    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
+
+    DELETE {
+      GRAPH ?graph {
+        ${escaped.mandataris} extlmb:hasPublicationStatus ?status.
+      }
+    }
+    INSERT {
+      GRAPH ?graph {
+        ${escaped.mandataris} extlmb:hasPublicationStatus ${escaped.status}.
+      }
+    }
+    WHERE {
+      GRAPH ?graph {
+        ${escaped.mandataris} a ${escaped.mandatarisType}.
+        OPTIONAL {
+          ${escaped.mandataris} extlmb:hasPublicationStatus ?status.
+        }
+      }
+    }
+  `;
+
+  try {
+    await updateSudo(updateStatusQuery);
+    console.log(
+      `|> Updated status to ${status} for mandataris: ${mandataris.value}.`,
+    );
+  } catch (error) {
+    console.log(
+      `|> Could not update mandataris: ${mandataris.value} status to ${status}`,
     );
   }
 }

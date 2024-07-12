@@ -6,6 +6,7 @@ import {
   findDecisionForMandataris,
   findStartDateOfMandataris as findStartDateOfMandataris,
   terminateMandataris,
+  updatePublicationStatusOfMandataris,
 } from '../data-access/mandataris';
 import {
   findPersoonForMandatarisInGraph,
@@ -28,6 +29,7 @@ import {
 } from '../data-access/persoon';
 import { mandatarisQueue } from '../routes/delta';
 import { Term } from '../types';
+import { PUBLICATION_STATUS } from '../util/constants';
 
 export async function processMandatarisForDecisions(
   mandatarisSubject: Term,
@@ -43,6 +45,8 @@ export async function processMandatarisForDecisions(
     return;
   }
 
+  // The dicision is actually a besluit:Artikel this
+  // because the besluit doe snot have a direct relation to the mandataris yet
   const decision = await findDecisionForMandataris(mandatarisSubject);
   if (!decision) {
     console.log(
@@ -52,7 +56,7 @@ export async function processMandatarisForDecisions(
     return;
   }
 
-  await this.handleTriplesForMandatarisSubject(mandatarisSubject);
+  await handleTriplesForMandatarisSubject(mandatarisSubject);
   await linkBesluitToMandataris(mandatarisSubject, decision);
 }
 
@@ -200,5 +204,9 @@ export async function linkBesluitToMandataris(
     return;
   }
 
-  await addLinkToDecisionDocumentToMandataris(mandataris, decision);
+  await addLinkToDecisionDocumentToMandataris(mandataris, linkToDocument);
+  await updatePublicationStatusOfMandataris(
+    mandataris,
+    PUBLICATION_STATUS.BEKRACHTIGT,
+  );
 }
