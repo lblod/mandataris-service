@@ -29,7 +29,7 @@ import {
 } from '../data-access/persoon';
 import { mandatarisQueue } from '../routes/delta';
 import { Term } from '../types';
-import { MANDATARIS_STATUS } from '../util/constants';
+import { PUBLICATION_STATUS } from '../util/constants';
 
 export async function processMandatarisForDecisions(
   mandatarisSubject: Term,
@@ -207,6 +207,6 @@ export async function linkBesluitToMandataris(
   await addLinkToDecisionDocumentToMandataris(mandataris, linkToDocument);
   await updatePublicationStatusOfMandataris(
     mandataris,
-    MANDATARIS_STATUS.BEKRACHTIGD,
+    PUBLICATION_STATUS.BEKRACHTIGT,
   );
 }

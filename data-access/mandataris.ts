@@ -8,7 +8,7 @@ import {
 import { CSVRow, CsvUploadState, MandateHit, Term } from '../types';
 import moment from 'moment';
 import { v4 as uuidv4 } from 'uuid';
-import { MANDATARIS_STATUS } from '../util/constants';
+import { MANDATARIS_STATUS, PUBLICATION_STATUS } from '../util/constants';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import { findFirstSparqlResult } from '../util/sparql-result';
 import { TERM_MANDATARIS_TYPE } from './mandatees-decisions';
@@ -362,7 +362,7 @@ export async function addLinkToDecisionDocumentToMandataris(
 
 export async function updatePublicationStatusOfMandataris(
   mandataris: Term,
-  status: MANDATARIS_STATUS,
+  status: PUBLICATION_STATUS,
 ): Promise<void> {
   const escaped = {
     mandataris: sparqlEscapeTermValue(mandataris),
