@@ -22,6 +22,8 @@ services:
       - debug
   mandatees-decisions:
     image: lblod/delta-consumer:0.0.24
+    profiles:
+      - decision-consumer
     volumes:
       - ./config/custom-dispatching:/config/triples-dispatching/custom-dispatching
       - ./data/files/mandatees-decisions:/consumer-files
