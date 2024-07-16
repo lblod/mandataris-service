@@ -8,7 +8,7 @@ mandatenRouter.get(
   '/nbMembers/:mandaatID',
   async (req: Request, res: Response) => {
     const nb = await getNbActiveEffectiveMandatarissen(req.params.mandaatID);
-    return res.send(nb);
+    return res.send({ count: nb });
   },
 );
 
