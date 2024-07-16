@@ -13,6 +13,12 @@ export const getNbActiveEffectiveMandatarissen = async (mandaatId: string) => {
         org:holds ?mandaat;
         # effectief
         mandaat:status <http://data.vlaanderen.be/id/concept/MandatarisStatusCode/21063a5b-912c-4241-841c-cc7fb3c73e75> .
+    OPTIONAL {
+      ?mandataris mandaat:einde ?mandatarisEinde.
+    }
+    OPTIONAL {
+      ?orgaanInTijd mandaat:bindingEinde ?orgaanEinde.
+    }
   }
   `;
 
