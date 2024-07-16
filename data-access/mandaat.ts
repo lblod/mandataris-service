@@ -1,6 +1,8 @@
 import { query, sparqlEscapeString } from 'mu';
+import { sparqlEscapeDateTime } from '../util/mu';
 
 export const getNbActiveEffectiveMandatarissen = async (mandaatId: string) => {
+  const now = sparqlEscapeDateTime(new Date());
   const q = `
   PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
   PREFIX org: <http://www.w3.org/ns/org#>
@@ -19,6 +21,9 @@ export const getNbActiveEffectiveMandatarissen = async (mandaatId: string) => {
     OPTIONAL {
       ?orgaanInTijd mandaat:bindingEinde ?orgaanEinde.
     }
+    BIND(IF(BOUND(?orgaanEinde), ?orgaanEinde, ${now}) AS ?actualOrgaanEinde).
+    BIND(IF(?actualOrgaanEinde <= ${now}, ?actualOrgaanEinde, ${now}) AS ?testEinde).
+    FILTER(!BOUND(?mandatarisEinde) || ?mandatarisEinde >= ?testEinde).
   }
   `;
 
