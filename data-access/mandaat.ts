@@ -12,7 +12,8 @@ export const getNbActiveMandatarissen = async (mandaatId: string) => {
     ?mandaat mu:uuid ${sparqlEscapeString(mandaatId)};
         ^org:hasPost ?orgaanInTijd.
     ?mandataris a mandaat:Mandataris;
-        org:holds ?mandaat.
+        org:holds ?mandaat;
+        mandaat:isBestuurlijkeAliasVan ?persoon.
     OPTIONAL {
       ?mandataris mandaat:status ?status.
     }
