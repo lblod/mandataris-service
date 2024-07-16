@@ -1,7 +1,7 @@
 import { query, sparqlEscapeString } from 'mu';
 import { sparqlEscapeDateTime } from '../util/mu';
 
-export const getNbActiveEffectiveMandatarissen = async (mandaatId: string) => {
+export const getNbActiveMandatarissen = async (mandaatId: string) => {
   const now = sparqlEscapeDateTime(new Date());
   const q = `
   PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
