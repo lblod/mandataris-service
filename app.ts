@@ -5,7 +5,7 @@ import bodyParser from 'body-parser';
 
 import { burgemeesterRouter } from './routes/burgemeester-benoeming';
 import { installatievergaderingRouter } from './routes/intallatievergadering';
-import { mandateesDecisionsRouter } from './routes/mandatees-decisions';
+import { deltaRouter } from './routes/delta';
 
 app.use(
   bodyParser.json({
@@ -22,7 +22,7 @@ app.get('/', async (_req, res) => {
   res.send({ status: 'ok' });
 });
 
-app.use('/mandatees-decisions', mandateesDecisionsRouter);
+app.use('/delta', deltaRouter);
 app.use('/mandatarissen', mandatarissenRouter);
 app.use('/burgemeester-benoeming', burgemeesterRouter);
 app.use('/installatievergadering-api', installatievergaderingRouter);

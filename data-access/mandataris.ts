@@ -8,9 +8,10 @@ import {
 import { CSVRow, CsvUploadState, MandateHit, Term } from '../types';
 import moment from 'moment';
 import { v4 as uuidv4 } from 'uuid';
-import { MANDATARIS_STATUS } from '../util/constants';
+import { MANDATARIS_STATUS, PUBLICATION_STATUS } from '../util/constants';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import { findFirstSparqlResult } from '../util/sparql-result';
+import { TERM_MANDATARIS_TYPE } from './mandatees-decisions';
 
 export const findGraphAndMandates = async (row: CSVRow) => {
   const mandates = await findMandatesByName(row);
@@ -290,4 +291,115 @@ export async function findStartDateOfMandataris(
   }
 
   return null;
+}
+
+export async function findDecisionForMandataris(
+  mandataris: Term,
+): Promise<Term | null> {
+  const mandatarisSubject = sparqlEscapeTermValue(mandataris);
+  const besluiteQuery = `
+   PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+   PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+   PREFIX ext: <http://mu.semte.ch/vocabularies/ext/> 
+   
+   SELECT ?artikel WHERE {
+      ?artikel ext:bekrachtigtAanstellingVan ${mandatarisSubject}.
+    }
+  `;
+
+  const result = await updateSudo(besluiteQuery);
+  const sparqlresult = findFirstSparqlResult(result);
+
+  if (sparqlresult?.artikel) {
+    return sparqlresult.artikel;
+  }
+
+  return null;
+}
+
+export async function addLinkToDecisionDocumentToMandataris(
+  mandataris: Term,
+  linkToDocument: Term,
+): Promise<void> {
+  const escaped = {
+    mandataris: sparqlEscapeTermValue(mandataris),
+    link: sparqlEscapeTermValue(linkToDocument),
+    mandatarisType: sparqlEscapeTermValue(TERM_MANDATARIS_TYPE),
+  };
+  const addQuery = `
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    DELETE {
+      GRAPH ?graph {
+        ${escaped.mandataris} ext:linkToBesluit ?link.
+      }
+    }
+    INSERT {
+      GRAPH ?graph {
+        ${escaped.mandataris} ext:linkToBesluit ${escaped.link}.
+      }
+    }
+    WHERE {
+      GRAPH ?graph {
+        ${escaped.mandataris} a ${escaped.mandatarisType}.
+        OPTIONAL {
+          ${escaped.mandataris} ext:linkToBesluit ?link.
+        }
+      }
+    }
+  `;
+
+  try {
+    await updateSudo(addQuery);
+    console.log(
+      `|> Added decision document link: ${linkToDocument.value} to mandataris: ${mandataris.value}`,
+    );
+  } catch (error) {
+    console.log(
+      `|> Something went wrongwhen adding the decision document link: ${linkToDocument.value} to the mandataris: ${mandataris.value}`,
+    );
+  }
+}
+
+export async function updatePublicationStatusOfMandataris(
+  mandataris: Term,
+  status: PUBLICATION_STATUS,
+): Promise<void> {
+  const escaped = {
+    mandataris: sparqlEscapeTermValue(mandataris),
+    status: sparqlEscapeUri(status),
+    mandatarisType: sparqlEscapeTermValue(TERM_MANDATARIS_TYPE),
+  };
+  const updateStatusQuery = `
+    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
+
+    DELETE {
+      GRAPH ?graph {
+        ${escaped.mandataris} extlmb:hasPublicationStatus ?status.
+      }
+    }
+    INSERT {
+      GRAPH ?graph {
+        ${escaped.mandataris} extlmb:hasPublicationStatus ${escaped.status}.
+      }
+    }
+    WHERE {
+      GRAPH ?graph {
+        ${escaped.mandataris} a ${escaped.mandatarisType}.
+        OPTIONAL {
+          ${escaped.mandataris} extlmb:hasPublicationStatus ?status.
+        }
+      }
+    }
+  `;
+
+  try {
+    await updateSudo(updateStatusQuery);
+    console.log(
+      `|> Updated status to ${status} for mandataris: ${mandataris.value}.`,
+    );
+  } catch (error) {
+    console.log(
+      `|> Could not update mandataris: ${mandataris.value} status to ${status}`,
+    );
+  }
 }

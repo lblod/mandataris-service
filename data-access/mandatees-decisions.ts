@@ -7,7 +7,7 @@ import {
   getSparqlResults,
 } from '../util/sparql-result';
 import { TERM_TYPE, sparqlEscapeTermValue } from '../util/sparql-escape';
-import { MANDATARIS_STATUS } from '../util/constants';
+import { MANDATARIS_STATUS, PUBLICATION_STATUS } from '../util/constants';
 
 export const TERM_STAGING_GRAPH = {
   type: TERM_TYPE.URI,
@@ -224,9 +224,7 @@ export async function getMandateOfMandataris(
 
     SELECT ?mandaat
     WHERE {
-      OPTIONAL {
         ${sparqlEscapeTermValue(mandataris)} org:holds ?mandaat .
-      }
     }
   `;
   const mandateResult = await querySudo(queryForMandatarisMandate);
@@ -247,7 +245,7 @@ export async function findOverlappingMandataris(
   WHERE {
     VALUES ?status {
       ${sparqlEscapeUri(MANDATARIS_STATUS.EFFECTIEF)}
-      ${sparqlEscapeUri(MANDATARIS_STATUS.DRAFT)}
+      ${sparqlEscapeUri(PUBLICATION_STATUS.DRAFT)}
     }
     ?mandataris a ${sparqlEscapeTermValue(TERM_MANDATARIS_TYPE)} ;
       mandaat:status ?status; 

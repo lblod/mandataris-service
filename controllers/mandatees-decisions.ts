@@ -1,8 +1,12 @@
 import { findBestuurseenheidForMandaat } from '../data-access/bestuurseenheid';
+import { findLinkToDocumentOfDecision } from '../data-access/decision';
 
 import {
+  addLinkToDecisionDocumentToMandataris,
+  findDecisionForMandataris,
   findStartDateOfMandataris as findStartDateOfMandataris,
   terminateMandataris,
+  updatePublicationStatusOfMandataris,
 } from '../data-access/mandataris';
 import {
   findPersoonForMandatarisInGraph,
@@ -23,12 +27,13 @@ import {
   copyPerson,
   createrPersonFromUri,
 } from '../data-access/persoon';
-import { mandatarisQueue } from '../routes/mandatees-decisions';
+import { mandatarisQueue } from '../routes/delta';
 import { Term } from '../types';
+import { PUBLICATION_STATUS } from '../util/constants';
 
-export async function handleTriplesForMandatarisSubject(
+export async function processMandatarisForDecisions(
   mandatarisSubject: Term,
-) {
+): Promise<void> {
   const isMandataris = await isSubjectOfType(
     TERM_MANDATARIS_TYPE,
     mandatarisSubject,
@@ -40,6 +45,24 @@ export async function handleTriplesForMandatarisSubject(
     return;
   }
 
+  // The dicision is actually a besluit:Artikel this
+  // because the besluit doe snot have a direct relation to the mandataris yet
+  const decision = await findDecisionForMandataris(mandatarisSubject);
+  if (!decision) {
+    console.log(
+      `|> Could not find a decision for mandataris: ${mandatarisSubject.value}`,
+    );
+    mandatarisQueue.addToManualQueue(mandatarisSubject);
+    return;
+  }
+
+  await handleTriplesForMandatarisSubject(mandatarisSubject);
+  await linkBesluitToMandataris(mandatarisSubject, decision);
+}
+
+export async function handleTriplesForMandatarisSubject(
+  mandatarisSubject: Term,
+) {
   console.log(`|> Mandataris uri: ${mandatarisSubject.value}`);
   const isExitingInLmbDatabase =
     await isMandatarisInLmbDatabase(mandatarisSubject);
@@ -166,5 +189,24 @@ export async function handleTriplesForMandatarisSubject(
     persoon.firstname,
     persoon.lastname,
     mandatarisGraph,
+  );
+}
+
+export async function linkBesluitToMandataris(
+  mandataris: Term,
+  decision: Term,
+): Promise<void> {
+  const linkToDocument = await findLinkToDocumentOfDecision(decision);
+  if (!linkToDocument) {
+    console.log(
+      `|> Could not find the link to the besluit document: ${decision.value}`,
+    );
+    return;
+  }
+
+  await addLinkToDecisionDocumentToMandataris(mandataris, linkToDocument);
+  await updatePublicationStatusOfMandataris(
+    mandataris,
+    PUBLICATION_STATUS.BEKRACHTIGT,
   );
 }
