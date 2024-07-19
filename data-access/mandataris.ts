@@ -297,36 +297,42 @@ export const validateNoOverlappingMandate = async (
   return false;
 };
 
-export async function terminateMandataris(
+export async function endExistingMandataris(
+  graph: Term,
   mandataris: Term,
   endDate: Date,
+  benoemingUri?: string,
 ): Promise<void> {
-  if (!endDate) {
-    throw Error(
-      `|> End date not set! Mandataris with uri "${mandataris.value}" will not be terminated.`,
-    );
+  let extraTriples = '';
+  if (benoemingUri) {
+    extraTriples = `
+        ?mandataris ext:beeindigdDoor ${sparqlEscapeUri(benoemingUri)}. \n `;
   }
 
-  const datumBeeindigd = sparqlEscapeDateTime(endDate);
   const terminateQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     DELETE {
-      GRAPH ?graph {
-      ${sparqlEscapeTermValue(mandataris)}
-        mandaat:einde ?einde .
+      GRAPH ${sparqlEscapeTermValue(graph)} {
+        ?mandataris mandaat:einde ?einde .
       }
     }
     INSERT {
-      GRAPH ?graph {
-        ${sparqlEscapeTermValue(mandataris)}
-          mandaat:einde ${datumBeeindigd} .
+      GRAPH ${sparqlEscapeTermValue(graph)} {
+        ?mandataris mandaat:einde ${sparqlEscapeDateTime(endDate)} .
+        ${extraTriples}
       }
     }
     WHERE {
-      GRAPH ?graph {
-        ${sparqlEscapeTermValue(mandataris)}
-          mandaat:einde ?einde .
+      GRAPH ${sparqlEscapeTermValue(graph)} {
+        ?mandataris a mandaat:Mandataris .
+        VALUES ?mandataris {
+          ${sparqlEscapeTermValue(mandataris)}.
+        }
+        OPTIONAL {
+          ?mandataris mandaat:einde ?einde .
+        }
       }
     }
   `;
