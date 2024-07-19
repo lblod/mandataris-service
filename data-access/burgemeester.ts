@@ -67,6 +67,7 @@ export const findBurgemeesterMandaat = async (
   };
 };
 
+// Seems dangerous, what if there are multiple?
 export const findExistingMandataris = async (
   orgGraph: string,
   mandaatUri: string,
@@ -90,41 +91,9 @@ export const findExistingMandataris = async (
     return null;
   }
   return {
-    mandataris: result.results.bindings[0].mandataris.value,
-    persoon: result.results.bindings[0].persoon.value,
+    mandataris: result.results.bindings[0].mandataris,
+    persoon: result.results.bindings[0].persoon,
   };
-};
-
-export const endExistingMandataris = async (
-  orgGraph: string,
-  mandatarisUri: string,
-  benoemingUri: string,
-  date: Date,
-) => {
-  await updateSudo(`
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-
-    DELETE {
-      GRAPH ${sparqlEscapeUri(orgGraph)} {
-        ?mandataris mandaat:einde ?einde .
-      }
-    } INSERT {
-      GRAPH ${sparqlEscapeUri(orgGraph)} {
-        ?mandataris mandaat:einde ${sparqlEscapeDateTime(date)} .
-        ?mandataris ext:beeindigdDoor ${sparqlEscapeUri(benoemingUri)} .
-      }
-    } WHERE {
-      GRAPH ${sparqlEscapeUri(orgGraph)} {
-        ?mandataris a mandaat:Mandataris .
-        VALUES ?mandataris {
-          ${sparqlEscapeUri(mandatarisUri)}
-        }
-        OPTIONAL {
-          ?mandataris mandaat:einde ?einde .
-        }
-      }
-    }`);
 };
 
 export const createBurgemeesterBenoeming = async (

@@ -3,9 +3,9 @@ import { findLinkToDocumentOfDecision } from '../data-access/decision';
 
 import {
   addLinkToDecisionDocumentToMandataris,
+  endExistingMandataris,
   findDecisionForMandataris,
   findStartDateOfMandataris as findStartDateOfMandataris,
-  terminateMandataris,
   updatePublicationStatusOfMandataris,
 } from '../data-access/mandataris';
 import {
@@ -155,7 +155,11 @@ export async function handleTriplesForMandatarisSubject(
       const startDate = await findStartDateOfMandataris(mandatarisSubject);
       console.log(`|> Found start date for incoming mandataris? ${startDate}`);
       if (startDate) {
-        await terminateMandataris(overlappingMandataris, startDate);
+        await endExistingMandataris(
+          mandatarisGraph,
+          overlappingMandataris,
+          startDate,
+        );
       }
     }
 

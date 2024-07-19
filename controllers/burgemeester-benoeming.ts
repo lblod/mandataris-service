@@ -5,13 +5,13 @@ import {
   benoemBurgemeester,
   confirmKnownPerson,
   createBurgemeesterBenoeming,
-  endExistingMandataris,
   findBurgemeesterMandaat,
   findExistingMandataris,
   markCurrentBurgemeesterAsRejected,
 } from '../data-access/burgemeester';
 import { BENOEMING_STATUS } from '../util/constants';
 import { checkAuthorization } from '../data-access/authorization';
+import { endExistingMandataris } from '../data-access/mandataris';
 
 const parseBody = (body) => {
   if (body == null) {
@@ -115,15 +115,15 @@ const onBurgemeesterBenoemingSafe = async (req: Request) => {
       burgemeesterMandaat,
       date,
       benoeming,
-      existing?.mandataris,
-      existing?.persoon,
+      existing?.mandataris?.value,
+      existing?.persoon?.value,
     );
     if (existing) {
       await endExistingMandataris(
         orgGraph,
         existing.mandataris,
-        benoeming,
         date,
+        benoeming,
       );
     }
   } else if (status === BENOEMING_STATUS.AFGEWEZEN) {
