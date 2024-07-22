@@ -11,6 +11,7 @@ export enum PUBLICATION_STATUS {
 export enum BASE_RESOURCE {
   MANDATARIS = 'http://data.lblod.info/id/mandatarissen/',
   PERSONEN = 'http://data.lblod.info/id/personen/',
+  FRACTIES = 'http://data.lblod.info/id/fracties/',
 }
 
 export enum FRACTIE_TYPE {

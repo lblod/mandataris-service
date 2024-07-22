@@ -1,3 +1,4 @@
+import { fractie } from '../data-access/fractie';
 import { person } from '../data-access/persoon';
 import { HttpError } from '../util/http-error';
 
@@ -17,7 +18,13 @@ async function getOnfhankelijkeFractieUri(personId: string): Promise<string> {
     await person.findOnafhankelijkeFractieUri(personId);
 
   if (onafhankelijkerFractieUri === null) {
-    return 'not created yet';
+    const bestuursorganenInTijd = [];
+    const bestuurseenheid = '';
+
+    return await fractie.createOnafhankelijkeFractie(
+      bestuursorganenInTijd,
+      bestuurseenheid,
+    );
   }
 
   return onafhankelijkerFractieUri;

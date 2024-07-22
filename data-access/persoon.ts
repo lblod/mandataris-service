@@ -265,9 +265,16 @@ async function findOnafhankelijkeFractieUri(
     (binding) => binding.fractieType.value == FRACTIE_TYPE.ONAFHANKELIJK,
   );
 
-  console.log(onafhankelijkeFracties);
-
   return onafhankelijkeFracties.length >= 1
     ? onafhankelijkeFracties[0].fractie.value
     : null;
 }
+
+async function getBestuurseenheidAndBestuursorganenInTijd(personId: string): Promise<{bestuursorganenInTijd: Array<string>, bestuurseenheid: string}> {
+  const getQuery = `
+
+    
+  `;
+
+  const results = await querySudo(getQuery);
+} 
