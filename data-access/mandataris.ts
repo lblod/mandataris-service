@@ -8,10 +8,62 @@ import {
 import { CSVRow, CsvUploadState, MandateHit, Term } from '../types';
 import moment from 'moment';
 import { v4 as uuidv4 } from 'uuid';
-import { MANDATARIS_STATUS, PUBLICATION_STATUS } from '../util/constants';
+import {
+  BASE_RESOURCE,
+  MANDATARIS_STATUS,
+  PUBLICATION_STATUS,
+} from '../util/constants';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
-import { findFirstSparqlResult } from '../util/sparql-result';
+import {
+  findFirstSparqlResult,
+  getBooleanSparqlResult,
+} from '../util/sparql-result';
 import { TERM_MANDATARIS_TYPE } from './mandatees-decisions';
+import { HttpError } from '../util/http-error';
+
+export const mandataris = {
+  isActive,
+};
+
+async function isActive(mandatarisId: string | undefined): Promise<boolean> {
+  if (!mandatarisId) {
+    throw new HttpError(
+      'Cannot check active status of mandataris on id of undefined.',
+      500,
+    );
+  }
+
+  const uri = BASE_RESOURCE.MANDATARIS + mandatarisId;
+  const datetimeNow = new Date();
+
+  const booleanQuery = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+    ASK {
+      GRAPH ?mandatarisGraph {
+        ${sparqlEscapeUri(uri)} a mandaat:Mandataris ;
+          mandaat:start ?startDate;
+          mandaat:einde ?endDate ;
+          mandaat:status ?mandatarisStatus.
+      }
+
+      FILTER (
+          ${sparqlEscapeDateTime(datetimeNow)} >= xsd:dateTime(?startDate) &&
+          ${sparqlEscapeDateTime(datetimeNow)} <= xsd:dateTime(?endDate) &&
+          ?mandatarisStatus != ${sparqlEscapeUri(MANDATARIS_STATUS.BEEINDIGD)}
+      )
+
+      FILTER NOT EXISTS {
+        ?mandatarisGraph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+      }
+    }
+  `;
+
+  const results = await querySudo(booleanQuery);
+
+  return getBooleanSparqlResult(results);
+}
 
 export const findGraphAndMandates = async (row: CSVRow) => {
   const mandates = await findMandatesByName(row);
