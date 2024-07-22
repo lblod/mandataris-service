@@ -39,6 +39,7 @@ mandatarissenRouter.get(
       return res.status(200).send({ isActive: isActive ?? false });
     } catch (error) {
       return res.status(error.status ?? 500).send({
+        isActive: false,
         message:
           error.message ??
           'Something went wrong while checking if mandataris is active.',
