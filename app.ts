@@ -3,7 +3,6 @@ import express, { Request, ErrorRequestHandler } from 'express';
 import bodyParser from 'body-parser';
 
 import { deltaRouter } from './routes/delta';
-import { mandatarisRouter } from './routes/mandataris';
 import { mandatarissenRouter } from './routes/mandatarissen';
 import { burgemeesterRouter } from './routes/burgemeester-benoeming';
 import { installatievergaderingRouter } from './routes/intallatievergadering';
@@ -24,7 +23,6 @@ app.get('/', async (_req, res) => {
 });
 
 app.use('/delta', deltaRouter);
-app.use('/mandataris', mandatarisRouter);
 app.use('/mandatarissen', mandatarissenRouter);
 app.use('/burgemeester-benoeming', burgemeesterRouter);
 app.use('/installatievergadering-api', installatievergaderingRouter);
