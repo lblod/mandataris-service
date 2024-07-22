@@ -6,6 +6,7 @@ import { deltaRouter } from './routes/delta';
 import { mandatarissenRouter } from './routes/mandatarissen';
 import { burgemeesterRouter } from './routes/burgemeester-benoeming';
 import { installatievergaderingRouter } from './routes/intallatievergadering';
+import { personsRouter } from './routes/persoon';
 
 app.use(
   bodyParser.json({
@@ -24,6 +25,7 @@ app.get('/', async (_req, res) => {
 
 app.use('/delta', deltaRouter);
 app.use('/mandatarissen', mandatarissenRouter);
+app.use('/persons', personsRouter);
 app.use('/burgemeester-benoeming', burgemeesterRouter);
 app.use('/installatievergadering-api', installatievergaderingRouter);
 

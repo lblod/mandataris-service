@@ -10,4 +10,10 @@ export enum PUBLICATION_STATUS {
 
 export enum BASE_RESOURCE {
   MANDATARIS = 'http://data.lblod.info/id/mandatarissen/',
+  PERSONEN = 'http://data.lblod.info/id/personen/',
+}
+
+export enum FRACTIE_TYPE {
+  ONAFHANKELIJK = 'http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk',
+  SAMENWERKINGSVERBAND = 'http://data.vlaanderen.be/id/concept/Fractietype/Samenwerkingsverband',
 }

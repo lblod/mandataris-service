@@ -4,8 +4,17 @@ import { v4 as uuidv4 } from 'uuid';
 import { Term } from '../types';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import { TERM_STAGING_GRAPH } from './mandatees-decisions';
-import { getBooleanSparqlResult } from '../util/sparql-result';
+import {
+  getBooleanSparqlResult,
+  getSparqlResults,
+} from '../util/sparql-result';
 import { getIdentifierFromPersonUri } from '../util/find-uuid-in-uri';
+import { BASE_RESOURCE, FRACTIE_TYPE } from '../util/constants';
+
+export const person = {
+  isExisitingPerson,
+  findOnafhankelijkeFractieUri,
+};
 
 // note since we use the regular query, not sudo queries, be sure to log in when using this endpoint. E.g. use the vendor login
 
@@ -203,4 +212,62 @@ export async function copyPerson(subject: Term, graph: Term) {
   } catch (error) {
     throw Error(`Could not copy person with uri: ${escaped.person}`);
   }
+}
+
+async function isExisitingPerson(personId: string): Promise<boolean> {
+  const uri = BASE_RESOURCE.PERSONEN + personId;
+  const askIfExists = `
+      PREFIX person: <http://www.w3.org/ns/person#>
+
+      ASK {
+        GRAPH ?personGraph {
+          ${sparqlEscapeUri(uri)} a person:Person.
+        }
+
+        FILTER NOT EXISTS {
+          ?personGraph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+        }
+      }
+    `;
+
+  const result = await querySudo(askIfExists);
+  const booleanResult = getBooleanSparqlResult(result);
+
+  return booleanResult;
+}
+
+async function findOnafhankelijkeFractieUri(
+  personId: string,
+): Promise<string | null> {
+  const uri = BASE_RESOURCE.PERSONEN + personId;
+  const fractieQuery = `
+    PREFIX person: <http://www.w3.org/ns/person#>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+
+    SELECT ?fractie ?fractieType
+    WHERE {
+      GRAPH ?personGraph {
+       ${sparqlEscapeUri(uri)} a person:Person;
+          ^mandaat:isBestuurlijkeAliasVan ?mandataris.
+       ?mandataris a mandaat:Mandataris;
+            org:hasMembership ?lidmaatschap.
+       ?lidmaatschap org:organisation ?fractie.
+       ?fractie ext:isFractietype ?fractieType.
+      }
+
+    }
+  `;
+
+  const results = await querySudo(fractieQuery);
+  const onafhankelijkeFracties = getSparqlResults(results).filter(
+    (binding) => binding.fractieType.value == FRACTIE_TYPE.ONAFHANKELIJK,
+  );
+
+  console.log(onafhankelijkeFracties);
+
+  return onafhankelijkeFracties.length >= 1
+    ? onafhankelijkeFracties[0].fractie.value
+    : null;
 }
