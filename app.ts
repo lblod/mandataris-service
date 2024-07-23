@@ -25,7 +25,7 @@ app.get('/', async (_req, res) => {
 
 app.use('/delta', deltaRouter);
 app.use('/mandatarissen', mandatarissenRouter);
-app.use('/persons', personsRouter);
+app.use('/personen', personsRouter);
 app.use('/burgemeester-benoeming', burgemeesterRouter);
 app.use('/installatievergadering-api', installatievergaderingRouter);
 
