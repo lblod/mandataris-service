@@ -14,7 +14,7 @@ async function createOnafhankelijkeFractie(
 ): Promise<string> {
   const fractieId = uuidv4();
   const uri = BASE_RESOURCE.FRACTIES + fractieId;
-  const mappedBestuursorganenInTijd = bestuursorganenInTijd.map(
+  const escapedBestuursorganenInTijd = bestuursorganenInTijd.map(
     (bestuursorgaanInTijd) => sparqlEscapeUri(bestuursorgaanInTijd),
   );
   const createQuery = `
@@ -32,7 +32,7 @@ async function createOnafhankelijkeFractie(
           regorg:legalName ${sparqlEscapeString('Onafhankelijk')};
           ext:isFractietype ${sparqlEscapeUri(FRACTIE_TYPE.ONAFHANKELIJK)};
           org:linkedTo ${sparqlEscapeUri(bestuurseenheid)};
-          org:memberOf ${mappedBestuursorganenInTijd.join(', ')}.
+          org:memberOf ${escapedBestuursorganenInTijd.join(', ')}.
       }
     }
     WHERE {

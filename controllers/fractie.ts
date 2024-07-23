@@ -1,4 +1,7 @@
+import { bestuurseenheid } from '../data-access/bestuurseenheid';
 import { fractie } from '../data-access/fractie';
+import { STATUS_CODE } from '../util/constants';
+import { HttpError } from '../util/http-error';
 
 export const fractieUsecase = {
   create,
@@ -6,12 +9,23 @@ export const fractieUsecase = {
 
 async function create(
   bestuursorganenInTijd: Array<string>,
-  bestuurseenheid: string,
+  bestuurseenheidUri: string,
 ): Promise<string> {
-  // TODO: check the bestuursorganen and bestuurseenheid
+  // TODO: check the bestuursorganen
+
+  const isBestuurseenheid =
+    await bestuurseenheid.isExisiting(bestuurseenheidUri);
+
+  if (!isBestuurseenheid) {
+    throw new HttpError(
+      `Bestuurseenheid: ${bestuurseenheidUri} does not exist.`,
+      STATUS_CODE.BAD_REQUEST,
+    );
+  }
+
   const newOnafhankelijkeFractie = await fractie.createOnafhankelijkeFractie(
     bestuursorganenInTijd,
-    bestuurseenheid,
+    bestuurseenheidUri,
   );
 
   return newOnafhankelijkeFractie;

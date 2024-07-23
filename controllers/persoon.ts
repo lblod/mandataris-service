@@ -14,7 +14,7 @@ async function findOnfhankelijkeFractieUri(
   if (!isPerson) {
     throw new HttpError(
       `No person found for given id: ${personId}`,
-      STATUS_CODE.NOT_FOUND,
+      STATUS_CODE.BAD_REQUEST,
     );
   }
 
