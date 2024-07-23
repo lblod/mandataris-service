@@ -2,6 +2,7 @@ import Router from 'express-promise-router';
 
 import { Request, Response } from 'express';
 import { fractieUsecase } from '../controllers/fractie';
+import { STATUS_CODE } from '../util/constants';
 
 export const fractiesRouter = Router();
 
@@ -15,13 +16,15 @@ fractiesRouter.post(
         jsonBody.bestuurseenheidUri,
       );
 
-      return res.status(201).send({ uri: createdFractieUri });
+      return res.status(STATUS_CODE.CREATED).send({ uri: createdFractieUri });
     } catch (error) {
-      return res.status(error.status ?? 500).send({
-        message:
-          error.message ??
-          'Something went wrong while creating an onafhankelijke fractie.',
-      });
+      return res
+        .status(error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR)
+        .send({
+          message:
+            error.message ??
+            'Something went wrong while creating an onafhankelijke fractie.',
+        });
     }
   },
 );

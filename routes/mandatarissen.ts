@@ -7,6 +7,7 @@ import { deleteMandataris } from '../data-access/delete';
 import { uploadCsv } from '../controllers/mandataris-upload';
 import { CsvUploadState } from '../types';
 import { mandatarisUsecase } from '../controllers/mandataris';
+import { STATUS_CODE } from '../util/constants';
 
 const upload = multer({ dest: 'mandataris-uploads/' });
 
@@ -35,14 +36,16 @@ mandatarissenRouter.get(
     try {
       const isActive = await mandatarisUsecase.isActive(mandatarisId);
 
-      return res.status(200).send({ isActive: isActive ?? false });
+      return res.status(STATUS_CODE.OK).send({ isActive: isActive ?? false });
     } catch (error) {
-      return res.status(error.status ?? 500).send({
-        isActive: false,
-        message:
-          error.message ??
-          'Something went wrong while checking if mandataris is active.',
-      });
+      return res
+        .status(error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR)
+        .send({
+          isActive: false,
+          message:
+            error.message ??
+            'Something went wrong while checking if mandataris is active.',
+        });
     }
   },
 );

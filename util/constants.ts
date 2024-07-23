@@ -18,3 +18,10 @@ export enum FRACTIE_TYPE {
   ONAFHANKELIJK = 'http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk',
   SAMENWERKINGSVERBAND = 'http://data.vlaanderen.be/id/concept/Fractietype/Samenwerkingsverband',
 }
+
+export enum STATUS_CODE {
+  CREATED = 201,
+  OK = 200,
+  NOT_FOUND = 404,
+  INTERNAL_SERVER_ERROR = 500,
+}

@@ -12,6 +12,7 @@ import {
   BASE_RESOURCE,
   MANDATARIS_STATUS,
   PUBLICATION_STATUS,
+  STATUS_CODE,
 } from '../util/constants';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import {
@@ -29,7 +30,7 @@ async function isActive(mandatarisId: string | undefined): Promise<boolean> {
   if (!mandatarisId) {
     throw new HttpError(
       'Cannot check active status of mandataris on id of undefined.',
-      500,
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
     );
   }
 

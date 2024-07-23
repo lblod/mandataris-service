@@ -2,6 +2,7 @@ import Router from 'express-promise-router';
 
 import { Request, Response } from 'express';
 import { personUsecase } from '../controllers/persoon';
+import { STATUS_CODE } from '../util/constants';
 
 export const personsRouter = Router();
 
@@ -13,15 +14,19 @@ personsRouter.get(
       const onafhankelijkerFactie =
         await personUsecase.findOnfhankelijkeFractieUri(personId);
 
-      return res.status(200).send({ fractie: onafhankelijkerFactie });
+      return res
+        .status(STATUS_CODE.OK)
+        .send({ fractie: onafhankelijkerFactie });
     } catch (error) {
-      return res.status(error.status ?? 500).send({
-        message:
-          error.message ??
-          `Something went wrong while finding the onafhankelijke fractie for person: ${
-            req.params.id ?? undefined
-          }`,
-      });
+      return res
+        .status(error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR)
+        .send({
+          message:
+            error.message ??
+            `Something went wrong while finding the onafhankelijke fractie for person: ${
+              req.params.id ?? undefined
+            }`,
+        });
     }
   },
 );
