@@ -231,9 +231,8 @@ async function isExisitingPerson(personId: string): Promise<boolean> {
     `;
 
   const result = await querySudo(askIfExists);
-  const booleanResult = getBooleanSparqlResult(result);
 
-  return booleanResult;
+  return getBooleanSparqlResult(result);
 }
 
 async function findOnafhankelijkeFractieUri(

@@ -1,4 +1,5 @@
 import { bestuurseenheid } from '../data-access/bestuurseenheid';
+import { bestuursorgaan } from '../data-access/bestuursorgaan';
 import { fractie } from '../data-access/fractie';
 import { STATUS_CODE } from '../util/constants';
 import { HttpError } from '../util/http-error';
@@ -8,14 +9,11 @@ export const fractieUsecase = {
 };
 
 async function create(
-  bestuursorganenInTijd: Array<string>,
+  bestuursorgaanUrisInTijd: Array<string>,
   bestuurseenheidUri: string,
 ): Promise<string> {
-  // TODO: check the bestuursorganen
-
   const isBestuurseenheid =
     await bestuurseenheid.isExisiting(bestuurseenheidUri);
-
   if (!isBestuurseenheid) {
     throw new HttpError(
       `Bestuurseenheid: ${bestuurseenheidUri} does not exist.`,
@@ -23,8 +21,18 @@ async function create(
     );
   }
 
+  const isBestuursorganenInTijdExisting = await bestuursorgaan.allExist(
+    bestuursorgaanUrisInTijd,
+  );
+  if (!isBestuursorganenInTijdExisting) {
+    throw new HttpError(
+      'One of given bestuursorgaan URIs do not exist.',
+      STATUS_CODE.BAD_REQUEST,
+    );
+  }
+
   const newOnafhankelijkeFractie = await fractie.createOnafhankelijkeFractie(
-    bestuursorganenInTijd,
+    bestuursorgaanUrisInTijd,
     bestuurseenheidUri,
   );
 
