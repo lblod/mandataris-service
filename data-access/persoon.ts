@@ -14,6 +14,8 @@ import { BASE_RESOURCE, FRACTIE_TYPE } from '../util/constants';
 export const person = {
   isExisitingPerson,
   findOnafhankelijkeFractieUri,
+  searchCurrentFractie,
+  updateCurrentFractie,
 };
 
 // note since we use the regular query, not sudo queries, be sure to log in when using this endpoint. E.g. use the vendor login
@@ -269,4 +271,49 @@ async function findOnafhankelijkeFractieUri(
   return onafhankelijkeFracties.length >= 1
     ? onafhankelijkeFracties[0].fractie.value
     : null;
+}
+
+async function searchCurrentFractie(
+  personId: string,
+  bestuursperiodeId: string,
+): Promise<string> {
+  return '';
+}
+
+async function updateCurrentFractie(
+  personId: string,
+  fractie: string,
+): Promise<string> {
+  const uri = BASE_RESOURCE.PERSONEN + personId;
+  const escapedFractie = sparqlEscapeUri(fractie);
+  const updateQuery = `
+    PREFIX person: <http://www.w3.org/ns/person#>
+    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
+
+    DELETE {
+      GRAPH ?graph {
+        ${sparqlEscapeUri(uri)} extlmb:huidigeFractie ?currentFractie.
+      }
+    }
+    INSERT {
+      GRAPH ?graph{
+        ${sparqlEscapeUri(uri)} extlmb:huidigeFractie ${escapedFractie} .
+      }
+    }
+    WHERE {
+      GRAPH ?graph{
+        ${sparqlEscapeUri(uri)} a person:Person.
+        OPTIONAL {
+          ${sparqlEscapeUri(uri)} extlmb:huidigeFractie ?currentFractie .
+        }
+      }
+      FILTER NOT EXISTS {
+        ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+      }
+    }
+  `;
+
+  await updateSudo(updateQuery);
+
+  return fractie;
 }

@@ -30,3 +30,30 @@ personsRouter.get(
     }
   },
 );
+
+personsRouter.put(
+  '/:id/current-fractie/:bestuursperiode',
+  async (req: Request, res: Response) => {
+    try {
+      const personId = req.params.id;
+      const bestuursperiodeId = req.params.bestuursperiode;
+
+      const newCurrentFractie = await personUsecase.updateCurrentFractie(
+        personId,
+        bestuursperiodeId,
+      );
+
+      return res.status(STATUS_CODE.OK).send({ current: newCurrentFractie });
+    } catch (error) {
+      return res
+        .status(error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR)
+        .send({
+          message:
+            error.message ??
+            `Something went wrong while updating the current fractie on person: ${
+              req.params.id ?? undefined
+            } in bestuursperiode: ${req.params.bestuursperiode ?? undefined}`,
+        });
+    }
+  },
+);
