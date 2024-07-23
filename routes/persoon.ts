@@ -11,14 +11,16 @@ personsRouter.get(
     try {
       const personId = req.params.id;
       const onafhankelijkerFactie =
-        await personUsecase.getOnfhankelijkeFractieUri(personId);
+        await personUsecase.findOnfhankelijkeFractieUri(personId);
 
       return res.status(200).send({ fractie: onafhankelijkerFactie });
     } catch (error) {
       return res.status(error.status ?? 500).send({
         message:
           error.message ??
-          'Something went wrong while checking if mandataris is active.',
+          `Something went wrong while finding the onafhankelijke fractie for person: ${
+            req.params.id ?? undefined
+          }`,
       });
     }
   },
