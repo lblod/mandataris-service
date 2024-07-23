@@ -269,12 +269,3 @@ async function findOnafhankelijkeFractieUri(
     ? onafhankelijkeFracties[0].fractie.value
     : null;
 }
-
-async function getBestuurseenheidAndBestuursorganenInTijd(personId: string): Promise<{bestuursorganenInTijd: Array<string>, bestuurseenheid: string}> {
-  const getQuery = `
-
-    
-  `;
-
-  const results = await querySudo(getQuery);
-} 
