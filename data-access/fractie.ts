@@ -22,25 +22,29 @@ async function createOnafhankelijkeFractie(
     PREFIX regorg: <https://www.w3.org/ns/regorg#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
     INSERT {
       GRAPH ?bestuurseenheidGraph {
         ${sparqlEscapeUri(uri)} a mandaat:Fractie;
+          mu:uuid ${sparqlEscapeString(fractieId)};
           regorg:legalName ${sparqlEscapeString('Onafhankelijk')};
           ext:isFractietype ${sparqlEscapeUri(FRACTIE_TYPE.ONAFHANKELIJK)};
           org:linkedTo ${sparqlEscapeUri(bestuurseenheid)};
-          org:memberOf ${mappedBestuursorganenInTijd.join(' ')}.
+          org:memberOf ${mappedBestuursorganenInTijd.join(', ')}.
       }
     }
     WHERE {
-      GRAPH ?bestuurseenheidGraph {
+      GRAPH ?graph {
         ${sparqlEscapeUri(bestuurseenheid)} a besluit:Bestuurseenheid.
       }
+      
+      BIND (?graph AS ?bestuurseenheidGraph).
     }
   `;
 
-  const result = await updateSudo(createQuery);
-  console.log(`RESULT:`, result);
+  await updateSudo(createQuery);
 
-  return 'id';
+  return uri;
 }

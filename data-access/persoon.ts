@@ -256,7 +256,9 @@ async function findOnafhankelijkeFractieUri(
        ?lidmaatschap org:organisation ?fractie.
        ?fractie ext:isFractietype ?fractieType.
       }
-
+      FILTER NOT EXISTS {
+        ?personGraph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+      }
     }
   `;
 

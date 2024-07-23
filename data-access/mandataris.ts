@@ -44,19 +44,23 @@ async function isActive(mandatarisId: string | undefined): Promise<boolean> {
       GRAPH ?mandatarisGraph {
         ${sparqlEscapeUri(uri)} a mandaat:Mandataris ;
           mandaat:start ?startDate;
-          mandaat:einde ?endDate ;
           mandaat:status ?mandatarisStatus.
+
+          OPTIONAL {
+            ${sparqlEscapeUri(uri)} mandaat:einde ?endDate.
+          }
       }
 
       FILTER (
           ${sparqlEscapeDateTime(datetimeNow)} >= xsd:dateTime(?startDate) &&
-          ${sparqlEscapeDateTime(datetimeNow)} <= xsd:dateTime(?endDate) &&
+          ${sparqlEscapeDateTime(datetimeNow)} <= ?safeEnd &&
           ?mandatarisStatus != ${sparqlEscapeUri(MANDATARIS_STATUS.BEEINDIGD)}
       )
 
       FILTER NOT EXISTS {
         ?mandatarisGraph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
       }
+      BIND(IF(BOUND(?endDate), ?endDate,  ${sparqlEscapeDateTime(datetimeNow)}) as ?safeEnd)
     }
   `;
 

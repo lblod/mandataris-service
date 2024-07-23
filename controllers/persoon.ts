@@ -9,7 +9,6 @@ async function findOnfhankelijkeFractieUri(
   personId: string,
 ): Promise<string | null> {
   const isPerson = await person.isExisitingPerson(personId);
-  console.log(`is person: ${isPerson}`);
 
   if (!isPerson) {
     throw new HttpError(`No person found for given id: ${personId}`, 404);
