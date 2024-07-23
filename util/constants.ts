@@ -12,6 +12,7 @@ export enum BASE_RESOURCE {
   MANDATARIS = 'http://data.lblod.info/id/mandatarissen/',
   PERSONEN = 'http://data.lblod.info/id/personen/',
   FRACTIES = 'http://data.lblod.info/id/fracties/',
+  BESTUURSPERIODE = 'http://data.lblod.info/id/concept/Bestuursperiode/',
 }
 
 export enum FRACTIE_TYPE {
