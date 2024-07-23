@@ -5,6 +5,7 @@ import { Term } from '../types';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import { TERM_STAGING_GRAPH } from './mandatees-decisions';
 import {
+  findFirstSparqlResult,
   getBooleanSparqlResult,
   getSparqlResults,
 } from '../util/sparql-result';
@@ -277,7 +278,32 @@ async function searchCurrentFractie(
   personId: string,
   bestuursperiodeId: string,
 ): Promise<string> {
-  return '';
+  const personUri = BASE_RESOURCE.PERSONEN + personId;
+  const bestuursperiodeUri = BASE_RESOURCE.BESTUURSPERIODE + bestuursperiodeId;
+  const searchQuery = `
+    PREFIX person: <http://www.w3.org/ns/person#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX org: <http://www.w3.org/ns/org#>
+
+    SELECT ?fractie
+    WHERE {
+      GRAPH ?personGraph {
+        ${sparqlEscapeUri(personUri)} a person:Person;
+          mandaat:isBestuurlijkeAliasVan ?mandataris.
+        ?mandataris org:holds ?mandaat.
+        ^?mandaat org:hasPost ?bestuurorgaanInTijd.
+      }
+      FILTER NOT EXISTS {
+        ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+      }
+    }
+  `;
+
+  const results = await querySudo(searchQuery);
+  const result = findFirstSparqlResult(results);
+
+  return result?.value as unknown as string;
 }
 
 async function updateCurrentFractie(
