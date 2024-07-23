@@ -36,6 +36,7 @@ async function isActive(mandatarisId: string | undefined): Promise<boolean> {
 
   const uri = BASE_RESOURCE.MANDATARIS + mandatarisId;
   const datetimeNow = new Date();
+  const escapedDateNow = sparqlEscapeDateTime(datetimeNow);
 
   const booleanQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -53,15 +54,15 @@ async function isActive(mandatarisId: string | undefined): Promise<boolean> {
       }
 
       FILTER (
-          ${sparqlEscapeDateTime(datetimeNow)} >= xsd:dateTime(?startDate) &&
-          ${sparqlEscapeDateTime(datetimeNow)} <= ?safeEnd &&
+          ${escapedDateNow} >= xsd:dateTime(?startDate) &&
+          ${escapedDateNow} <= ?safeEnd &&
           ?mandatarisStatus != ${sparqlEscapeUri(MANDATARIS_STATUS.BEEINDIGD)}
       )
 
       FILTER NOT EXISTS {
         ?mandatarisGraph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
       }
-      BIND(IF(BOUND(?endDate), ?endDate,  ${sparqlEscapeDateTime(datetimeNow)}) as ?safeEnd)
+      BIND(IF(BOUND(?endDate), ?endDate,  ${escapedDateNow}) as ?safeEnd)
     }
   `;
 
