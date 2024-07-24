@@ -8,11 +8,11 @@ import { HttpError } from '../util/http-error';
 import { STATUS_CODE } from '../util/constants';
 
 export const bestuursperiode = {
-  isExisting,
+  exists,
   getIdForUri,
 };
 
-async function isExisting(bestuursperiodeId: string): Promise<boolean> {
+async function exists(bestuursperiodeId: string): Promise<boolean> {
   const askIfExists = `
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>

@@ -23,11 +23,11 @@ import { HttpError } from '../util/http-error';
 
 export const mandataris = {
   isActive,
-  isExisting,
+  exists,
   getBestuursperiode,
 };
 
-async function isExisting(mandatarisId: string): Promise<boolean> {
+async function exists(mandatarisId: string): Promise<boolean> {
   const askIfExists = `
       PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
       PREFIX mu: <http://mu.semte.ch/vocabularies/core/>

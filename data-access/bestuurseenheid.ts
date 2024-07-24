@@ -8,7 +8,7 @@ import { querySudo } from '@lblod/mu-auth-sudo';
 import { sparqlEscapeUri } from 'mu';
 
 export const bestuurseenheid = {
-  isExisiting,
+  exists,
 };
 
 export async function findBestuurseenheidForMandaat(
@@ -47,7 +47,7 @@ export async function findBestuurseenheidForMandaat(
   } as Term;
 }
 
-async function isExisiting(bestuurseenheidUri: string): Promise<boolean> {
+async function exists(bestuurseenheidUri: string): Promise<boolean> {
   const askIfExists = `
       PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
 

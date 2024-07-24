@@ -11,7 +11,7 @@ export const personUsecase = {
 async function findOnfhankelijkeFractieUri(
   personId: string,
 ): Promise<string | null> {
-  const isPerson = await person.isExisitingPerson(personId);
+  const isPerson = await person.exists(personId);
 
   if (!isPerson) {
     throw new HttpError(
@@ -30,7 +30,7 @@ async function updateCurrentFractie(
   personId: string,
   bestuursperiodeId: string,
 ): Promise<string> {
-  const isPerson = await person.isExisitingPerson(personId);
+  const isPerson = await person.exists(personId);
   if (!isPerson) {
     throw new HttpError(
       `No person found for given id: ${personId}`,
@@ -38,7 +38,7 @@ async function updateCurrentFractie(
     );
   }
 
-  const isBestuursperiode = await bestuursperiode.isExisting(bestuursperiodeId);
+  const isBestuursperiode = await bestuursperiode.exists(bestuursperiodeId);
   if (!isBestuursperiode) {
     throw new HttpError(
       `No bestuursperiode found for given id: ${bestuursperiodeId}`,

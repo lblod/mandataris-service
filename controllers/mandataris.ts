@@ -9,7 +9,7 @@ export const mandatarisUsecase = {
 };
 
 async function isActive(mandatarisId: string): Promise<boolean> {
-  const isMandataris = await mandataris.isExisting(mandatarisId);
+  const isMandataris = await mandataris.exists(mandatarisId);
   if (!isMandataris) {
     throw new HttpError(
       `No mandataris found for given id: ${mandatarisId}`,
@@ -23,7 +23,7 @@ async function isActive(mandatarisId: string): Promise<boolean> {
 async function getBestuursperiode(
   mandatarisId: string,
 ): Promise<{ uri: string; id: string }> {
-  const isMandataris = await mandataris.isExisting(mandatarisId);
+  const isMandataris = await mandataris.exists(mandatarisId);
   if (!isMandataris) {
     throw new HttpError(
       `No mandataris found for given id: ${mandatarisId}`,

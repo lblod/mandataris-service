@@ -22,7 +22,7 @@ import {
 } from '../util/constants';
 
 export const person = {
-  isExisitingPerson,
+  exists,
   findOnafhankelijkeFractieUri,
   searchCurrentFractie,
   updateCurrentFractie,
@@ -226,7 +226,7 @@ export async function copyPerson(subject: Term, graph: Term) {
   }
 }
 
-async function isExisitingPerson(personId: string): Promise<boolean> {
+async function exists(personId: string): Promise<boolean> {
   const askIfExists = `
       PREFIX person: <http://www.w3.org/ns/person#>
       PREFIX mu: <http://mu.semte.ch/vocabularies/core/>

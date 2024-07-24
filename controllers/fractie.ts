@@ -12,8 +12,7 @@ async function create(
   bestuursorgaanUrisInTijd: Array<string>,
   bestuurseenheidUri: string,
 ): Promise<string> {
-  const isBestuurseenheid =
-    await bestuurseenheid.isExisiting(bestuurseenheidUri);
+  const isBestuurseenheid = await bestuurseenheid.exists(bestuurseenheidUri);
   if (!isBestuurseenheid) {
     throw new HttpError(
       `Bestuurseenheid: ${bestuurseenheidUri} does not exist.`,
