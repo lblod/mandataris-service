@@ -51,5 +51,9 @@ async function updateCurrentFractie(
     bestuursperiodeId,
   );
 
+  if (!currentFractieOfPerson) {
+    throw 'Should we create onafhankelijk fractie?';
+  }
+
   return await person.updateCurrentFractie(personId, currentFractieOfPerson);
 }

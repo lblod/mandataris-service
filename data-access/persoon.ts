@@ -1,16 +1,19 @@
 import { query, update, sparqlEscapeString, sparqlEscapeUri } from 'mu';
 import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
 import { v4 as uuidv4 } from 'uuid';
-import { Term } from '../types';
+import { Term, TermProperty } from '../types';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import { TERM_STAGING_GRAPH } from './mandatees-decisions';
 import {
-  findFirstSparqlResult,
   getBooleanSparqlResult,
   getSparqlResults,
 } from '../util/sparql-result';
 import { getIdentifierFromPersonUri } from '../util/find-uuid-in-uri';
-import { BASE_RESOURCE, FRACTIE_TYPE } from '../util/constants';
+import {
+  BASE_RESOURCE,
+  FRACTIE_TYPE,
+  MANDATARIS_STATUS,
+} from '../util/constants';
 
 export const person = {
   isExisitingPerson,
@@ -277,33 +280,49 @@ async function findOnafhankelijkeFractieUri(
 async function searchCurrentFractie(
   personId: string,
   bestuursperiodeId: string,
-): Promise<string> {
+): Promise<string | null> {
   const personUri = BASE_RESOURCE.PERSONEN + personId;
-  const bestuursperiodeUri = BASE_RESOURCE.BESTUURSPERIODE + bestuursperiodeId;
+  const escapedPeriode = sparqlEscapeUri(
+    BASE_RESOURCE.BESTUURSPERIODE + bestuursperiodeId,
+  );
+  const escapedBeeindigdState = sparqlEscapeUri(MANDATARIS_STATUS.BEEINDIGD);
   const searchQuery = `
     PREFIX person: <http://www.w3.org/ns/person#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX dct: <http://purl.org/dc/terms/>
 
-    SELECT ?fractie
+    SELECT DISTINCT ?mandataris ?fractie ?lastModified
     WHERE {
-      GRAPH ?personGraph {
+      GRAPH ?graph {
         ${sparqlEscapeUri(personUri)} a person:Person;
-          mandaat:isBestuurlijkeAliasVan ?mandataris.
-        ?mandataris org:holds ?mandaat.
-        ^?mandaat org:hasPost ?bestuurorgaanInTijd.
+            ^mandaat:isBestuurlijkeAliasVan ?mandataris.
+        ?mandataris org:holds ?mandaat;
+            org:hasMembership ?member;
+            dct:modified ?lastModified;
+            mandaat:status ?mandatarisStatus.
+        ?member org:organisation ?fractie.
+        ?fractie ext:isFractietype ?fractieType.
+        ?mandaat ^org:hasPost ?bestuurorgaanInTijd.
+        ?bestuursorgaanInTijd ext:heeftBestuursperiode ${escapedPeriode}.
       }
-      FILTER NOT EXISTS {
-        ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-      }
+      FILTER ( ?graph != <http://mu.semte.ch/vocabularies/ext/FormHistory> && ?mandatarisStatus != ${escapedBeeindigdState})
     }
   `;
 
   const results = await querySudo(searchQuery);
-  const result = findFirstSparqlResult(results);
+  // This could return fracties that where modified at the same time? :eyes:
+  const sortedByDate = getSparqlResults(results).sort(
+    (a: TermProperty, b: TermProperty) => {
+      const aIsSmaller =
+        new Date(a.lastModified.value) <= new Date(b.lastModified.value);
 
-  return result?.value as unknown as string;
+      return aIsSmaller ? 1 : 0;
+    },
+  );
+
+  return sortedByDate[0]?.fractie.value ?? null;
 }
 
 async function updateCurrentFractie(
