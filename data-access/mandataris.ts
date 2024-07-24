@@ -61,6 +61,7 @@ async function isActive(mandatarisId: string | undefined): Promise<boolean> {
   const booleanQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
     ASK {
       GRAPH ?mandatarisGraph {
