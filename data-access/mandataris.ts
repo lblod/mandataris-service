@@ -9,7 +9,6 @@ import { CSVRow, CsvUploadState, MandateHit, Term } from '../types';
 import moment from 'moment';
 import { v4 as uuidv4 } from 'uuid';
 import {
-  BASE_RESOURCE,
   MANDATARIS_STATUS,
   PUBLICATION_STATUS,
   STATUS_CODE,
@@ -35,7 +34,7 @@ async function isExisting(mandatarisId: string): Promise<boolean> {
 
       ASK {
         GRAPH ?mandatarisGraph {
-          ?person a mandaat:Mandataris;
+          ?mandataris a mandaat:Mandataris;
             mu:uuid ${sparqlEscapeString(mandatarisId)}.
         }
 
@@ -56,7 +55,6 @@ async function isActive(mandatarisId: string | undefined): Promise<boolean> {
     );
   }
 
-  const uri = BASE_RESOURCE.MANDATARIS + mandatarisId;
   const datetimeNow = new Date();
   const escapedDateNow = sparqlEscapeDateTime(datetimeNow);
   const escapedBeeindigdStatus = sparqlEscapeUri(MANDATARIS_STATUS.BEEINDIGD);
@@ -66,12 +64,13 @@ async function isActive(mandatarisId: string | undefined): Promise<boolean> {
 
     ASK {
       GRAPH ?mandatarisGraph {
-        ${sparqlEscapeUri(uri)} a mandaat:Mandataris ;
+        ?mandataris a mandaat:Mandataris ;
+          mu:uuid ${sparqlEscapeString(mandatarisId)};
           mandaat:start ?startDate;
           mandaat:status ?mandatarisStatus.
 
           OPTIONAL {
-            ${sparqlEscapeUri(uri)} mandaat:einde ?endDate.
+            ?mandataris mandaat:einde ?endDate.
           }
       }
 
@@ -82,7 +81,7 @@ async function isActive(mandatarisId: string | undefined): Promise<boolean> {
           ?mandatarisGraph != <http://mu.semte.ch/vocabularies/ext/FormHistory>
       )
 
-      BIND(IF(BOUND(?endDate), ?endDate,  ${escapedDateNow}) as ?safeEnd)
+      BIND(IF(BOUND(?endDate), ?endDate,  ${escapedDateNow}) as ?safeEnd )
     }
   `;
 

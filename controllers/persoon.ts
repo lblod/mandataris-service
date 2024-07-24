@@ -52,7 +52,10 @@ async function updateCurrentFractie(
   );
 
   if (!currentFractieUriOfPerson) {
-    throw 'Should we create onafhankelijk fractie?';
+    throw new HttpError(
+      `No current fractie found for person: ${personId}`,
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+    );
   }
 
   return await person.updateCurrentFractie(personId, currentFractieUriOfPerson);
