@@ -24,7 +24,28 @@ import { HttpError } from '../util/http-error';
 
 export const mandataris = {
   isActive,
+  isExisting,
 };
+
+async function isExisting(mandatarisId: string): Promise<boolean> {
+  const askIfExists = `
+      PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+      PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+      ASK {
+        GRAPH ?mandatarisGraph {
+          ?person a mandaat:Mandataris;
+            mu:uuid ${sparqlEscapeString(mandatarisId)}.
+        }
+
+        FILTER ( ?mandatarisGraph != <http://mu.semte.ch/vocabularies/ext/FormHistory>)
+      }
+    `;
+
+  const result = await querySudo(askIfExists);
+
+  return getBooleanSparqlResult(result);
+}
 
 async function isActive(mandatarisId: string | undefined): Promise<boolean> {
   if (!mandatarisId) {
