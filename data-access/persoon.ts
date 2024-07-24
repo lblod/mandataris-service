@@ -1,4 +1,10 @@
-import { query, update, sparqlEscapeString, sparqlEscapeUri } from 'mu';
+import {
+  query,
+  update,
+  sparqlEscapeString,
+  sparqlEscapeUri,
+  sparqlEscapeDateTime,
+} from 'mu';
 import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
 import { v4 as uuidv4 } from 'uuid';
 import { Term, TermProperty } from '../types';
@@ -283,6 +289,7 @@ async function searchCurrentFractie(
     BASE_RESOURCE.BESTUURSPERIODE + bestuursperiodeId,
   );
   const escapedBeeindigdState = sparqlEscapeUri(MANDATARIS_STATUS.BEEINDIGD);
+  const escapedDateNow = sparqlEscapeDateTime(new Date());
   const searchQuery = `
     PREFIX person: <http://www.w3.org/ns/person#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
@@ -290,6 +297,7 @@ async function searchCurrentFractie(
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX dct: <http://purl.org/dc/terms/>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
     SELECT DISTINCT ?mandataris ?fractie ?lastModified
     WHERE {
@@ -305,8 +313,19 @@ async function searchCurrentFractie(
         ?fractie ext:isFractietype ?fractieType.
         ?mandaat ^org:hasPost ?bestuurorgaanInTijd.
         ?bestuursorgaanInTijd ext:heeftBestuursperiode ${period} .
+
+        OPTIONAL {
+          ?mandataris mandaat:einde ?endDate.
+        }
       }
-      FILTER ( ?graph != <http://mu.semte.ch/vocabularies/ext/FormHistory> && ?mandatarisStatus != ${escapedBeeindigdState})
+      FILTER ( 
+        ?graph != <http://mu.semte.ch/vocabularies/ext/FormHistory> &&
+        ?mandatarisStatus != ${escapedBeeindigdState} &&
+        ${escapedDateNow} <= ?safeEnd 
+
+      )
+      BIND(IF(BOUND(?endDate), ?endDate,  ${escapedDateNow}) as ?safeEnd)
+
     }
   `;
 
@@ -321,7 +340,7 @@ async function searchCurrentFractie(
     },
   );
 
-  return sortedByDate[0]?.fractie.value ?? null;
+  return sortedByDate.length >= 1 ? sortedByDate[0].fractie.value : null;
 }
 
 async function updateCurrentFractie(
