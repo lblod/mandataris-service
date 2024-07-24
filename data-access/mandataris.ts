@@ -25,6 +25,7 @@ import { HttpError } from '../util/http-error';
 export const mandataris = {
   isActive,
   isExisting,
+  getBestuursperiode,
 };
 
 async function isExisting(mandatarisId: string): Promise<boolean> {
@@ -479,4 +480,37 @@ export async function updatePublicationStatusOfMandataris(
       `|> Could not update mandataris: ${mandataris.value} status to ${status}`,
     );
   }
+}
+
+async function getBestuursperiode(mandatarisId: string): Promise<string> {
+  const searchQuery = `
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+    SELECT ?bestuursperiode
+    WHERE {
+      GRAPH ?graph {
+        ?mandataris a mandaat:Mandataris;
+          mu:uuid ${sparqlEscapeString(mandatarisId)};
+          org:holds ?mandaat.
+        ?mandaat ^org:hasPost ?bestuurorgaanInTijd.
+        ?bestuursorgaanInTijd ext:heeftBestuursperiode ?bestuursperiode .
+      }
+      FILTER ( ?graph != <http://mu.semte.ch/vocabularies/ext/FormHistory> )
+    }
+  `;
+
+  const results = await querySudo(searchQuery);
+  const first = findFirstSparqlResult(results);
+
+  if (!first) {
+    throw new HttpError(
+      `No bestuursperiode found for mandataris with id: ${mandatarisId}`,
+      STATUS_CODE.NOT_FOUND,
+    );
+  }
+
+  return first.bestuursperiode.value;
 }

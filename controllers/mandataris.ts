@@ -27,5 +27,5 @@ async function getBestuursperiode(mandatarisId: string): Promise<string> {
       STATUS_CODE.BAD_REQUEST,
     );
   }
-  return '';
+  return await mandataris.getBestuursperiode(mandatarisId);
 }
