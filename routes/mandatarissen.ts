@@ -56,12 +56,10 @@ mandatarissenRouter.get(
   async (req: Request, res: Response) => {
     try {
       const mandatarisId = req.params.id;
-      const bestuursperiodeUri =
+      const bestuursperiode =
         await mandatarisUsecase.getBestuursperiode(mandatarisId);
 
-      return res
-        .status(STATUS_CODE.OK)
-        .send({ bestuursperiodeUri: bestuursperiodeUri ?? false });
+      return res.status(STATUS_CODE.OK).send(bestuursperiode);
     } catch (error) {
       return res
         .status(error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR)

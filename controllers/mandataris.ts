@@ -1,3 +1,4 @@
+import { bestuursperiode } from '../data-access/bestuursperiode';
 import { mandataris } from '../data-access/mandataris';
 import { STATUS_CODE } from '../util/constants';
 import { HttpError } from '../util/http-error';
@@ -19,7 +20,9 @@ async function isActive(mandatarisId: string): Promise<boolean> {
   return mandataris.isActive(mandatarisId);
 }
 
-async function getBestuursperiode(mandatarisId: string): Promise<string> {
+async function getBestuursperiode(
+  mandatarisId: string,
+): Promise<{ uri: string; id: string }> {
   const isMandataris = await mandataris.isExisting(mandatarisId);
   if (!isMandataris) {
     throw new HttpError(
@@ -27,5 +30,12 @@ async function getBestuursperiode(mandatarisId: string): Promise<string> {
       STATUS_CODE.BAD_REQUEST,
     );
   }
-  return await mandataris.getBestuursperiode(mandatarisId);
+  const bestuursperiodeUri = await mandataris.getBestuursperiode(mandatarisId);
+  const bestuursperiodeId =
+    await bestuursperiode.getIdForUri(bestuursperiodeUri);
+
+  return {
+    id: bestuursperiodeId,
+    uri: bestuursperiodeUri,
+  };
 }
