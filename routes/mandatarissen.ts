@@ -31,9 +31,8 @@ mandatarissenRouter.post(
 mandatarissenRouter.get(
   '/:id/isActive',
   async (req: Request, res: Response) => {
-    const mandatarisId = req.params.id;
-
     try {
+      const mandatarisId = req.params.id;
       const isActive = await mandatarisUsecase.isActive(mandatarisId);
 
       return res.status(STATUS_CODE.OK).send({ isActive: isActive ?? false });
@@ -44,7 +43,34 @@ mandatarissenRouter.get(
           isActive: false,
           message:
             error.message ??
-            'Something went wrong while checking if mandataris is active.',
+            `Something went wrong while checking if mandataris: ${
+              req.params.id ?? null
+            } is active.`,
+        });
+    }
+  },
+);
+
+mandatarissenRouter.get(
+  '/:id/bestuursperiode',
+  async (req: Request, res: Response) => {
+    try {
+      const mandatarisId = req.params.id;
+      const bestuursperiodeUri =
+        await mandatarisUsecase.getBestuursperiode(mandatarisId);
+
+      return res
+        .status(STATUS_CODE.OK)
+        .send({ bestuursperiodeUri: bestuursperiodeUri ?? false });
+    } catch (error) {
+      return res
+        .status(error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR)
+        .send({
+          message:
+            error.message ??
+            `Something went wrong while getting the bestuursperiode for mandataris: ${
+              req.params.id ?? null
+            }.`,
         });
     }
   },
