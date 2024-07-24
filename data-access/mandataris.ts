@@ -37,7 +37,7 @@ async function isActive(mandatarisId: string | undefined): Promise<boolean> {
   const uri = BASE_RESOURCE.MANDATARIS + mandatarisId;
   const datetimeNow = new Date();
   const escapedDateNow = sparqlEscapeDateTime(datetimeNow);
-
+  const escapedBeeindigdStatus = sparqlEscapeUri(MANDATARIS_STATUS.BEEINDIGD);
   const booleanQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
@@ -56,12 +56,10 @@ async function isActive(mandatarisId: string | undefined): Promise<boolean> {
       FILTER (
           ${escapedDateNow} >= xsd:dateTime(?startDate) &&
           ${escapedDateNow} <= ?safeEnd &&
-          ?mandatarisStatus != ${sparqlEscapeUri(MANDATARIS_STATUS.BEEINDIGD)}
+          ?mandatarisStatus != ${escapedBeeindigdStatus} &&
+          ?mandatarisGraph != <http://mu.semte.ch/vocabularies/ext/FormHistory>
       )
 
-      FILTER NOT EXISTS {
-        ?mandatarisGraph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-      }
       BIND(IF(BOUND(?endDate), ?endDate,  ${escapedDateNow}) as ?safeEnd)
     }
   `;

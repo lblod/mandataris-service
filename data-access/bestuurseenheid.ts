@@ -56,9 +56,7 @@ async function isExisiting(bestuurseenheidUri: string): Promise<boolean> {
           ${sparqlEscapeUri(bestuurseenheidUri)} a besluit:Bestuurseenheid.
         }
 
-        FILTER NOT EXISTS {
-          ?bestuurseenheidGraph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-        }
+        FILTER ( ?bestuurseenheidGraph != <http://mu.semte.ch/vocabularies/ext/FormHistory>)
       }
     `;
 

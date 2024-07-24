@@ -1,5 +1,4 @@
-import { BASE_RESOURCE } from '../util/constants';
-import { sparqlEscapeUri } from 'mu';
+import { sparqlEscapeString } from 'mu';
 import { querySudo } from '@lblod/mu-auth-sudo';
 import { getBooleanSparqlResult } from '../util/sparql-result';
 
@@ -8,18 +7,17 @@ export const bestuursperiode = {
 };
 
 async function isExisting(bestuursperiodeId: string): Promise<boolean> {
-  const uri = BASE_RESOURCE.BESTUURSPERIODE + bestuursperiodeId;
   const askIfExists = `
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
       ASK {
         GRAPH ?bestuursperiodeGraph {
-          ${sparqlEscapeUri(uri)} a ext:Bestuursperiode.
+          ?bestuursperiode a ext:Bestuursperiode;
+            mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
         }
 
-        FILTER NOT EXISTS {
-          ?bestuursperiodeGraph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-        }
+        FILTER ( ?bestuursperiodeGraph != <http://mu.semte.ch/vocabularies/ext/FormHistory> )
       }
     `;
 

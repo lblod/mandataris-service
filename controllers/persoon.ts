@@ -46,14 +46,14 @@ async function updateCurrentFractie(
     );
   }
 
-  const currentFractieOfPerson = await person.searchCurrentFractie(
+  const currentFractieUriOfPerson = await person.searchCurrentFractie(
     personId,
     bestuursperiodeId,
   );
 
-  if (!currentFractieOfPerson) {
+  if (!currentFractieUriOfPerson) {
     throw 'Should we create onafhankelijk fractie?';
   }
 
-  return await person.updateCurrentFractie(personId, currentFractieOfPerson);
+  return await person.updateCurrentFractie(personId, currentFractieUriOfPerson);
 }

@@ -21,9 +21,7 @@ async function allExist(
           ?possibleBestuurorgaan a besluit:Bestuursorgaan.
         }
 
-        FILTER NOT EXISTS {
-          ?bestuursorgaanGraph a <http://mu.semte.ch/vocabularies/ext/FormHistory>.
-        }
+        FILTER ( ?bestuursorgaanGraph != <http://mu.semte.ch/vocabularies/ext/FormHistory>)
       }
     `;
 

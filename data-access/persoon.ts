@@ -221,18 +221,17 @@ export async function copyPerson(subject: Term, graph: Term) {
 }
 
 async function isExisitingPerson(personId: string): Promise<boolean> {
-  const uri = BASE_RESOURCE.PERSONEN + personId;
   const askIfExists = `
       PREFIX person: <http://www.w3.org/ns/person#>
+      PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
       ASK {
         GRAPH ?personGraph {
-          ${sparqlEscapeUri(uri)} a person:Person.
+          ?person a person:Person;
+            mu:uuid ${sparqlEscapeString(personId)}.
         }
 
-        FILTER NOT EXISTS {
-          ?personGraph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-        }
+        FILTER ( ?personGraph != <http://mu.semte.ch/vocabularies/ext/FormHistory>)
       }
     `;
 
@@ -244,26 +243,25 @@ async function isExisitingPerson(personId: string): Promise<boolean> {
 async function findOnafhankelijkeFractieUri(
   personId: string,
 ): Promise<string | null> {
-  const uri = BASE_RESOURCE.PERSONEN + personId;
   const fractieQuery = `
     PREFIX person: <http://www.w3.org/ns/person#>
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
     SELECT ?fractie ?fractieType
     WHERE {
       GRAPH ?personGraph {
-       ${sparqlEscapeUri(uri)} a person:Person;
+       ?person a person:Person;
+          mu:uuid ${sparqlEscapeString(personId)};
           ^mandaat:isBestuurlijkeAliasVan ?mandataris.
        ?mandataris a mandaat:Mandataris;
             org:hasMembership ?lidmaatschap.
        ?lidmaatschap org:organisation ?fractie.
        ?fractie ext:isFractietype ?fractieType.
       }
-      FILTER NOT EXISTS {
-        ?personGraph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-      }
+      FILTER ( ?personGraph != <http://mu.semte.ch/vocabularies/ext/FormHistory>)
     }
   `;
 
@@ -281,8 +279,7 @@ async function searchCurrentFractie(
   personId: string,
   bestuursperiodeId: string,
 ): Promise<string | null> {
-  const personUri = BASE_RESOURCE.PERSONEN + personId;
-  const escapedPeriode = sparqlEscapeUri(
+  const period = sparqlEscapeUri(
     BASE_RESOURCE.BESTUURSPERIODE + bestuursperiodeId,
   );
   const escapedBeeindigdState = sparqlEscapeUri(MANDATARIS_STATUS.BEEINDIGD);
@@ -292,11 +289,13 @@ async function searchCurrentFractie(
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
     SELECT DISTINCT ?mandataris ?fractie ?lastModified
     WHERE {
       GRAPH ?graph {
-        ${sparqlEscapeUri(personUri)} a person:Person;
+        ?person a person:Person;
+            mu:uuid ${sparqlEscapeString(personId)};
             ^mandaat:isBestuurlijkeAliasVan ?mandataris.
         ?mandataris org:holds ?mandaat;
             org:hasMembership ?member;
@@ -305,7 +304,7 @@ async function searchCurrentFractie(
         ?member org:organisation ?fractie.
         ?fractie ext:isFractietype ?fractieType.
         ?mandaat ^org:hasPost ?bestuurorgaanInTijd.
-        ?bestuursorgaanInTijd ext:heeftBestuursperiode ${escapedPeriode}.
+        ?bestuursorgaanInTijd ext:heeftBestuursperiode ${period} .
       }
       FILTER ( ?graph != <http://mu.semte.ch/vocabularies/ext/FormHistory> && ?mandatarisStatus != ${escapedBeeindigdState})
     }
@@ -327,38 +326,37 @@ async function searchCurrentFractie(
 
 async function updateCurrentFractie(
   personId: string,
-  fractie: string,
+  fractieUri: string,
 ): Promise<string> {
-  const uri = BASE_RESOURCE.PERSONEN + personId;
-  const escapedFractie = sparqlEscapeUri(fractie);
+  const escapedFractie = sparqlEscapeUri(fractieUri);
   const updateQuery = `
     PREFIX person: <http://www.w3.org/ns/person#>
     PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
     DELETE {
       GRAPH ?graph {
-        ${sparqlEscapeUri(uri)} extlmb:huidigeFractie ?currentFractie.
+        ?personUri extlmb:huidigeFractie ?currentFractie.
       }
     }
     INSERT {
       GRAPH ?graph{
-        ${sparqlEscapeUri(uri)} extlmb:huidigeFractie ${escapedFractie} .
+        ?personUri extlmb:huidigeFractie ${escapedFractie} .
       }
     }
     WHERE {
       GRAPH ?graph{
-        ${sparqlEscapeUri(uri)} a person:Person.
+        ?personUri a person:Person;
+          mu:uuid ${sparqlEscapeString(personId)}.
         OPTIONAL {
-          ${sparqlEscapeUri(uri)} extlmb:huidigeFractie ?currentFractie .
+          ?personUri extlmb:huidigeFractie ?currentFractie .
         }
       }
-      FILTER NOT EXISTS {
-        ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-      }
+      FILTER ( ?graph != <http://mu.semte.ch/vocabularies/ext/FormHistory>)
     }
   `;
 
   await updateSudo(updateQuery);
 
-  return fractie;
+  return fractieUri;
 }
