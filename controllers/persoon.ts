@@ -20,10 +20,7 @@ async function findOnfhankelijkeFractieUri(
     );
   }
 
-  const onafhankelijkerFractieUri =
-    await person.findOnafhankelijkeFractieUri(personId);
-
-  return onafhankelijkerFractieUri !== null ? onafhankelijkerFractieUri : null;
+  return await person.findOnafhankelijkeFractieUri(personId);
 }
 
 async function updateCurrentFractie(
