@@ -26,7 +26,8 @@ export const getNbActiveMandatarissen = async (mandaatId: string) => {
       }
     }
     BIND(IF(BOUND(?orgaanEinde), ?orgaanEinde, ${now}) AS ?actualOrgaanEinde).
-    BIND(IF(?actualOrgaanEinde <= ${now}, ?actualOrgaanEinde, ${now}) AS ?testEinde).
+    # The end of the bestuursperiode is sometimes a day later, so subtract a day to be sure.
+    BIND(IF(?actualOrgaanEinde <= ${now}, ?actualOrgaanEinde - "P1D"^^xsd:duration, ${now}) AS ?testEinde).
     FILTER(!BOUND(?mandatarisEinde) || ?mandatarisEinde >= ?testEinde).
     # Filter mandatarissen that are either effectief, verhinderd or titelvoerend (or have no status)
     FILTER(!BOUND(?status) || ?status IN (<http://data.vlaanderen.be/id/concept/MandatarisStatusCode/21063a5b-912c-4241-841c-cc7fb3c73e75>, <http://data.vlaanderen.be/id/concept/MandatarisStatusCode/c301248f-0199-45ca-b3e5-4c596731d5fe>, <http://data.vlaanderen.be/id/concept/MandatarisStatusCode/aacb3fed-b51d-4e0b-a411-f3fa641da1b3>)).
