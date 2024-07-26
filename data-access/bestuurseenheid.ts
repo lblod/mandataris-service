@@ -6,6 +6,7 @@ import {
 import { Term } from '../types';
 import { querySudo } from '@lblod/mu-auth-sudo';
 import { sparqlEscapeUri } from 'mu';
+import { GRAPHS } from '../util/constants';
 
 export const bestuurseenheid = {
   exists,
@@ -52,11 +53,9 @@ async function exists(bestuurseenheidUri: string): Promise<boolean> {
       PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
 
       ASK {
-        GRAPH ?bestuurseenheidGraph {
+        GRAPH ${sparqlEscapeUri(GRAPHS.PUBLIC)} {
           ${sparqlEscapeUri(bestuurseenheidUri)} a besluit:Bestuurseenheid.
         }
-
-        FILTER ( ?bestuurseenheidGraph != <http://mu.semte.ch/vocabularies/ext/FormHistory>)
       }
     `;
 
