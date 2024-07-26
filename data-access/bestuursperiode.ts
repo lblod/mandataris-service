@@ -22,8 +22,9 @@ async function exists(bestuursperiodeId: string): Promise<boolean> {
           ?bestuursperiode a ext:Bestuursperiode;
             mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
         }
-
-        FILTER ( ?bestuursperiodeGraph != <http://mu.semte.ch/vocabularies/ext/FormHistory> )
+        FILTER NOT EXISTS {
+          ?bestuursperiodeGraph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+        }
       }
     `;
 
@@ -42,8 +43,9 @@ async function getIdForUri(bestuursperiodeUri: string): Promise<string> {
           ?bestuursperiode a ext:Bestuursperiode;
             mu:uuid ?id.
         }
-
-        FILTER ( ?bestuursperiodeGraph != <http://mu.semte.ch/vocabularies/ext/FormHistory> )
+        FILTER NOT EXISTS {
+          ?bestuursperiodeGraph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+        }
       }
     `;
 

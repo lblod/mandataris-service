@@ -236,8 +236,9 @@ async function exists(personId: string): Promise<boolean> {
           ?person a person:Person;
             mu:uuid ${sparqlEscapeString(personId)}.
         }
-
-        FILTER ( ?personGraph != <http://mu.semte.ch/vocabularies/ext/FormHistory>)
+        FILTER NOT EXISTS {
+          ?personGraph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+        }
       }
     `;
 
@@ -267,7 +268,9 @@ async function findOnafhankelijkeFractieUri(
        ?lidmaatschap org:organisation ?fractie.
        ?fractie ext:isFractietype ?fractieType.
       }
-      FILTER ( ?personGraph != <http://mu.semte.ch/vocabularies/ext/FormHistory>)
+      FILTER NOT EXISTS {
+        ?personGraph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+      } 
     }
   `;
 
@@ -319,11 +322,12 @@ async function searchCurrentFractie(
         }
       }
       FILTER ( 
-        ?graph != <http://mu.semte.ch/vocabularies/ext/FormHistory> &&
         ?mandatarisStatus != ${escapedBeeindigdState} &&
         ${escapedDateNow} <= ?safeEnd 
-
       )
+      FILTER NOT EXISTS {
+        ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+      } 
       BIND(IF(BOUND(?endDate), ?endDate,  ${escapedDateNow}) as ?safeEnd)
 
     }
@@ -371,7 +375,9 @@ async function updateCurrentFractie(
           ?personUri extlmb:huidigeFractie ?currentFractie .
         }
       }
-      FILTER ( ?graph != <http://mu.semte.ch/vocabularies/ext/FormHistory>)
+      FILTER NOT EXISTS {
+        ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+      }
     }
   `;
 

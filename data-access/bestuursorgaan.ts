@@ -12,6 +12,7 @@ async function allExist(
   const escapedUris = bestuursorgaanUrisInTijd.map((boit) =>
     sparqlEscapeUri(boit),
   );
+  // TODO: this is false just checks one uri
   const askIfExists = `
       PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
 
@@ -20,7 +21,6 @@ async function allExist(
           VALUES ?possibleBestuurorgaan { ${escapedUris.join(' ')} }.
           ?possibleBestuurorgaan a besluit:Bestuursorgaan.
         }
-
         FILTER ( ?bestuursorgaanGraph != <http://mu.semte.ch/vocabularies/ext/FormHistory>)
       }
     `;

@@ -37,8 +37,9 @@ async function exists(mandatarisId: string): Promise<boolean> {
           ?mandataris a mandaat:Mandataris;
             mu:uuid ${sparqlEscapeString(mandatarisId)}.
         }
-
-        FILTER ( ?mandatarisGraph != <http://mu.semte.ch/vocabularies/ext/FormHistory>)
+        FILTER NOT EXISTS {
+          ?mandatarisGraph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+        }
       }
     `;
 
@@ -78,9 +79,11 @@ async function isActive(mandatarisId: string | undefined): Promise<boolean> {
       FILTER (
           ${escapedDateNow} >= xsd:dateTime(?startDate) &&
           ${escapedDateNow} <= ?safeEnd &&
-          ?mandatarisStatus != ${escapedBeeindigdStatus} &&
-          ?mandatarisGraph != <http://mu.semte.ch/vocabularies/ext/FormHistory>
+          ?mandatarisStatus != ${escapedBeeindigdStatus}
       )
+      FILTER NOT EXISTS {
+        ?mandatarisGraph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+      }
 
       BIND(IF(BOUND(?endDate), ?endDate,  ${escapedDateNow}) as ?safeEnd )
     }
@@ -498,7 +501,9 @@ async function getBestuursperiode(mandatarisId: string): Promise<string> {
         ?mandaat ^org:hasPost ?bestuurorgaanInTijd.
         ?bestuursorgaanInTijd ext:heeftBestuursperiode ?bestuursperiode .
       }
-      FILTER ( ?graph != <http://mu.semte.ch/vocabularies/ext/FormHistory> )
+      FILTER NOT EXISTS {
+        ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+      } 
     }
   `;
 
