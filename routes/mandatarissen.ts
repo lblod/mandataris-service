@@ -51,24 +51,25 @@ mandatarissenRouter.get(
   },
 );
 
-mandatarissenRouter.get(
-  '/:id/bestuursperiode',
+mandatarissenRouter.put(
+  '/:id/current-fractie',
   async (req: Request, res: Response) => {
     try {
       const mandatarisId = req.params.id;
-      const bestuursperiode =
-        await mandatarisUsecase.getBestuursperiode(mandatarisId);
 
-      return res.status(STATUS_CODE.OK).send(bestuursperiode);
+      const newCurrentFractie =
+        await mandatarisUsecase.updateCurrentFractie(mandatarisId);
+
+      return res.status(STATUS_CODE.OK).send({ current: newCurrentFractie });
     } catch (error) {
       return res
         .status(error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR)
         .send({
           message:
             error.message ??
-            `Something went wrong while getting the bestuursperiode for mandataris: ${
-              req.params.id ?? null
-            }.`,
+            `Something went wrong while updating the current fractie on person: ${
+              req.params.id ?? undefined
+            } in bestuursperiode: ${req.params.bestuursperiode ?? undefined}`,
         });
     }
   },

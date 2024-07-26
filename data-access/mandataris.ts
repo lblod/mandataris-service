@@ -17,6 +17,7 @@ import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
+  getSparqlResults,
 } from '../util/sparql-result';
 import { TERM_MANDATARIS_TYPE } from './mandatees-decisions';
 import { HttpError } from '../util/http-error';
@@ -24,7 +25,7 @@ import { HttpError } from '../util/http-error';
 export const mandataris = {
   isActive,
   exists,
-  getBestuursperiode,
+  getCurrentFractieForPersonOf,
 };
 
 async function exists(mandatarisId: string): Promise<boolean> {
@@ -485,37 +486,59 @@ export async function updatePublicationStatusOfMandataris(
   }
 }
 
-async function getBestuursperiode(mandatarisId: string): Promise<string> {
+async function getCurrentFractieForPersonOf(
+  mandatarisId: string,
+): Promise<{ fractieUri: string | null; personUri: string }> {
+  const escapedBeeindigdState = sparqlEscapeUri(MANDATARIS_STATUS.BEEINDIGD);
   const searchQuery = `
+    PREFIX person: <http://www.w3.org/ns/person#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX dct: <http://purl.org/dc/terms/>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
-    SELECT ?bestuursperiode
+    SELECT DISTINCT ?person ?fractie
     WHERE {
       GRAPH ?graph {
         ?mandataris a mandaat:Mandataris;
-          mu:uuid ${sparqlEscapeString(mandatarisId)};
-          org:holds ?mandaat.
+            mu:uuid ${sparqlEscapeString(mandatarisId)};
+            mandaat:isBestuurlijkeAliasVan ?person;
+            org:hasMembership ?member;
+            dct:modified ?lastModified;
+            mandaat:status ?mandatarisStatus.
+        ?member org:organisation ?fractie.
+        ?fractie ext:isFractietype ?fractieType.
         ?mandaat ^org:hasPost ?bestuurorgaanInTijd.
-        ?bestuursorgaanInTijd ext:heeftBestuursperiode ?bestuursperiode .
+        ?bestuursorgaanInTijd ext:heeftBestuursperiode <http://data.lblod.info/id/concept/Bestuursperiode/a2b977a3-ce68-4e42-80a6-4397f66fc5ca>.
+
+        OPTIONAL {
+          ?mandataris mandaat:einde ?endDate.
+        }
       }
+
+      FILTER ( 
+        ?mandatarisStatus != ${escapedBeeindigdState} &&
+        ?lastModified <= ?safeEnd
+      )
       FILTER NOT EXISTS {
         ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
       } 
+      BIND(IF(BOUND(?endDate), ?endDate,  ?lastModified) as ?safeEnd)
     }
+    ORDER BY DESC(?lastModified)
   `;
 
   const results = await querySudo(searchQuery);
-  const first = findFirstSparqlResult(results);
+  const bindings = getSparqlResults(results);
 
-  if (!first) {
-    throw new HttpError(
-      `No bestuursperiode found for mandataris with id: ${mandatarisId}`,
-      STATUS_CODE.NOT_FOUND,
-    );
+  if (bindings.length === 0 || !bindings[0].fractie) {
+    return { fractieUri: null, personUri: bindings[0].person.value };
   }
 
-  return first.bestuursperiode.value;
+  return {
+    fractieUri: bindings[0].fractie.value,
+    personUri: bindings[0].person.value,
+  };
 }

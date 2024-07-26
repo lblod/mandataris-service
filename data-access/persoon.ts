@@ -1,13 +1,7 @@
-import {
-  query,
-  update,
-  sparqlEscapeString,
-  sparqlEscapeUri,
-  sparqlEscapeDateTime,
-} from 'mu';
+import { query, update, sparqlEscapeString, sparqlEscapeUri } from 'mu';
 import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
 import { v4 as uuidv4 } from 'uuid';
-import { Term, TermProperty } from '../types';
+import { Term } from '../types';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import { TERM_STAGING_GRAPH } from './mandatees-decisions';
 import {
@@ -15,16 +9,11 @@ import {
   getSparqlResults,
 } from '../util/sparql-result';
 import { getIdentifierFromPersonUri } from '../util/find-uuid-in-uri';
-import {
-  BASE_RESOURCE,
-  FRACTIE_TYPE,
-  MANDATARIS_STATUS,
-} from '../util/constants';
+import { FRACTIE_TYPE } from '../util/constants';
 
 export const person = {
   exists,
   findOnafhankelijkeFractieUri,
-  searchCurrentFractie,
   updateCurrentFractie,
 };
 
@@ -284,71 +273,8 @@ async function findOnafhankelijkeFractieUri(
     : null;
 }
 
-async function searchCurrentFractie(
-  personId: string,
-  bestuursperiodeId: string,
-): Promise<string | null> {
-  const period = sparqlEscapeUri(
-    BASE_RESOURCE.BESTUURSPERIODE + bestuursperiodeId,
-  );
-  const escapedBeeindigdState = sparqlEscapeUri(MANDATARIS_STATUS.BEEINDIGD);
-  const escapedDateNow = sparqlEscapeDateTime(new Date());
-  const searchQuery = `
-    PREFIX person: <http://www.w3.org/ns/person#>
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX org: <http://www.w3.org/ns/org#>
-    PREFIX dct: <http://purl.org/dc/terms/>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-
-    SELECT DISTINCT ?mandataris ?fractie ?lastModified
-    WHERE {
-      GRAPH ?graph {
-        ?person a person:Person;
-            mu:uuid ${sparqlEscapeString(personId)};
-            ^mandaat:isBestuurlijkeAliasVan ?mandataris.
-        ?mandataris org:holds ?mandaat;
-            org:hasMembership ?member;
-            dct:modified ?lastModified;
-            mandaat:status ?mandatarisStatus.
-        ?member org:organisation ?fractie.
-        ?fractie ext:isFractietype ?fractieType.
-        ?mandaat ^org:hasPost ?bestuurorgaanInTijd.
-        ?bestuursorgaanInTijd ext:heeftBestuursperiode ${period} .
-
-        OPTIONAL {
-          ?mandataris mandaat:einde ?endDate.
-        }
-      }
-      FILTER ( 
-        ?mandatarisStatus != ${escapedBeeindigdState} &&
-        ${escapedDateNow} <= ?safeEnd 
-      )
-      FILTER NOT EXISTS {
-        ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-      } 
-      BIND(IF(BOUND(?endDate), ?endDate,  ${escapedDateNow}) as ?safeEnd)
-
-    }
-  `;
-
-  const results = await querySudo(searchQuery);
-  // This could return fracties that where modified at the same time? :eyes:
-  const sortedByDate = getSparqlResults(results).sort(
-    (a: TermProperty, b: TermProperty) => {
-      const aIsSmaller =
-        new Date(a.lastModified.value) <= new Date(b.lastModified.value);
-
-      return aIsSmaller ? 1 : 0;
-    },
-  );
-
-  return sortedByDate.length >= 1 ? sortedByDate[0].fractie.value : null;
-}
-
 async function updateCurrentFractie(
-  personId: string,
+  personUri: string,
   fractieUri: string,
 ): Promise<string> {
   const escapedFractie = sparqlEscapeUri(fractieUri);
@@ -359,20 +285,19 @@ async function updateCurrentFractie(
 
     DELETE {
       GRAPH ?graph {
-        ?personUri extlmb:huidigeFractie ?currentFractie.
+        ${sparqlEscapeUri(personUri)} extlmb:huidigeFractie ?currentFractie.
       }
     }
     INSERT {
       GRAPH ?graph{
-        ?personUri extlmb:huidigeFractie ${escapedFractie} .
+        ${sparqlEscapeUri(personUri)} extlmb:huidigeFractie ${escapedFractie} .
       }
     }
     WHERE {
       GRAPH ?graph{
-        ?personUri a person:Person;
-          mu:uuid ${sparqlEscapeString(personId)}.
+        ${sparqlEscapeUri(personUri)} a person:Person.
         OPTIONAL {
-          ?personUri extlmb:huidigeFractie ?currentFractie .
+          ${sparqlEscapeUri(personUri)} extlmb:huidigeFractie ?currentFractie .
         }
       }
       FILTER NOT EXISTS {
