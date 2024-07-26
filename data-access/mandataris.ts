@@ -21,6 +21,7 @@ import {
 } from '../util/sparql-result';
 import { TERM_MANDATARIS_TYPE } from './mandatees-decisions';
 import { HttpError } from '../util/http-error';
+import { bestuursperiode } from './bestuursperiode';
 
 export const mandataris = {
   isActive,
@@ -490,6 +491,7 @@ async function getCurrentFractieForPersonOf(
   mandatarisId: string,
 ): Promise<{ fractieUri: string | null; personUri: string }> {
   const escapedBeeindigdState = sparqlEscapeUri(MANDATARIS_STATUS.BEEINDIGD);
+  const activeBestuursperiode = await bestuursperiode.findActive();
   const searchQuery = `
     PREFIX person: <http://www.w3.org/ns/person#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
@@ -506,12 +508,12 @@ async function getCurrentFractieForPersonOf(
             mu:uuid ${sparqlEscapeString(mandatarisId)};
             mandaat:isBestuurlijkeAliasVan ?person;
             org:hasMembership ?member;
+            org:holds ?mandaat;
             dct:modified ?lastModified;
             mandaat:status ?mandatarisStatus.
         ?member org:organisation ?fractie.
-        ?fractie ext:isFractietype ?fractieType.
         ?mandaat ^org:hasPost ?bestuurorgaanInTijd.
-        ?bestuursorgaanInTijd ext:heeftBestuursperiode <http://data.lblod.info/id/concept/Bestuursperiode/a2b977a3-ce68-4e42-80a6-4397f66fc5ca>.
+        ?bestuursorgaanInTijd ext:heeftBestuursperiode ?bestuursperiode.
 
         OPTIONAL {
           ?mandataris mandaat:einde ?endDate.
@@ -520,19 +522,19 @@ async function getCurrentFractieForPersonOf(
 
       FILTER ( 
         ?mandatarisStatus != ${escapedBeeindigdState} &&
-        ?lastModified <= ?safeEnd
+        ?lastModified <= ?safeEnd &&
+        ?bestuursperiode = ${sparqlEscapeUri(activeBestuursperiode)}
       )
       FILTER NOT EXISTS {
         ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
       } 
       BIND(IF(BOUND(?endDate), ?endDate,  ?lastModified) as ?safeEnd)
     }
-    ORDER BY DESC(?lastModified)
   `;
 
   const results = await querySudo(searchQuery);
   const bindings = getSparqlResults(results);
-
+  console.log(`BINDINGS RESULT`, bindings);
   if (bindings.length === 0 || !bindings[0].fractie) {
     return { fractieUri: null, personUri: bindings[0].person.value };
   }
