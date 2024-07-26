@@ -20,6 +20,13 @@ async function create(
     );
   }
 
+  if (bestuursorgaanUrisInTijd.length === 0) {
+    throw new HttpError(
+      'Bestuursorganen cannot have a length of 0.',
+      STATUS_CODE.BAD_REQUEST,
+    );
+  }
+
   const isBestuursorganenInTijdExisting = await bestuursorgaan.allExist(
     bestuursorgaanUrisInTijd,
   );
