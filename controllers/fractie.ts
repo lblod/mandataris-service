@@ -27,12 +27,20 @@ async function create(
     );
   }
 
-  const isBestuursorganenInTijdExisting = await bestuursorgaan.allExist(
-    bestuursorgaanUrisInTijd,
-  );
-  if (!isBestuursorganenInTijdExisting) {
+  const nonExistingBestuursorganenInTijd: Array<string> = [];
+  for (const bestuursorgaanUri of bestuursorgaanUrisInTijd) {
+    const isExisting = await bestuursorgaan.exists(bestuursorgaanUri);
+
+    if (!isExisting) {
+      nonExistingBestuursorganenInTijd.push(bestuursorgaanUri);
+    }
+  }
+
+  if (nonExistingBestuursorganenInTijd.length >= 1) {
     throw new HttpError(
-      'One of given bestuursorgaan URIs do not exist.',
+      `The following bestuursorgaan URIs that do not exist: ${nonExistingBestuursorganenInTijd.join(
+        ', ',
+      )}`,
       STATUS_CODE.BAD_REQUEST,
     );
   }

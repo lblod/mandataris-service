@@ -3,25 +3,17 @@ import { sparqlEscapeUri } from 'mu';
 import { querySudo } from '@lblod/mu-auth-sudo';
 
 export const bestuursorgaan = {
-  allExist,
+  exists,
 };
 
-async function allExist(
-  bestuursorgaanUrisInTijd: Array<string>,
-): Promise<boolean> {
-  const escapedUris = bestuursorgaanUrisInTijd.map((boit) =>
-    sparqlEscapeUri(boit),
-  );
-  // TODO: this is false just checks one uri
+async function exists(bestuursorgaanUriInTijd: string): Promise<boolean> {
   const askIfExists = `
       PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
 
       ASK {
         GRAPH ?bestuursorgaanGraph {
-          VALUES ?possibleBestuurorgaan { ${escapedUris.join(' ')} }.
-          ?possibleBestuurorgaan a besluit:Bestuursorgaan.
+          ${sparqlEscapeUri(bestuursorgaanUriInTijd)} a besluit:Bestuursorgaan.
         }
-        FILTER ( ?bestuursorgaanGraph != <http://mu.semte.ch/vocabularies/ext/FormHistory>)
       }
     `;
 
