@@ -5,8 +5,8 @@ import { Term } from '../types';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import { TERM_STAGING_GRAPH } from './mandatees-decisions';
 import {
+  findFirstSparqlResult,
   getBooleanSparqlResult,
-  getSparqlResults,
 } from '../util/sparql-result';
 import { getIdentifierFromPersonUri } from '../util/find-uuid-in-uri';
 import { FRACTIE_TYPE } from '../util/constants';
@@ -265,11 +265,9 @@ async function findOnafhankelijkeFractieUri(
   `;
 
   const results = await querySudo(fractieQuery);
-  const onafhankelijkeFracties = getSparqlResults(results);
+  const first = findFirstSparqlResult(results);
 
-  return onafhankelijkeFracties.length >= 1
-    ? onafhankelijkeFracties[0].fractie.value
-    : null;
+  return first ? first.fractie.value : null;
 }
 
 async function updateCurrentFractie(

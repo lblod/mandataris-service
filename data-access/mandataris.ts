@@ -53,7 +53,7 @@ async function exists(mandatarisId: string): Promise<boolean> {
 async function isActive(mandatarisId: string | undefined): Promise<boolean> {
   if (!mandatarisId) {
     throw new HttpError(
-      'Cannot check active status of mandataris on id of undefined.',
+      'Cannot check active status of mandataris with id of undefined.',
       STATUS_CODE.INTERNAL_SERVER_ERROR,
     );
   }
@@ -564,7 +564,6 @@ async function findCurrentFractieInPeriod(
 
   const results = await querySudo(searchQuery);
   const fracties = getSparqlResults(results);
-  console.log(fracties);
   if (fracties.length === 0 || !fracties[0].fractie || !period) {
     return null;
   }

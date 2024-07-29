@@ -38,7 +38,7 @@ async function create(
 
   if (nonExistingBestuursorganenInTijd.length >= 1) {
     throw new HttpError(
-      `The following bestuursorgaan URIs that do not exist: ${nonExistingBestuursorganenInTijd.join(
+      `The following bestuursorgaan URIs do not exist: ${nonExistingBestuursorganenInTijd.join(
         ', ',
       )}`,
       STATUS_CODE.BAD_REQUEST,
