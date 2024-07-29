@@ -46,5 +46,5 @@ async function updateCurrentFractie(mandatarisId: string): Promise<string> {
     );
   }
 
-  return await person.updateCurrentFractie(currentFractieUri, personUri);
+  return await person.updateCurrentFractie(personUri, currentFractieUri);
 }
