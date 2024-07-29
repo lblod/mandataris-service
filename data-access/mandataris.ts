@@ -21,13 +21,12 @@ import {
 } from '../util/sparql-result';
 import { TERM_MANDATARIS_TYPE } from './mandatees-decisions';
 import { HttpError } from '../util/http-error';
-import { bestuursperiode } from './bestuursperiode';
 
 export const mandataris = {
   isActive,
   exists,
   findPerson,
-  getCurrentFractieForPerson,
+  findCurrentFractieInPeriod,
 };
 
 async function exists(mandatarisId: string): Promise<boolean> {
@@ -518,12 +517,12 @@ async function findPerson(mandatarisId: string): Promise<string | undefined> {
   return first?.person.value;
 }
 
-async function getCurrentFractieForPerson(
+async function findCurrentFractieInPeriod(
   mandatarisId: string,
+  period: string | undefined,
 ): Promise<string | null> {
   const escapedBeeindigdState = sparqlEscapeUri(MANDATARIS_STATUS.BEEINDIGD);
-  const activeBestuursperiode = await bestuursperiode.findActive();
-  const period = sparqlEscapeUri(activeBestuursperiode);
+  const bestuursperiode = sparqlEscapeUri(period);
   const searchQuery = `
     PREFIX person: <http://www.w3.org/ns/person#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
@@ -533,7 +532,7 @@ async function getCurrentFractieForPerson(
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
-    SELECT DISTINCT ?fractie
+    SELECT DISTINCT ?fractie ?mandataris ?bestuurorgaanInTijd
     WHERE {
       GRAPH ?graph {
         ?mandataris a mandaat:Mandataris;
@@ -545,7 +544,7 @@ async function getCurrentFractieForPerson(
             mandaat:status ?mandatarisStatus.
         ?member org:organisation ?fractie.
         ?mandaat ^org:hasPost ?bestuurorgaanInTijd.
-        ?bestuursorgaanInTijd ext:heeftBestuursperiode ${period}.
+        ?bestuursorgaanInTijd ext:heeftBestuursperiode ${bestuursperiode}.
 
         OPTIONAL {
           ?mandataris mandaat:einde ?endDate.
@@ -565,9 +564,44 @@ async function getCurrentFractieForPerson(
 
   const results = await querySudo(searchQuery);
   const fracties = getSparqlResults(results);
-  if (fracties.length === 0 || !fracties[0].fractie) {
+  console.log(fracties);
+  if (fracties.length === 0 || !fracties[0].fractie || !period) {
     return null;
   }
 
-  return fracties[0].fractie.value;
+  const doubleCheckInPeriod = await isInBestuursperiode(
+    fracties[0].mandataris.value,
+    fracties[0].bestuurorgaanInTijd.value,
+    period,
+  );
+
+  return doubleCheckInPeriod ? fracties[0].fractie.value : null;
+}
+
+async function isInBestuursperiode(
+  mandatarisUri: string,
+  bestuursorgaanInTijd: string,
+  bestuursperiodeUri: string,
+): Promise<boolean> {
+  const period = sparqlEscapeUri(bestuursperiodeUri);
+  const bestuursorgaan = sparqlEscapeUri(bestuursorgaanInTijd);
+  const isInPeriodQuery = `
+    PREFIX person: <http://www.w3.org/ns/person#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+    ASK {
+      ${sparqlEscapeUri(mandatarisUri)} a mandaat:Mandataris;
+          org:holds ?mandaat.
+      ${bestuursorgaan} ext:heeftBestuursperiode ${period}.
+    }
+  `;
+
+  const result = await querySudo(isInPeriodQuery);
+
+  return getBooleanSparqlResult(result);
 }

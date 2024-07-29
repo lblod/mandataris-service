@@ -1,4 +1,5 @@
 import { mandataris } from '../data-access/mandataris';
+import { bestuursperiode } from '../data-access/bestuursperiode';
 import { person } from '../data-access/persoon';
 import { STATUS_CODE } from '../util/constants';
 import { HttpError } from '../util/http-error';
@@ -20,7 +21,9 @@ async function isActive(mandatarisId: string): Promise<boolean> {
   return mandataris.isActive(mandatarisId);
 }
 
-async function updateCurrentFractie(mandatarisId: string): Promise<string> {
+async function updateCurrentFractie(
+  mandatarisId: string,
+): Promise<string | null> {
   const isMandataris = await mandataris.exists(mandatarisId);
   if (!isMandataris) {
     throw new HttpError(
@@ -29,19 +32,20 @@ async function updateCurrentFractie(mandatarisId: string): Promise<string> {
     );
   }
 
-  const currentFractieUri =
-    await mandataris.getCurrentFractieForPerson(mandatarisId);
-  const personUri = await mandataris.findPerson(mandatarisId);
+  const activeBestuursperiode = await bestuursperiode.findActive();
+  const currentFractieUri = await mandataris.findCurrentFractieInPeriod(
+    mandatarisId,
+    activeBestuursperiode,
+  );
 
+  if (!currentFractieUri) {
+    return null;
+  }
+
+  const personUri = await mandataris.findPerson(mandatarisId);
   if (!personUri) {
     throw new HttpError(
       `No person found for mandataris with id: ${mandataris}`,
-      STATUS_CODE.INTERNAL_SERVER_ERROR,
-    );
-  }
-  if (!currentFractieUri) {
-    throw new HttpError(
-      `No current fractie found for person: ${personUri}`,
       STATUS_CODE.INTERNAL_SERVER_ERROR,
     );
   }
