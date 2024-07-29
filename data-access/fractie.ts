@@ -1,6 +1,5 @@
-import { updateSudo } from '@lblod/mu-auth-sudo';
 import { v4 as uuidv4 } from 'uuid';
-import { sparqlEscapeString, sparqlEscapeUri } from 'mu';
+import { sparqlEscapeString, sparqlEscapeUri, update } from 'mu';
 
 import { BASE_RESOURCE, FRACTIE_TYPE } from '../util/constants';
 
@@ -45,7 +44,7 @@ async function createOnafhankelijkeFractie(
     }
   `;
 
-  await updateSudo(createQuery);
+  await update(createQuery);
 
   return uri;
 }

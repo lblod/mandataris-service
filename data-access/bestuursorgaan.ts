@@ -1,6 +1,5 @@
 import { getBooleanSparqlResult } from '../util/sparql-result';
-import { sparqlEscapeUri } from 'mu';
-import { querySudo } from '@lblod/mu-auth-sudo';
+import { sparqlEscapeUri, query } from 'mu';
 
 export const bestuursorgaan = {
   exists,
@@ -17,7 +16,7 @@ async function exists(bestuursorgaanUriInTijd: string): Promise<boolean> {
       }
     `;
 
-  const result = await querySudo(askIfExists);
+  const result = await query(askIfExists);
 
   return getBooleanSparqlResult(result);
 }

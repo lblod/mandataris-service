@@ -46,7 +46,7 @@ async function exists(mandatarisId: string): Promise<boolean> {
       }
     `;
 
-  const result = await querySudo(askIfExists);
+  const result = await query(askIfExists);
 
   return getBooleanSparqlResult(result);
 }
@@ -92,7 +92,7 @@ async function isActive(mandatarisId: string | undefined): Promise<boolean> {
     }
   `;
 
-  const results = await querySudo(booleanQuery);
+  const results = await query(booleanQuery);
 
   return getBooleanSparqlResult(results);
 }
@@ -512,7 +512,7 @@ async function findPerson(mandatarisId: string): Promise<string | undefined> {
     }
   `;
 
-  const results = await querySudo(searchQuery);
+  const results = await query(searchQuery);
   const first = findFirstSparqlResult(results);
 
   return first?.person.value;
@@ -563,7 +563,7 @@ async function findCurrentFractieInPeriod(
     }
   `;
 
-  const results = await querySudo(searchQuery);
+  const results = await query(searchQuery);
   const fracties = getSparqlResults(results);
   if (fracties.length === 0 || !fracties[0].fractie || !period) {
     return null;
@@ -601,7 +601,7 @@ async function isInBestuursperiode(
     }
   `;
 
-  const result = await querySudo(isInPeriodQuery);
+  const result = await query(isInPeriodQuery);
 
   return getBooleanSparqlResult(result);
 }

@@ -231,7 +231,7 @@ async function exists(personId: string): Promise<boolean> {
       }
     `;
 
-  const result = await querySudo(askIfExists);
+  const result = await query(askIfExists);
 
   return getBooleanSparqlResult(result);
 }
@@ -270,7 +270,7 @@ async function findOnafhankelijkeFractieUri(
     }
   `;
 
-  const results = await querySudo(fractieQuery);
+  const results = await query(fractieQuery);
   const first = findFirstSparqlResult(results);
 
   return first ? first.fractie.value : null;
@@ -309,7 +309,7 @@ async function updateCurrentFractie(
     }
   `;
 
-  await updateSudo(updateQuery);
+  await update(updateQuery);
 
   return fractieUri;
 }
