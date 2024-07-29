@@ -1,4 +1,4 @@
-import { query } from 'mu';
+import { querySudo } from '@lblod/mu-auth-sudo';
 import { findFirstSparqlResult } from '../util/sparql-result';
 
 export const bestuursperiode = {
@@ -23,7 +23,7 @@ async function findActive(): Promise<string | undefined> {
     }
   `;
 
-  const results = await query(getQuery);
+  const results = await querySudo(getQuery);
 
   return findFirstSparqlResult(results)?.bestuursperiode?.value;
 }
