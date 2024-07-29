@@ -26,7 +26,8 @@ import { bestuursperiode } from './bestuursperiode';
 export const mandataris = {
   isActive,
   exists,
-  getCurrentFractieForPersonOf,
+  findPerson,
+  getCurrentFractieForPerson,
 };
 
 async function exists(mandatarisId: string): Promise<boolean> {
@@ -487,9 +488,39 @@ export async function updatePublicationStatusOfMandataris(
   }
 }
 
-async function getCurrentFractieForPersonOf(
+async function findPerson(mandatarisId: string): Promise<string | undefined> {
+  const searchQuery = `
+    PREFIX person: <http://www.w3.org/ns/person#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+    SELECT DISTINCT ?person
+    WHERE {
+      GRAPH ?graph {
+        ?mandataris a mandaat:Mandataris;
+            mu:uuid ${sparqlEscapeString(mandatarisId)};
+            mandaat:isBestuurlijkeAliasVan ?person.
+      }
+
+      FILTER NOT EXISTS {
+        ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+      } 
+    }
+  `;
+
+  const results = await querySudo(searchQuery);
+  const first = findFirstSparqlResult(results);
+
+  return first?.person.value;
+}
+
+async function getCurrentFractieForPerson(
   mandatarisId: string,
-): Promise<{ fractieUri: string | null; personUri: string }> {
+): Promise<string | null> {
   const escapedBeeindigdState = sparqlEscapeUri(MANDATARIS_STATUS.BEEINDIGD);
   const activeBestuursperiode = await bestuursperiode.findActive();
   const searchQuery = `
@@ -501,7 +532,7 @@ async function getCurrentFractieForPersonOf(
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
-    SELECT DISTINCT ?person ?fractie
+    SELECT DISTINCT ?fractie
     WHERE {
       GRAPH ?graph {
         ?mandataris a mandaat:Mandataris;
@@ -533,14 +564,10 @@ async function getCurrentFractieForPersonOf(
   `;
 
   const results = await querySudo(searchQuery);
-  const bindings = getSparqlResults(results);
-  console.log(`BINDINGS RESULT`, bindings);
-  if (bindings.length === 0 || !bindings[0].fractie) {
-    return { fractieUri: null, personUri: bindings[0].person.value };
+  const fracties = getSparqlResults(results);
+  if (fracties.length === 0 || !fracties[0].fractie) {
+    return null;
   }
 
-  return {
-    fractieUri: bindings[0].fractie.value,
-    personUri: bindings[0].person.value,
-  };
+  return fracties[0].fractie.value;
 }

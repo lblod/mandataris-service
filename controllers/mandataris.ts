@@ -29,18 +29,22 @@ async function updateCurrentFractie(mandatarisId: string): Promise<string> {
     );
   }
 
-  const currentFractie =
-    await mandataris.getCurrentFractieForPersonOf(mandatarisId);
+  const currentFractieUri =
+    await mandataris.getCurrentFractieForPerson(mandatarisId);
+  const personUri = await mandataris.findPerson(mandatarisId);
 
-  if (!currentFractie.fractieUri) {
+  if (!personUri) {
     throw new HttpError(
-      `No current fractie found for person: ${currentFractie.personUri}`,
+      `No person found for mandataris with id: ${mandataris}`,
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+    );
+  }
+  if (!currentFractieUri) {
+    throw new HttpError(
+      `No current fractie found for person: ${personUri}`,
       STATUS_CODE.INTERNAL_SERVER_ERROR,
     );
   }
 
-  return await person.updateCurrentFractie(
-    currentFractie.personUri,
-    currentFractie.fractieUri,
-  );
+  return await person.updateCurrentFractie(currentFractieUri, personUri);
 }
