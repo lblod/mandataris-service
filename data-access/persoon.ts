@@ -238,6 +238,7 @@ async function exists(personId: string): Promise<boolean> {
 
 async function findOnafhankelijkeFractieUri(
   personId: string,
+  bestuursperiodeId: string,
 ): Promise<string | null> {
   const onafhankelijkFractieType = sparqlEscapeUri(FRACTIE_TYPE.ONAFHANKELIJK);
   const fractieQuery = `
@@ -247,17 +248,22 @@ async function findOnafhankelijkeFractieUri(
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
-    SELECT ?fractie
+    SELECT DISTINCT ?fractie 
     WHERE {
       GRAPH ?personGraph {
-       ?person a person:Person;
+        ?person a person:Person;
           mu:uuid ${sparqlEscapeString(personId)};
           ^mandaat:isBestuurlijkeAliasVan ?mandataris.
-       ?mandataris a mandaat:Mandataris;
-            org:hasMembership ?lidmaatschap.
-       ?lidmaatschap org:organisation ?fractie.
-       ?fractie ext:isFractietype ${onafhankelijkFractieType}.
+        ?mandataris a mandaat:Mandataris;
+            org:hasMembership ?lidmaatschap;
+            org:holds ?mandaat.
+        ?mandaat ^org:hasPost ?bestuurorgaanInTijd.
+        ?lidmaatschap org:organisation ?fractie.
+        ?fractie ext:isFractietype ${onafhankelijkFractieType}.
       }
+      ?bestuursorgaanInTijd ext:heeftBestuursperiode ?period.
+      ?period mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
+
       FILTER NOT EXISTS {
         ?personGraph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
       } 

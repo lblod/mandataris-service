@@ -8,6 +8,7 @@ export const personUsecase = {
 
 async function findOnfhankelijkeFractieUri(
   personId: string,
+  bestuursperiodeId: string,
 ): Promise<string | null> {
   const isPerson = await person.exists(personId);
 
@@ -18,5 +19,5 @@ async function findOnfhankelijkeFractieUri(
     );
   }
 
-  return await person.findOnafhankelijkeFractieUri(personId);
+  return await person.findOnafhankelijkeFractieUri(personId, bestuursperiodeId);
 }

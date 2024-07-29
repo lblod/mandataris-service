@@ -7,12 +7,16 @@ import { STATUS_CODE } from '../util/constants';
 export const personsRouter = Router();
 
 personsRouter.get(
-  '/:id/onafhankelijke-fractie',
+  '/:id/onafhankelijke-fractie/:bestuursperiode',
   async (req: Request, res: Response) => {
     try {
       const personId = req.params.id;
+      const bestuursperiodeId = req.params.bestuursperiode;
       const onafhankelijkerFactie =
-        await personUsecase.findOnfhankelijkeFractieUri(personId);
+        await personUsecase.findOnfhankelijkeFractieUri(
+          personId,
+          bestuursperiodeId,
+        );
 
       return res
         .status(STATUS_CODE.OK)

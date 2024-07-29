@@ -27,6 +27,7 @@ export const mandataris = {
   exists,
   findPerson,
   findCurrentFractieInPeriod,
+  isInBestuursperiode,
 };
 
 async function exists(mandatarisId: string): Promise<boolean> {
