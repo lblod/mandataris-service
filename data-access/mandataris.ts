@@ -17,6 +17,7 @@ import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
+  getSparqlResults,
 } from '../util/sparql-result';
 import { TERM_MANDATARIS_TYPE } from './mandatees-decisions';
 import { HttpError } from '../util/http-error';
@@ -24,7 +25,8 @@ import { HttpError } from '../util/http-error';
 export const mandataris = {
   isActive,
   exists,
-  getBestuursperiode,
+  findPerson,
+  findCurrentFractieInPeriod,
 };
 
 async function exists(mandatarisId: string): Promise<boolean> {
@@ -37,8 +39,9 @@ async function exists(mandatarisId: string): Promise<boolean> {
           ?mandataris a mandaat:Mandataris;
             mu:uuid ${sparqlEscapeString(mandatarisId)}.
         }
-
-        FILTER ( ?mandatarisGraph != <http://mu.semte.ch/vocabularies/ext/FormHistory>)
+        FILTER NOT EXISTS {
+          ?mandatarisGraph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+        }
       }
     `;
 
@@ -78,9 +81,11 @@ async function isActive(mandatarisId: string | undefined): Promise<boolean> {
       FILTER (
           ${escapedDateNow} >= xsd:dateTime(?startDate) &&
           ${escapedDateNow} <= ?safeEnd &&
-          ?mandatarisStatus != ${escapedBeeindigdStatus} &&
-          ?mandatarisGraph != <http://mu.semte.ch/vocabularies/ext/FormHistory>
+          ?mandatarisStatus != ${escapedBeeindigdStatus}
       )
+      FILTER NOT EXISTS {
+        ?mandatarisGraph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+      }
 
       BIND(IF(BOUND(?endDate), ?endDate,  ${escapedDateNow}) as ?safeEnd )
     }
@@ -482,35 +487,121 @@ export async function updatePublicationStatusOfMandataris(
   }
 }
 
-async function getBestuursperiode(mandatarisId: string): Promise<string> {
+async function findPerson(mandatarisId: string): Promise<string | undefined> {
   const searchQuery = `
+    PREFIX person: <http://www.w3.org/ns/person#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX dct: <http://purl.org/dc/terms/>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
-    SELECT ?bestuursperiode
+    SELECT DISTINCT ?person
     WHERE {
       GRAPH ?graph {
         ?mandataris a mandaat:Mandataris;
-          mu:uuid ${sparqlEscapeString(mandatarisId)};
-          org:holds ?mandaat.
-        ?mandaat ^org:hasPost ?bestuurorgaanInTijd.
-        ?bestuursorgaanInTijd ext:heeftBestuursperiode ?bestuursperiode .
+            mu:uuid ${sparqlEscapeString(mandatarisId)};
+            mandaat:isBestuurlijkeAliasVan ?person.
       }
-      FILTER ( ?graph != <http://mu.semte.ch/vocabularies/ext/FormHistory> )
+
+      FILTER NOT EXISTS {
+        ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+      } 
     }
   `;
 
   const results = await querySudo(searchQuery);
   const first = findFirstSparqlResult(results);
 
-  if (!first) {
-    throw new HttpError(
-      `No bestuursperiode found for mandataris with id: ${mandatarisId}`,
-      STATUS_CODE.NOT_FOUND,
-    );
+  return first?.person.value;
+}
+
+async function findCurrentFractieInPeriod(
+  mandatarisId: string,
+  period: string | undefined,
+): Promise<string | null> {
+  const escapedBeeindigdState = sparqlEscapeUri(MANDATARIS_STATUS.BEEINDIGD);
+  const bestuursperiode = sparqlEscapeUri(period);
+  const searchQuery = `
+    PREFIX person: <http://www.w3.org/ns/person#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+    SELECT DISTINCT ?fractie ?mandataris ?bestuurorgaanInTijd
+    WHERE {
+      GRAPH ?graph {
+        ?mandataris a mandaat:Mandataris;
+            mu:uuid ${sparqlEscapeString(mandatarisId)};
+            mandaat:isBestuurlijkeAliasVan ?person;
+            org:hasMembership ?member;
+            org:holds ?mandaat;
+            dct:modified ?lastModified;
+            mandaat:status ?mandatarisStatus.
+        ?member org:organisation ?fractie.
+        ?mandaat ^org:hasPost ?bestuurorgaanInTijd.
+        ?bestuursorgaanInTijd ext:heeftBestuursperiode ${bestuursperiode}.
+
+        OPTIONAL {
+          ?mandataris mandaat:einde ?endDate.
+        }
+      }
+
+      FILTER ( 
+        ?mandatarisStatus != ${escapedBeeindigdState} &&
+        ?lastModified <= ?safeEnd
+      )
+      FILTER NOT EXISTS {
+        ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+      } 
+      BIND(IF(BOUND(?endDate), ?endDate,  ?lastModified) as ?safeEnd)
+    }
+  `;
+
+  const results = await querySudo(searchQuery);
+  const fracties = getSparqlResults(results);
+  console.log(fracties);
+  if (fracties.length === 0 || !fracties[0].fractie || !period) {
+    return null;
   }
 
-  return first.bestuursperiode.value;
+  const doubleCheckInPeriod = await isInBestuursperiode(
+    fracties[0].mandataris.value,
+    fracties[0].bestuurorgaanInTijd.value,
+    period,
+  );
+
+  return doubleCheckInPeriod ? fracties[0].fractie.value : null;
+}
+
+async function isInBestuursperiode(
+  mandatarisUri: string,
+  bestuursorgaanInTijd: string,
+  bestuursperiodeUri: string,
+): Promise<boolean> {
+  const period = sparqlEscapeUri(bestuursperiodeUri);
+  const bestuursorgaan = sparqlEscapeUri(bestuursorgaanInTijd);
+  const isInPeriodQuery = `
+    PREFIX person: <http://www.w3.org/ns/person#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+    ASK {
+      ${sparqlEscapeUri(mandatarisUri)} a mandaat:Mandataris;
+          org:holds ?mandaat.
+      ${bestuursorgaan} ext:heeftBestuursperiode ${period}.
+    }
+  `;
+
+  const result = await querySudo(isInPeriodQuery);
+
+  return getBooleanSparqlResult(result);
 }

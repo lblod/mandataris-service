@@ -25,3 +25,7 @@ export enum STATUS_CODE {
   NOT_FOUND = 404,
   INTERNAL_SERVER_ERROR = 500,
 }
+
+export enum GRAPHS {
+  PUBLIC = 'http://mu.semte.ch/graphs/public',
+}

@@ -17,6 +17,7 @@ async function createOnafhankelijkeFractie(
   const escapedBestuursorganenInTijd = bestuursorganenInTijd.map(
     (bestuursorgaanInTijd) => sparqlEscapeUri(bestuursorgaanInTijd),
   );
+  const bestuursorgaanForGraph = sparqlEscapeUri(bestuursorganenInTijd.at(0));
   const createQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX regorg: <https://www.w3.org/ns/regorg#>
@@ -26,7 +27,7 @@ async function createOnafhankelijkeFractie(
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
     INSERT {
-      GRAPH ?bestuurseenheidGraph {
+      GRAPH ?bestuursOrgaanGraph {
         ${sparqlEscapeUri(uri)} a mandaat:Fractie;
           mu:uuid ${sparqlEscapeString(fractieId)};
           regorg:legalName ${sparqlEscapeString('Onafhankelijk')};
@@ -37,10 +38,10 @@ async function createOnafhankelijkeFractie(
     }
     WHERE {
       GRAPH ?graph {
-        ${sparqlEscapeUri(bestuurseenheid)} a besluit:Bestuurseenheid.
+        ${bestuursorgaanForGraph} a besluit:Bestuursorgaan.
       }
       
-      BIND (?graph AS ?bestuurseenheidGraph).
+      BIND (?graph AS ?bestuursOrgaanGraph).
     }
   `;
 
