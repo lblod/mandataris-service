@@ -28,3 +28,26 @@ fractiesRouter.post(
     }
   },
 );
+
+fractiesRouter.post(
+  '/:persoonId/persoon',
+  async (req: Request, res: Response) => {
+    try {
+      const jsonBody = req.body;
+      const fractieUris = await fractieUsecase.getAllForPerson(
+        req.params.persoonId,
+        jsonBody.mandaatUri,
+      );
+
+      return res.status(STATUS_CODE.OK).send({ fractieUris: fractieUris });
+    } catch (error) {
+      return res
+        .status(error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR)
+        .send({
+          message:
+            error.message ??
+            'Something went wrong while getting the fracties from a bestuursperiode.',
+        });
+    }
+  },
+);
