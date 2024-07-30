@@ -46,7 +46,9 @@ fractiesRouter.post(
         .send({
           message:
             error.message ??
-            'Something went wrong while getting the fracties from a bestuursperiode.',
+            `Something went wrong while getting the fracties for a person: ${
+              req.params.persoonId ?? undefined
+            }.`,
         });
     }
   },
