@@ -8,6 +8,12 @@ export enum TERM_TYPE {
   DATETIME = 'dateTime',
   TYPED_LITERAL = 'typed-literal',
 }
+// We are not handling the datatype of the term
+// Term {
+//     type: 'typed-literal',
+//     datatype: 'http://www.w3.org/2001/XMLSchema#dateTime',
+//     value: '2024-07-23T10:03:53.748Z'
+//   }
 export function sparqlEscapeTermValue(term: Term): string {
   const mapping = {
     [TERM_TYPE.URI]: () => sparqlEscapeUri(term.value),

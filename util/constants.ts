@@ -7,3 +7,25 @@ export enum PUBLICATION_STATUS {
   DRAFT = 'http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/588ce330-4abb-4448-9776-a17d9305df07',
   BEKRACHTIGT = 'http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/9d8fd14d-95d0-4f5e-b3a5-a56a126227b6',
 }
+
+export enum BASE_RESOURCE {
+  FRACTIES = 'http://data.lblod.info/id/fracties/',
+  BESTUURSPERIODE = 'http://data.lblod.info/id/concept/Bestuursperiode/',
+}
+
+export enum FRACTIE_TYPE {
+  ONAFHANKELIJK = 'http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk',
+  SAMENWERKINGSVERBAND = 'http://data.vlaanderen.be/id/concept/Fractietype/Samenwerkingsverband',
+}
+
+export enum STATUS_CODE {
+  CREATED = 201,
+  OK = 200,
+  BAD_REQUEST = 400,
+  NOT_FOUND = 404,
+  INTERNAL_SERVER_ERROR = 500,
+}
+
+export enum GRAPHS {
+  PUBLIC = 'http://mu.semte.ch/graphs/public',
+}

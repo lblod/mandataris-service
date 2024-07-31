@@ -1,9 +1,13 @@
+import Router from 'express-promise-router';
+
 import { Request, Response } from 'express';
 import multer from 'multer';
-import Router from 'express-promise-router';
+
 import { deleteMandataris } from '../data-access/delete';
 import { uploadCsv } from '../controllers/mandataris-upload';
 import { CsvUploadState } from '../types';
+import { mandatarisUsecase } from '../controllers/mandataris';
+import { STATUS_CODE } from '../util/constants';
 
 const upload = multer({ dest: 'mandataris-uploads/' });
 
@@ -21,6 +25,53 @@ mandatarissenRouter.post(
     const state: CsvUploadState & { status?: string } = await uploadCsv(req);
     state.status = state.errors.length > 0 ? 'error' : 'ok';
     return res.status(200).send(state);
+  },
+);
+
+mandatarissenRouter.get(
+  '/:id/isActive',
+  async (req: Request, res: Response) => {
+    try {
+      const mandatarisId = req.params.id;
+      const isActive = await mandatarisUsecase.isActive(mandatarisId);
+
+      return res.status(STATUS_CODE.OK).send({ isActive: isActive ?? false });
+    } catch (error) {
+      return res
+        .status(error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR)
+        .send({
+          isActive: false,
+          message:
+            error.message ??
+            `Something went wrong while checking if mandataris: ${
+              req.params.id ?? null
+            } is active.`,
+        });
+    }
+  },
+);
+
+mandatarissenRouter.put(
+  '/:id/current-fractie',
+  async (req: Request, res: Response) => {
+    try {
+      const mandatarisId = req.params.id;
+
+      const newCurrentFractie =
+        await mandatarisUsecase.updateCurrentFractie(mandatarisId);
+
+      return res.status(STATUS_CODE.OK).send({ current: newCurrentFractie });
+    } catch (error) {
+      return res
+        .status(error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR)
+        .send({
+          message:
+            error.message ??
+            `Something went wrong while updating the current fractie on person: ${
+              req.params.id ?? undefined
+            } in bestuursperiode: ${req.params.bestuursperiode ?? undefined}`,
+        });
+    }
   },
 );
 

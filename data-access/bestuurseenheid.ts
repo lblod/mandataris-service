@@ -1,7 +1,16 @@
 import { TERM_TYPE, sparqlEscapeTermValue } from '../util/sparql-escape';
-import { findFirstSparqlResult } from '../util/sparql-result';
+import {
+  findFirstSparqlResult,
+  getBooleanSparqlResult,
+} from '../util/sparql-result';
 import { Term } from '../types';
 import { querySudo } from '@lblod/mu-auth-sudo';
+import { sparqlEscapeUri } from 'mu';
+import { GRAPHS } from '../util/constants';
+
+export const bestuurseenheid = {
+  exists,
+};
 
 export async function findBestuurseenheidForMandaat(
   mandaat: Term,
@@ -37,4 +46,21 @@ export async function findBestuurseenheidForMandaat(
       result.id.value +
       '/LoketLB-mandaatGebruiker',
   } as Term;
+}
+
+async function exists(bestuurseenheidUri: string): Promise<boolean> {
+  const askIfExists = `
+      PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+
+      ASK {
+        GRAPH ${sparqlEscapeUri(GRAPHS.PUBLIC)} {
+          ${sparqlEscapeUri(bestuurseenheidUri)} a besluit:Bestuurseenheid.
+        }
+      }
+    `;
+
+  const result = await querySudo(askIfExists);
+  const booleanResult = getBooleanSparqlResult(result);
+
+  return booleanResult;
 }
