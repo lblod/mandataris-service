@@ -1,11 +1,13 @@
 import { bestuurseenheid } from '../data-access/bestuurseenheid';
 import { bestuursorgaan } from '../data-access/bestuursorgaan';
 import { fractie } from '../data-access/fractie';
+import { person } from '../data-access/persoon';
 import { STATUS_CODE } from '../util/constants';
 import { HttpError } from '../util/http-error';
 
 export const fractieUsecase = {
   create,
+  getAllForPerson,
 };
 
 async function create(
@@ -51,4 +53,19 @@ async function create(
   );
 
   return newOnafhankelijkeFractie;
+}
+
+async function getAllForPerson(
+  persoonId: string,
+  mandaatUri: string,
+): Promise<Array<string>> {
+  const isPersoon = await person.exists(persoonId);
+  if (!isPersoon) {
+    throw new HttpError(
+      `Persoon with id: ${persoonId} does not exist.`,
+      STATUS_CODE.BAD_REQUEST,
+    );
+  }
+
+  return await fractie.getForPerson(persoonId, mandaatUri);
 }
