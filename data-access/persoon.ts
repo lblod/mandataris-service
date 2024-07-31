@@ -1,13 +1,22 @@
 import { query, update, sparqlEscapeString, sparqlEscapeUri } from 'mu';
 import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
 import { v4 as uuidv4 } from 'uuid';
-import { Term } from '../types';
+import { Term, TermProperty } from '../types';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import { TERM_STAGING_GRAPH } from './mandatees-decisions';
-import { getBooleanSparqlResult } from '../util/sparql-result';
+import {
+  findFirstSparqlResult,
+  getBooleanSparqlResult,
+  getSparqlResults,
+} from '../util/sparql-result';
 import { getIdentifierFromPersonUri } from '../util/find-uuid-in-uri';
 
 // note since we use the regular query, not sudo queries, be sure to log in when using this endpoint. E.g. use the vendor login
+
+export const persoon = {
+  findFractieForBestuursperiode,
+  removeFractieFromCurrent,
+};
 
 export const findPerson = async (rrn: string) => {
   const q = `
@@ -203,4 +212,62 @@ export async function copyPerson(subject: Term, graph: Term) {
   } catch (error) {
     throw Error(`Could not copy person with uri: ${escaped.person}`);
   }
+}
+
+async function findFractieForBestuursperiode(
+  mandatarisId: string,
+): Promise<TermProperty | null> {
+  const getQuery = `
+    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+
+    SELECT DISTINCT ?fractie
+    WHERE {
+      GRAPH ?graph {
+        ?refMandataris a mandaat:Mandataris;
+          mu:uuid ${sparqlEscapeString(mandatarisId)};
+          mandaat:isBestuurlijkeAliasVan ?persoon;
+          org:holds ?mandaat.
+
+          ?persoon extlmb:currentFracties ?fractie.
+
+          ?mandaat ^org:hasPost ?bestuursorgaan.
+          ?fractie org:memberOf ?bestuursorgaan. 
+      }
+        
+      FILTER NOT EXISTS {
+        ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+      }
+    }
+  `;
+
+  const sparqlResult = await query(getQuery);
+
+  return findFirstSparqlResult(sparqlResult);
+}
+
+async function removeFractieFromCurrent(
+  persoonUri: string,
+  fractieUris: string,
+): Promise<void> {
+  const person = sparqlEscapeUri(persoonUri);
+  const deleteQuery = `
+    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
+    PREFIX person: <http://www.w3.org/ns/person#>
+
+    DELETE {
+      GRAPH ?graph {
+        ${person} extlmb:currentFracties ${sparqlEscapeUri(fractieUris)}.
+      }
+    }
+    WHERE {
+      GRAPH ?graph {
+        ${person} a person:Person.
+      }
+    }
+  `;
+
+  await updateSudo(deleteQuery);
 }
