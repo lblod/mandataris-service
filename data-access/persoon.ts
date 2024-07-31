@@ -7,7 +7,6 @@ import { TERM_STAGING_GRAPH } from './mandatees-decisions';
 import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
-  getSparqlResults,
 } from '../util/sparql-result';
 import { getIdentifierFromPersonUri } from '../util/find-uuid-in-uri';
 
