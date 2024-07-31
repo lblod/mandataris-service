@@ -524,6 +524,7 @@ async function findCurrentFractieInPeriod(
 ): Promise<string | null> {
   const escapedBeeindigdState = sparqlEscapeUri(MANDATARIS_STATUS.BEEINDIGD);
   const bestuursperiode = sparqlEscapeUri(period);
+  const datetimeNow = sparqlEscapeDateTime(new Date());
   const searchQuery = `
     PREFIX person: <http://www.w3.org/ns/person#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
@@ -541,25 +542,26 @@ async function findCurrentFractieInPeriod(
             mandaat:isBestuurlijkeAliasVan ?person;
             org:hasMembership ?member;
             org:holds ?mandaat;
-            dct:modified ?lastModified;
             mandaat:status ?mandatarisStatus.
         ?member org:organisation ?fractie.
         ?mandaat ^org:hasPost ?bestuurorgaanInTijd.
         ?bestuursorgaanInTijd ext:heeftBestuursperiode ${bestuursperiode}.
 
         OPTIONAL {
+          ?mandataris dct:modified ?lastModified.
           ?mandataris mandaat:einde ?endDate.
         }
       }
 
       FILTER ( 
         ?mandatarisStatus != ${escapedBeeindigdState} &&
-        ?lastModified <= ?safeEnd
+        ?safeLastModified <= ?safeEnd
       )
       FILTER NOT EXISTS {
         ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
       } 
-      BIND(IF(BOUND(?endDate), ?endDate,  ?lastModified) as ?safeEnd)
+      BIND(IF(BOUND(?lastModified), ?lastModified,  ${datetimeNow}) as ?safeLastModified)
+      BIND(IF(BOUND(?endDate), ?endDate,  ${datetimeNow}) as ?safeEnd)
     }
   `;
 
