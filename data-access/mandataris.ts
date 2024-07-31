@@ -5,13 +5,97 @@ import {
   sparqlEscapeDateTime,
   sparqlEscapeUri,
 } from 'mu';
-import { CSVRow, CsvUploadState, MandateHit, Term } from '../types';
+import {
+  CSVRow,
+  CsvUploadState,
+  MandateHit,
+  Term,
+  TermProperty,
+} from '../types';
 import moment from 'moment';
 import { v4 as uuidv4 } from 'uuid';
 import { MANDATARIS_STATUS, PUBLICATION_STATUS } from '../util/constants';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
-import { findFirstSparqlResult } from '../util/sparql-result';
+import {
+  findFirstSparqlResult,
+  getBooleanSparqlResult,
+} from '../util/sparql-result';
 import { TERM_MANDATARIS_TYPE } from './mandatees-decisions';
+
+export const mandataris = {
+  isValidId,
+  findCurrentFractieForPerson,
+};
+
+async function isValidId(id: string): Promise<boolean> {
+  const askQuery = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+    ASK {
+      ?mandataris a mandaat:Mandataris;
+        mu:uuid ${sparqlEscapeString(id)}.
+    }
+  `;
+  const sparqlResult = await query(askQuery);
+
+  return getBooleanSparqlResult(sparqlResult);
+}
+
+async function findCurrentFractieForPerson(
+  mandatarisId: string,
+): Promise<TermProperty | null> {
+  const escapedBeeindigdState = sparqlEscapeUri(MANDATARIS_STATUS.BEEINDIGD);
+  const datetimeNow = sparqlEscapeDateTime(new Date());
+  const getQuery = `
+    PREFIX person: <http://www.w3.org/ns/person#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+
+    SELECT DISTINCT ?fractie ?persoon
+    WHERE {
+        ?mandataris a mandaat:Mandataris;
+          mu:uuid ${sparqlEscapeString(mandatarisId)};
+          mandaat:isBestuurlijkeAliasVan ?persoon;
+          org:holds ?mandaat.
+        
+        ?mandaat ^org:hasPost ?bestuursorgaan.
+        ?bestuursorgaan ext:heeftBestuursperiode ?bestuursperiode.
+      
+        # Get mandataris in besuursperiode for that person
+        ?mandatarisOfPerson a mandaat:Mandataris;
+          mandaat:isBestuurlijkeAliasVan ?persoon;
+          org:holds ?mandaatOfPersonMandataris;
+          mandaat:status ?mandatarisStatus.
+        
+        ?mandaatOfPersonMandataris ^org:hasPost ?bestuursorgaanOfPersonMandataris.
+        ?bestuursorgaanOfPersonMandataris ext:heeftBestuursperiode ?bestuursperiode.
+
+        # Get fractie of active last modified mandataris
+        ?mandatarisOfPerson org:hasMembership ?member.
+        ?member org:organisation ?fractie.
+
+      OPTIONAL {
+        ?mandatarisOfPerson dct:modified ?lastModified.
+        ?mandatarisOfPerson mandaat:einde ?endDate.
+      }
+      FILTER ( 
+          ?mandatarisStatus != ${escapedBeeindigdState} &&
+          ?safeLastModified <= ?safeEnd
+        )
+      BIND(IF(BOUND(?lastModified), ?lastModified,  ${datetimeNow}) as ?safeLastModified)
+      BIND(IF(BOUND(?endDate), ?endDate,  ${datetimeNow}) as ?safeEnd)
+    }
+  `;
+  const sparqlResult = await query(getQuery);
+
+  return findFirstSparqlResult(sparqlResult);
+}
 
 export const findGraphAndMandates = async (row: CSVRow) => {
   const mandates = await findMandatesByName(row);
