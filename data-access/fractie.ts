@@ -38,7 +38,7 @@ async function forBestuursperiode(
   return getSparqlResults(sparqlResult);
 }
 
-async function addFractieOnPerson(personUri: string, fractieUri: string) {
+async function addFractieOnPerson(personId: string, fractieUri: string) {
   const escapedFractie = sparqlEscapeUri(fractieUri);
   const insertQuery = `
     PREFIX person: <http://www.w3.org/ns/person#>
@@ -46,12 +46,13 @@ async function addFractieOnPerson(personUri: string, fractieUri: string) {
 
     INSERT {
       GRAPH ?graph{
-        ${sparqlEscapeUri(personUri)} extlmb:currentFracties ${escapedFractie} .
+        ?persoon extlmb:currentFracties ${escapedFractie} .
       }
     }
     WHERE {
       GRAPH ?graph{
-        ${sparqlEscapeUri(personUri)} a person:Person.
+        ?persoon a person:Person;
+          mu:uuid ${sparqlEscapeString(personId)}.
       }
       FILTER NOT EXISTS {
         ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>

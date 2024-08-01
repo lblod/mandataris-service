@@ -25,6 +25,7 @@ import { TERM_MANDATARIS_TYPE } from './mandatees-decisions';
 export const mandataris = {
   isValidId,
   findCurrentFractieForPerson,
+  getPersonWithBestuursperiode,
 };
 
 async function isValidId(id: string): Promise<boolean> {
@@ -486,4 +487,43 @@ export async function updatePublicationStatusOfMandataris(
       `|> Could not update mandataris: ${mandataris.value} status to ${status}`,
     );
   }
+}
+
+async function getPersonWithBestuursperiode(
+  mandatarisId: string,
+): Promise<{ persoonId: string; bestuursperiodeId: string }> {
+  const getQuery = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+
+    SELECT DISTINCT ?persoonId ?bestuursperiodeId
+    WHERE {
+      GRAPH ?graph {
+        ?mandataris a mandaat:Mandataris;
+          mu:uuid ${sparqlEscapeString(mandatarisId)};
+          mandaat:isBestuurlijkeAliasVan ?persoon;
+          org:holds ?mandaat.
+        
+        ?persoon mu:uuid ?persoonId.
+        ?mandaat ^org:hasPost ?bestuursorgaan.
+        ?bestuursorgaan ext:heeftBestuursperiode ?bestuursperiode.
+      }
+
+      ?bestuursperiode mu:uuid ?bestuursperiodeId.
+
+      FILTER NOT EXISTS {
+        ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+      }
+    }
+  `;
+
+  const sparqlResult = await query(getQuery);
+  const first = findFirstSparqlResult(sparqlResult);
+
+  return {
+    persoonId: first?.persoonId.value as string,
+    bestuursperiodeId: first?.bestuursperiodeId.value as string,
+  };
 }

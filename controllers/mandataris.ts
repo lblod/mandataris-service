@@ -1,6 +1,7 @@
 import { fractie } from '../data-access/fractie';
 import { mandataris } from '../data-access/mandataris';
 import { persoon } from '../data-access/persoon';
+
 import { STATUS_CODE } from '../util/constants';
 import { HttpError } from '../util/http-error';
 
@@ -22,9 +23,12 @@ async function updateCurrentFractie(mandatarisId: string): Promise<void> {
     return;
   }
 
-  // Parameter of method should actually be a bestuursperiodeId or uri not a mandatarisId
-  const fractieInBestuursperiode =
-    await persoon.findFractieForBestuursperiode(mandatarisId);
+  const personAndperiodIds =
+    await mandataris.getPersonWithBestuursperiode(mandatarisId);
+  const fractieInBestuursperiode = await persoon.getFractie(
+    personAndperiodIds.persoonId,
+    personAndperiodIds.bestuursperiodeId,
+  );
   if (fractieInBestuursperiode?.fractie) {
     await persoon.removeFractieFromCurrent(
       current.persoon.value,
@@ -33,7 +37,7 @@ async function updateCurrentFractie(mandatarisId: string): Promise<void> {
   }
 
   await fractie.addFractieOnPerson(
-    current.persoon.value,
+    personAndperiodIds.persoonId,
     current.fractie.value,
   );
 }

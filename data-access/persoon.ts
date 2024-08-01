@@ -15,7 +15,6 @@ import { getIdentifierFromPersonUri } from '../util/find-uuid-in-uri';
 export const persoon = {
   isValidId,
   getFractie,
-  findFractieForBestuursperiode,
   removeFractieFromCurrent,
 };
 
@@ -258,40 +257,6 @@ async function getFractie(
         ?fractie org:memberOf ?bestuursorgaan. 
       }
       ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)}
-        
-      FILTER NOT EXISTS {
-        ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-      }
-    }
-  `;
-
-  const sparqlResult = await query(getQuery);
-
-  return findFirstSparqlResult(sparqlResult);
-}
-
-async function findFractieForBestuursperiode(
-  mandatarisId: string,
-): Promise<TermProperty | null> {
-  const getQuery = `
-    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-    PREFIX org: <http://www.w3.org/ns/org#>
-
-    SELECT DISTINCT ?fractie
-    WHERE {
-      GRAPH ?graph {
-        ?refMandataris a mandaat:Mandataris;
-          mu:uuid ${sparqlEscapeString(mandatarisId)};
-          mandaat:isBestuurlijkeAliasVan ?persoon;
-          org:holds ?mandaat.
-
-          ?persoon extlmb:currentFracties ?fractie.
-
-          ?mandaat ^org:hasPost ?bestuursorgaan.
-          ?fractie org:memberOf ?bestuursorgaan. 
-      }
         
       FILTER NOT EXISTS {
         ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
