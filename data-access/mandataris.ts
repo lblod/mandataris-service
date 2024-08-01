@@ -38,7 +38,7 @@ async function isValidId(id: string): Promise<boolean> {
         mu:uuid ${sparqlEscapeString(id)}.
     }
   `;
-  const sparqlResult = await query(askQuery);
+  const sparqlResult = await querySudo(askQuery);
 
   return getBooleanSparqlResult(sparqlResult);
 }
@@ -58,7 +58,7 @@ async function findCurrentFractieForPerson(
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
 
-    SELECT DISTINCT ?fractie ?persoon
+    SELECT DISTINCT ?fractie
     WHERE {
         ?mandataris a mandaat:Mandataris;
           mu:uuid ${sparqlEscapeString(mandatarisId)};
@@ -93,7 +93,7 @@ async function findCurrentFractieForPerson(
       BIND(IF(BOUND(?endDate), ?endDate,  ${datetimeNow}) as ?safeEnd)
     }
   `;
-  const sparqlResult = await query(getQuery);
+  const sparqlResult = await querySudo(getQuery);
 
   return findFirstSparqlResult(sparqlResult);
 }
@@ -519,7 +519,7 @@ async function getPersonWithBestuursperiode(
     }
   `;
 
-  const sparqlResult = await query(getQuery);
+  const sparqlResult = await querySudo(getQuery);
   const first = findFirstSparqlResult(sparqlResult);
 
   return {

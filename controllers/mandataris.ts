@@ -18,8 +18,9 @@ async function updateCurrentFractie(mandatarisId: string): Promise<void> {
     );
   }
 
-  const current = await mandataris.findCurrentFractieForPerson(mandatarisId);
-  if (!current) {
+  const currentFractie =
+    await mandataris.findCurrentFractieForPerson(mandatarisId);
+  if (!currentFractie) {
     return;
   }
 
@@ -31,13 +32,13 @@ async function updateCurrentFractie(mandatarisId: string): Promise<void> {
   );
   if (fractieInBestuursperiode?.fractie) {
     await persoon.removeFractieFromCurrent(
-      current.persoon.value,
+      personAndperiodIds.persoonId,
       fractieInBestuursperiode.fractie.value,
     );
   }
 
   await fractie.addFractieOnPerson(
     personAndperiodIds.persoonId,
-    current.fractie.value,
+    currentFractie.fractie.value,
   );
 }

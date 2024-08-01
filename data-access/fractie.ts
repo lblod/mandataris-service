@@ -1,5 +1,5 @@
-import { query, sparqlEscapeString, sparqlEscapeUri } from 'mu';
-import { updateSudo } from '@lblod/mu-auth-sudo';
+import { sparqlEscapeString, sparqlEscapeUri } from 'mu';
+import { updateSudo, querySudo } from '@lblod/mu-auth-sudo';
 
 import { getSparqlResults } from '../util/sparql-result';
 import { TermProperty } from '../types';
@@ -33,16 +33,20 @@ async function forBestuursperiode(
     }
   `;
 
-  const sparqlResult = await query(getQuery);
+  const sparqlResult = await querySudo(getQuery);
 
   return getSparqlResults(sparqlResult);
 }
 
-async function addFractieOnPerson(personId: string, fractieUri: string) {
+async function addFractieOnPerson(
+  personId: string,
+  fractieUri: string,
+): Promise<void> {
   const escapedFractie = sparqlEscapeUri(fractieUri);
   const insertQuery = `
     PREFIX person: <http://www.w3.org/ns/person#>
     PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
     INSERT {
       GRAPH ?graph{
@@ -50,7 +54,7 @@ async function addFractieOnPerson(personId: string, fractieUri: string) {
       }
     }
     WHERE {
-      GRAPH ?graph{
+      GRAPH ?graph {
         ?persoon a person:Person;
           mu:uuid ${sparqlEscapeString(personId)}.
       }

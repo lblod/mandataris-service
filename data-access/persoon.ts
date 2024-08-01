@@ -28,7 +28,7 @@ async function isValidId(id: string): Promise<boolean> {
         mu:uuid ${sparqlEscapeString(id)}.
     }
   `;
-  const sparqlResult = await query(askQuery);
+  const sparqlResult = await querySudo(askQuery);
 
   return getBooleanSparqlResult(sparqlResult);
 }
@@ -256,7 +256,7 @@ async function getFractie(
         ?bestuursorgaan ext:heeftBestuursperiode ?bestuursperiode.
         ?fractie org:memberOf ?bestuursorgaan. 
       }
-      ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)}
+      ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
         
       FILTER NOT EXISTS {
         ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
@@ -264,28 +264,29 @@ async function getFractie(
     }
   `;
 
-  const sparqlResult = await query(getQuery);
+  const sparqlResult = await querySudo(getQuery);
 
   return findFirstSparqlResult(sparqlResult);
 }
 
 async function removeFractieFromCurrent(
-  persoonUri: string,
+  persoonId: string,
   fractieUris: string,
 ): Promise<void> {
-  const person = sparqlEscapeUri(persoonUri);
   const deleteQuery = `
     PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
     PREFIX person: <http://www.w3.org/ns/person#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
     DELETE {
       GRAPH ?graph {
-        ${person} extlmb:currentFracties ${sparqlEscapeUri(fractieUris)}.
+        ?persoon extlmb:currentFracties ${sparqlEscapeUri(fractieUris)}.
       }
     }
     WHERE {
       GRAPH ?graph {
-        ${person} a person:Person.
+        ?persoon a person:Person;
+          mu:uuid: ${sparqlEscapeString(persoonId)}.
       }
     }
   `;
