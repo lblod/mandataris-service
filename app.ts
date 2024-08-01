@@ -6,6 +6,7 @@ import bodyParser from 'body-parser';
 import { deltaRouter } from './routes/delta';
 import { mandatarissenRouter } from './routes/mandatarissen';
 import { fractiesRouter } from './routes/fractie';
+import { personenRouter } from './routes/persoon';
 import { burgemeesterRouter } from './routes/burgemeester-benoeming';
 import { installatievergaderingRouter } from './routes/intallatievergadering';
 
@@ -27,6 +28,7 @@ app.get('/', async (_req, res) => {
 app.use('/delta', deltaRouter);
 app.use('/mandatarissen', mandatarissenRouter);
 app.use('/fracties', fractiesRouter);
+app.use('/personen', personenRouter);
 app.use('/burgemeester-benoeming', burgemeesterRouter);
 app.use('/installatievergadering-api', installatievergaderingRouter);
 

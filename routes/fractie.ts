@@ -39,7 +39,7 @@ fractiesRouter.put(
         error.message ??
         `Something went wrong while updating the current fractie, starting from mandataris with id: ${id}`;
       const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
-      return res.status(statusCode).send({ message });
+      return res.status(statusCode).send({ message: message });
     }
   },
 );
