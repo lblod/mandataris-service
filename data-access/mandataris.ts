@@ -72,6 +72,7 @@ async function findCurrentFractieForPerson(
         ?mandatarisOfPerson a mandaat:Mandataris;
           mandaat:isBestuurlijkeAliasVan ?persoon;
           org:holds ?mandaatOfPersonMandataris;
+          mandaat:start ?mandatarisStart;
           mandaat:status ?mandatarisStatus.
         
         ?mandaatOfPersonMandataris ^org:hasPost ?bestuursorgaanOfPersonMandataris.
@@ -81,17 +82,8 @@ async function findCurrentFractieForPerson(
         ?mandatarisOfPerson org:hasMembership ?member.
         ?member org:organisation ?fractie.
 
-      OPTIONAL {
-        ?mandatarisOfPerson dct:modified ?lastModified.
-        ?mandatarisOfPerson mandaat:einde ?endDate.
-      }
-      FILTER ( 
-          ?mandatarisStatus != ${escapedBeeindigdState} &&
-          ?safeLastModified <= ?safeEnd
-        )
-      BIND(IF(BOUND(?lastModified), ?lastModified,  ${datetimeNow}) as ?safeLastModified)
-      BIND(IF(BOUND(?endDate), ?endDate,  ${datetimeNow}) as ?safeEnd)
-    }
+      FILTER ( ?mandatarisStatus != ${escapedBeeindigdState})
+    } ORDER BY DESC ( ?mandatarisStart ) LIMIT 1
   `;
   const sparqlResult = await querySudo(getQuery);
 
