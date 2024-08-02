@@ -7,6 +7,7 @@ import { TERM_STAGING_GRAPH } from './mandatees-decisions';
 import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
+  getSparqlResults,
 } from '../util/sparql-result';
 import { getIdentifierFromPersonUri } from '../util/find-uuid-in-uri';
 
@@ -15,6 +16,7 @@ import { getIdentifierFromPersonUri } from '../util/find-uuid-in-uri';
 export const persoon = {
   isValidId,
   getFractie,
+  getMandatarisFracties,
   removeFractieFromCurrent,
 };
 
@@ -267,6 +269,42 @@ async function getFractie(
   const sparqlResult = await querySudo(getQuery);
 
   return findFirstSparqlResult(sparqlResult);
+}
+
+async function getMandatarisFracties(
+  id: string,
+  bestuursperiodeId: string,
+): Promise<Array<TermProperty>> {
+  const getAllQuery = `
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+    SELECT DISTINCT ?fractieId
+    WHERE {
+      GRAPH ?persoonGraph {
+        ?mandataris a mandaat:Mandataris;
+          mandaat:isBestuurlijkeAliasVan ?person;
+          org:hasMembership ?member.
+        ?person mu:uuid ${sparqlEscapeString(id)}.
+        ?member org:organisation ?fractie.
+        ?bestuursorgaan a besluit:Bestuursorgaan;
+          ext:heeftBestuursperiode ?bestuursperiode.
+        ?fractie org:memberOf ?bestuursorgaan;
+          mu:uuid ?fractieId.            
+      }
+      ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
+
+      FILTER NOT EXISTS {
+        ?persoonGraph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+      }
+    }
+  `;
+  const results = await query(getAllQuery);
+
+  return getSparqlResults(results);
 }
 
 async function removeFractieFromCurrent(
