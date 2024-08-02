@@ -328,6 +328,7 @@ export async function copyFractieOfMandataris(mandatarisId, graph) {
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX dct: <http://purl.org/dc/terms/>
 
     INSERT {
       GRAPH ${sparqlEscapeUri(graph)} {
@@ -354,7 +355,7 @@ export async function copyFractieOfMandataris(mandatarisId, graph) {
         ?linkedBestuursorgaan besluit:bestuurt ?linkedBestuurseenheid .
       }
 
-      FILTER (?p NOT IN (mu:uuid, org:memberOf, org:linkedTo))
+      FILTER (?p NOT IN (mu:uuid, org:memberOf, org:linkedTo, dct:modified))
 
       FILTER NOT EXISTS {
         ?origin a <http://mu.semte.ch/vocabularies/ext/FormHistory>
@@ -384,6 +385,7 @@ export async function copyMandataris(mandatarisId, graph, valueBindings) {
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+    PREFIX dct: <http://purl.org/dc/terms/>
     
     INSERT {
       GRAPH ${sparqlEscapeUri(graph)} {
@@ -427,8 +429,8 @@ export async function copyMandataris(mandatarisId, graph, valueBindings) {
         ${valueBindings}
       }
 
-      FILTER (?mandatarisp NOT IN (mu:uuid, org:holds, mandaat:rangorde, ext:linkToBesluit, mandaat:isTijdelijkVervangenDoor, mandaat:beleidsdomein, org:hasMembership, extlmb:hasPublicationStatus))
-      FILTER (?memberp NOT IN (mu:uuid, org:organisation))
+      FILTER (?mandatarisp NOT IN (mu:uuid, org:holds, mandaat:rangorde, ext:linkToBesluit, mandaat:isTijdelijkVervangenDoor, mandaat:beleidsdomein, org:hasMembership, extlmb:hasPublicationStatus, dct:modified))
+      FILTER (?memberp NOT IN (mu:uuid, org:organisation, dct:modified))
     }
     `;
 
