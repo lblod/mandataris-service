@@ -1,5 +1,5 @@
-import { sparqlEscapeString, sparqlEscapeUri } from 'mu';
-import { updateSudo, querySudo } from '@lblod/mu-auth-sudo';
+import { sparqlEscapeString, sparqlEscapeUri, query } from 'mu';
+import { updateSudo } from '@lblod/mu-auth-sudo';
 
 import { getSparqlResults } from '../util/sparql-result';
 import { TermProperty } from '../types';
@@ -24,16 +24,21 @@ async function forBestuursperiode(
       ?bestuursperiode a ext:Bestuursperiode;
         mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
 
-      ?bestuursorgaan a besluit:Bestuursorgaan;
-        ext:heeftBestuursperiode ?bestuursperiode.
-
-      ?fractie a mandaat:Fractie;
-        mu:uuid ?fractieId;
-        org:memberOf ?bestuursorgaan.
+      GRAPH ?graph {
+        ?bestuursorgaan a besluit:Bestuursorgaan;
+          ext:heeftBestuursperiode ?bestuursperiode.
+        ?fractie a mandaat:Fractie;
+          mu:uuid ?fractieId;
+          org:memberOf ?bestuursorgaan.
+      }
+      
+      FILTER NOT EXISTS {
+        ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+      }
     }
   `;
 
-  const sparqlResult = await querySudo(getQuery);
+  const sparqlResult = await query(getQuery);
 
   return getSparqlResults(sparqlResult);
 }
