@@ -1,13 +1,37 @@
 import { query, update, sparqlEscapeString, sparqlEscapeUri } from 'mu';
 import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
 import { v4 as uuidv4 } from 'uuid';
-import { Term } from '../types';
+import { Term, TermProperty } from '../types';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import { TERM_STAGING_GRAPH } from './mandatees-decisions';
-import { getBooleanSparqlResult } from '../util/sparql-result';
+import {
+  findFirstSparqlResult,
+  getBooleanSparqlResult,
+} from '../util/sparql-result';
 import { getIdentifierFromPersonUri } from '../util/find-uuid-in-uri';
 
 // note since we use the regular query, not sudo queries, be sure to log in when using this endpoint. E.g. use the vendor login
+
+export const persoon = {
+  isValidId,
+  getFractie,
+  removeFractieFromCurrent,
+};
+
+async function isValidId(id: string): Promise<boolean> {
+  const askQuery = `
+    PREFIX person: <http://www.w3.org/ns/person#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+    ASK {
+      ?persoon a person:Person;
+        mu:uuid ${sparqlEscapeString(id)}.
+    }
+  `;
+  const sparqlResult = await querySudo(askQuery);
+
+  return getBooleanSparqlResult(sparqlResult);
+}
 
 export const findPerson = async (rrn: string) => {
   const q = `
@@ -203,4 +227,69 @@ export async function copyPerson(subject: Term, graph: Term) {
   } catch (error) {
     throw Error(`Could not copy person with uri: ${escaped.person}`);
   }
+}
+
+async function getFractie(
+  id: string,
+  bestuursperiodeId: string,
+): Promise<TermProperty | null> {
+  const getQuery = `
+    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX person: <http://www.w3.org/ns/person#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+
+    SELECT DISTINCT ?fractie
+    WHERE {
+      GRAPH ?graph {
+        ?persoon a person:Person;
+          mu:uuid ${sparqlEscapeString(id)};
+          extlmb:currentFracties ?fractie.
+
+        ?mandataris a mandaat:Mandataris;
+          mandaat:isBestuurlijkeAliasVan ?persoon;
+          org:holds ?mandaat.
+
+        ?mandaat ^org:hasPost ?bestuursorgaan.
+        ?bestuursorgaan ext:heeftBestuursperiode ?bestuursperiode.
+        ?fractie org:memberOf ?bestuursorgaan. 
+      }
+      ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
+        
+      FILTER NOT EXISTS {
+        ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+      }
+    }
+  `;
+
+  const sparqlResult = await querySudo(getQuery);
+
+  return findFirstSparqlResult(sparqlResult);
+}
+
+async function removeFractieFromCurrent(
+  persoonId: string,
+  fractieUris: string,
+): Promise<void> {
+  const deleteQuery = `
+    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
+    PREFIX person: <http://www.w3.org/ns/person#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+    DELETE {
+      GRAPH ?graph {
+        ?persoon extlmb:currentFracties ${sparqlEscapeUri(fractieUris)}.
+      }
+    }
+    WHERE {
+      GRAPH ?graph {
+        ?persoon a person:Person;
+          mu:uuid ${sparqlEscapeString(persoonId)}.
+      }
+    }
+  `;
+
+  await updateSudo(deleteQuery);
 }
