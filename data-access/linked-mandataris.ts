@@ -228,6 +228,7 @@ export async function getFractieOfMandatarisInGraph(mandatarisId, graph) {
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX regorg: <https://www.w3.org/ns/regorg#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     SELECT ?doelFractie WHERE {
       GRAPH ?origin {
@@ -235,7 +236,8 @@ export async function getFractieOfMandatarisInGraph(mandatarisId, graph) {
           mu:uuid ${sparqlEscapeString(mandatarisId)} ;
           org:hasMembership ?lidmaatschap .
         ?lidmaatschap org:organisation ?fractie .
-        ?fractie regorg:legalName ?fractieNaam .
+        ?fractie regorg:legalName ?fractieNaam ;
+          ext:isFractieType <http://data.vlaanderen.be/id/concept/Fractietype/Samenwerkingsverband>
       }
 
       GRAPH ${sparqlEscapeUri(graph)} {
