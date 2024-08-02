@@ -296,7 +296,7 @@ export async function fractieOfMandatarisExistsInGraph(mandatarisId, graph) {
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX org: <http://www.w3.org/ns/org#>
-    PREFIX regorg: <http://www.w3.org/ns/regorg#>
+    PREFIX regorg: <https://www.w3.org/ns/regorg#>
 
     ASK {
       GRAPH ?origin {
@@ -326,7 +326,6 @@ export async function copyFractieOfMandataris(mandatarisId, graph) {
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#> 
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX org: <http://www.w3.org/ns/org#>
-    PREFIX regorg: <http://www.w3.org/ns/regorg#>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
@@ -380,7 +379,7 @@ export async function copyMandataris(mandatarisId, graph, valueBindings) {
   const q = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
-    PREFIX regorg: <http://www.w3.org/ns/regorg#>
+    PREFIX regorg: <https://www.w3.org/ns/regorg#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
