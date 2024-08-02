@@ -10,28 +10,22 @@ export const checkLinkedMandataris = async (req) => {
     throw new HttpError('No mandataris id provided', 400);
   }
 
-  const valueBindingsArray: string[] = [];
-  linkedMandaten.forEach((value, key) => {
-    valueBindingsArray.push(
-      `(${sparqlEscapeUri(value)} ${sparqlEscapeUri(key)})`,
-    );
-    valueBindingsArray.push(
-      `(${sparqlEscapeUri(key)} ${sparqlEscapeUri(value)})`,
-    );
-  });
-  const valueBindings = valueBindingsArray.join('\n');
+  const valueBindings = getLinkedMandaten();
+
   const linkedMandateExists = await checkLinkedMandate(
     mandatarisId,
     valueBindings,
   );
-  console.log(linkedMandateExists);
+
   if (!linkedMandateExists) {
     return null;
   }
+
   const linkedMandatarisExists = await checkDuplicateMandataris(
     mandatarisId,
     valueBindings,
   );
+
   return {
     ...linkedMandateExists,
     hasDouble: linkedMandatarisExists,
@@ -151,18 +145,7 @@ export const createLinkedMandataris = async (req) => {
   }
 
   // Add duplicate mandatee
-  const valueBindingsArray: string[] = [];
-  linkedMandaten.forEach((value, key) => {
-    valueBindingsArray.push(
-      `(${sparqlEscapeUri(value)} ${sparqlEscapeUri(key)})`,
-    );
-    valueBindingsArray.push(
-      `(${sparqlEscapeUri(key)} ${sparqlEscapeUri(value)})`,
-    );
-  });
-
-  const valueBindings = valueBindingsArray.join('\n');
-  copyMandataris(mandatarisId, destinationGraph, valueBindings);
+  copyMandataris(mandatarisId, destinationGraph, getLinkedMandaten());
 };
 
 export async function getDestinationGraphLinkedMandataris(mandatarisId) {
@@ -442,6 +425,19 @@ export async function copyMandataris(mandatarisId, graph, valueBindings) {
       500,
     );
   }
+}
+
+function getLinkedMandaten() {
+  const linkedMandatenArray: string[] = [];
+  linkedMandaten.forEach((value, key) => {
+    linkedMandatenArray.push(
+      `(${sparqlEscapeUri(value)} ${sparqlEscapeUri(key)})`,
+    );
+    linkedMandatenArray.push(
+      `(${sparqlEscapeUri(key)} ${sparqlEscapeUri(value)})`,
+    );
+  });
+  return linkedMandatenArray.join('\n');
 }
 
 const linkedMandaten = new Map([
