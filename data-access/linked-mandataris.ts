@@ -17,7 +17,7 @@ export async function canAccessMandataris(id: string) {
   return result.results.bindings.length > 0;
 }
 
-export async function checkLinkedMandate(mandatarisId, valueBindings) {
+export async function findLinkedMandate(mandatarisId, valueBindings) {
   const q = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
