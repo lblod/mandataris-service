@@ -7,7 +7,7 @@ import {
   copyFractieOfMandataris,
   copyMandataris,
   copyPersonOfMandataris,
-  fractieOfMandatarisExistsInGraph,
+  getFractieOfMandatarisInGraph,
   getDestinationGraphLinkedMandataris,
   personOfMandatarisExistsInGraph,
 } from '../data-access/linked-mandataris';
@@ -75,18 +75,18 @@ export const createLinkedMandataris = async (req) => {
   }
 
   // Check if fractie exists
-  const fractieExists = await fractieOfMandatarisExistsInGraph(
+  let fractie = await getFractieOfMandatarisInGraph(
     mandatarisId,
     destinationGraph,
   );
 
   // Add fractie if it does not exist
-  if (!fractieExists) {
-    await copyFractieOfMandataris(mandatarisId, destinationGraph);
+  if (!fractie) {
+    fractie = await copyFractieOfMandataris(mandatarisId, destinationGraph);
   }
 
   // Add duplicate mandatee
-  copyMandataris(mandatarisId, destinationGraph, getLinkedMandaten());
+  copyMandataris(mandatarisId, fractie, destinationGraph, getLinkedMandaten());
 };
 
 function getLinkedMandaten() {
