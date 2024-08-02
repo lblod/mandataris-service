@@ -3,7 +3,7 @@ import { sparqlEscapeUri } from 'mu';
 import {
   canAccessMandataris,
   checkDuplicateMandataris,
-  checkLinkedMandate,
+  findLinkedMandate,
   copyFractieOfMandataris,
   copyMandataris,
   copyPersonOfMandataris,
@@ -25,7 +25,7 @@ export const checkLinkedMandataris = async (req) => {
 
   const valueBindings = getLinkedMandaten();
 
-  const linkedMandateExists = await checkLinkedMandate(
+  const linkedMandateExists = await findLinkedMandate(
     mandatarisId,
     valueBindings,
   );
