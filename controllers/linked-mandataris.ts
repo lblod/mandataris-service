@@ -343,7 +343,7 @@ export async function copyFractieOfMandataris(mandatarisId, graph) {
           mu:uuid ${sparqlEscapeString(mandatarisId)} ;
           org:hasMembership ?lidmaatschap .
         ?lidmaatschap org:organisation ?fractie .
-        ?fractie ?p ?o.
+        ?fractie ?p ?o ;
           org:memberOf ?currentBestuursorgaanIT .
         ?currentBestuursorgaanIT ext:heeftBestuursperiode ?bestuursperiode .
       }
@@ -410,8 +410,8 @@ export async function copyMandataris(mandatarisId, graph, valueBindings) {
           ^org:hasPost ?currentBestuursOrgaanIT .
         ?currentBestuursOrgaanIT ext:heeftBestuursperiode ?bestuursperiode .
         ?membership ?memberp ?membero ;
-          org:organistion ?currentFractie .
-        ?fractie regorg:legalName ?fractieName .
+          org:organisation ?currentFractie .
+        ?currentFractie regorg:legalName ?fractieName .
       }
 
       GRAPH ${sparqlEscapeUri(graph)} {
