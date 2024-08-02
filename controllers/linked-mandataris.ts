@@ -104,7 +104,6 @@ export async function checkDuplicateMandataris(mandatarisId, valueBindings) {
         ?currentBestuursOrgaanIT ext:heeftBestuursperiode ?bestuursperiode ;
           mandaat:isTijdspecialisatieVan ?currentBestuursorgaan.
         ?currentBestuursorgaan besluit:bestuurt ?currentBestuurseenheid .
-        ?currentBestuurseenheid besluit:werkingsgebied ?werkingsgebied .
       }
       GRAPH ?h {
         ?linkedMandataris a mandaat:Mandataris ;
@@ -116,6 +115,9 @@ export async function checkDuplicateMandataris(mandatarisId, valueBindings) {
         ?linkedBestuursOrgaanIT ext:heeftBestuursperiode ?bestuursperiode ;
           mandaat:isTijdspecialisatieVan ?linkedBestuursorgaan.
         ?linkedBestuursorgaan besluit:bestuurt ?linkedBestuurseenheid .
+      }
+      GRAPH ?public {
+        ?currentBestuurseenheid besluit:werkingsgebied ?werkingsgebied .
         ?linkedBestuurseenheid besluit:werkingsgebied ?werkingsgebied .
       }
       VALUES (?currentBestuursfunctie ?linkedBestuursfunctie) {
