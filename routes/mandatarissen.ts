@@ -31,26 +31,32 @@ mandatarissenRouter.post(
 mandatarissenRouter.get(
   '/:id/check-possible-double',
   async (req: Request, res: Response) => {
-    // Success
-    const result = await checkLinkedMandataris(req);
-    return res.status(200).send(result);
-    // Error
-    return res.status(500).send({
-      message: `Something went wrong while checking for possible duplicate mandates for: ${mandatarisId}. Please try again later.`,
-    });
+    try {
+      const result = await checkLinkedMandataris(req);
+      return res.status(200).send(result);
+    } catch (error) {
+      const message =
+        error.message ??
+        `Something went wrong while checking for possible duplicate mandate for: ${req.params.id}. Please try again later.`;
+      const statusCode = error.status ?? 500;
+      return res.status(statusCode).send({ message });
+    }
   },
 );
 
 mandatarissenRouter.post(
   '/:id/create-linked-mandataris',
   async (req: Request, res: Response) => {
-    await createLinkedMandataris(req);
-    // Success
-    return res.status(201).send({ status: 'ok' });
-    // Error
-    return res.status(500).send({
-      message: `Something went wrong while creating duplicate mandate for: ${mandatarisId}. Please try again later.`,
-    });
+    try {
+      await createLinkedMandataris(req);
+      return res.status(201).send({ status: 'ok' });
+    } catch (error) {
+      const message =
+        error.message ??
+        `Something went wrong while creating duplicate mandate for: ${req.params.id}. Please try again later.`;
+      const statusCode = error.status ?? 500;
+      return res.status(statusCode).send({ message });
+    }
   },
 );
 
