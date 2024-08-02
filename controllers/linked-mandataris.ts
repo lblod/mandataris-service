@@ -4,10 +4,28 @@ import { updateSudo, querySudo } from '@lblod/mu-auth-sudo';
 import { getBooleanSparqlResult } from '../util/sparql-result';
 import { v4 as uuidv4 } from 'uuid';
 
+async function canAccessMandataris(id: string) {
+  const sparql = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+    SELECT * WHERE {
+      ?mandataris a mandaat:Mandataris ;
+        mu:uuid ${sparqlEscapeString(id)} .
+    } LIMIT 1`;
+  const result = await query(sparql);
+  return result.results.bindings.length > 0;
+}
+
 export const checkLinkedMandataris = async (req) => {
   const mandatarisId = req.params.id;
   if (!mandatarisId) {
     throw new HttpError('No mandataris id provided', 400);
+  }
+
+  const hasAccess = await canAccessMandataris(mandatarisId);
+  if (!hasAccess) {
+    throw new HttpError('No mandataris with given id found', 404);
   }
 
   const valueBindings = getLinkedMandaten();
@@ -113,6 +131,11 @@ export const createLinkedMandataris = async (req) => {
   const mandatarisId = req.params.id;
   if (!mandatarisId) {
     throw new HttpError('No mandataris id provided', 400);
+  }
+
+  const hasAccess = await canAccessMandataris(mandatarisId);
+  if (!hasAccess) {
+    throw new HttpError('No mandataris with given id found', 404);
   }
 
   // Get destination graph
