@@ -286,7 +286,7 @@ async function removeFractieFromCurrent(
     WHERE {
       GRAPH ?graph {
         ?persoon a person:Person;
-          mu:uuid: ${sparqlEscapeString(persoonId)}.
+          mu:uuid ${sparqlEscapeString(persoonId)}.
       }
     }
   `;

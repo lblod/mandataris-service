@@ -47,7 +47,6 @@ async function findCurrentFractieForPerson(
   mandatarisId: string,
 ): Promise<TermProperty | null> {
   const escapedBeeindigdState = sparqlEscapeUri(MANDATARIS_STATUS.BEEINDIGD);
-  const datetimeNow = sparqlEscapeDateTime(new Date());
   const getQuery = `
     PREFIX person: <http://www.w3.org/ns/person#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
