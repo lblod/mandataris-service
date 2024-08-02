@@ -222,14 +222,14 @@ export async function copyPersonOfMandataris(mandatarisId, graph) {
   }
 }
 
-export async function fractieOfMandatarisExistsInGraph(mandatarisId, graph) {
+export async function getFractieOfMandatarisInGraph(mandatarisId, graph) {
   const q = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX regorg: <https://www.w3.org/ns/regorg#>
 
-    ASK {
+    SELECT ?doelFractie WHERE {
       GRAPH ?origin {
         ?currentMandataris a mandaat:Mandataris ;
           mu:uuid ${sparqlEscapeString(mandatarisId)} ;
@@ -242,11 +242,15 @@ export async function fractieOfMandatarisExistsInGraph(mandatarisId, graph) {
         ?doelFractie a mandaat:Fractie ;
           regorg:legalName ?fractieNaam .
       }
-    }
+    } 
+    LIMIT 1
   `;
 
   const result = await querySudo(q);
-  return getBooleanSparqlResult(result);
+  if (result.results.bindings.length == 0) {
+    return null;
+  }
+  return result.results.bindings[0].doelFractie.value;
 }
 
 export async function copyFractieOfMandataris(mandatarisId, graph) {
@@ -300,9 +304,15 @@ export async function copyFractieOfMandataris(mandatarisId, graph) {
       500,
     );
   }
+  return fractieUri;
 }
 
-export async function copyMandataris(mandatarisId, graph, valueBindings) {
+export async function copyMandataris(
+  mandatarisId,
+  fractie,
+  graph,
+  valueBindings,
+) {
   const newMandatarisUuid = uuidv4();
   const newMandatarisUri = `http://data.lblod.info/id/mandatarissen/${newMandatarisUuid}`;
   const membershipUuid = uuidv4();
@@ -327,7 +337,7 @@ export async function copyMandataris(mandatarisId, graph, valueBindings) {
           ?mandatarisp ?mandatariso .
         ${sparqlEscapeUri(membershipUri)} ?memberp ?membero ;
           mu:uuid ${sparqlEscapeString(membershipUuid)} ;
-          org:organisation ?linkedFractie .
+          org:organisation ${sparqlEscapeUri(fractie)} .
       }
     }
     WHERE {
@@ -341,9 +351,7 @@ export async function copyMandataris(mandatarisId, graph, valueBindings) {
           org:role ?currentBestuursfunctie ;
           ^org:hasPost ?currentBestuursOrgaanIT .
         ?currentBestuursOrgaanIT ext:heeftBestuursperiode ?bestuursperiode .
-        ?membership ?memberp ?membero ;
-          org:organisation ?currentFractie .
-        ?currentFractie regorg:legalName ?fractieName .
+        ?membership ?memberp ?membero .
       }
 
       GRAPH ${sparqlEscapeUri(graph)} {
@@ -351,8 +359,6 @@ export async function copyMandataris(mandatarisId, graph, valueBindings) {
           org:role ?linkedBestuursfunctie ;
           ^org:hasPost ?linkedBestuursOrgaanIT .
         ?linkedBestuursOrgaanIT ext:heeftBestuursperiode ?bestuursperiode .
-        ?linkedFractie a mandaat:Fractie ;
-          regorg:legalName ?fractieName .
       }
 
       VALUES (?currentBestuursfunctie ?linkedBestuursfunctie) {
