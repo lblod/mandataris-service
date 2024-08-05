@@ -5,6 +5,7 @@ import { HttpError } from '../util/http-error';
 
 export const fractieUsecase = {
   forBestuursperiode,
+  removeFractieWhenNoLidmaatschap,
 };
 
 async function forBestuursperiode(
@@ -25,4 +26,18 @@ async function forBestuursperiode(
   }
 
   return fractieResult.map((result) => result.fractieId?.value);
+}
+
+async function removeFractieWhenNoLidmaatschap(
+  bestuursperiodeId: string,
+): Promise<Array<string>> {
+  const isBestuursperiode = await bestuursperiode.isValidId(bestuursperiodeId);
+  if (!isBestuursperiode) {
+    throw new HttpError(
+      `Bestuursperiode with id ${bestuursperiodeId} not found.`,
+      STATUS_CODE.BAD_REQUEST,
+    );
+  }
+
+  return await fractie.removeFractieWhenNoLidmaatschap(bestuursperiodeId);
 }

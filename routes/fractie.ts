@@ -43,3 +43,22 @@ fractiesRouter.put(
     }
   },
 );
+
+fractiesRouter.delete(
+  '/cleanup/bestuursperiode/:bestuursperiodeId',
+  async (req: Request, res: Response) => {
+    const bestuursperiodeId = req.params.bestuursperiodeId;
+
+    try {
+      const fracties =
+        await fractieUsecase.removeFractieWhenNoLidmaatschap(bestuursperiodeId);
+      return res.status(STATUS_CODE.OK).send({ fracties });
+    } catch (error) {
+      const message =
+        error.message ??
+        `Something went wrong while cleaning up dangling fracties in bestuursperiode: ${bestuursperiodeId}`;
+      const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
+      return res.status(statusCode).send({ message: message });
+    }
+  },
+);
