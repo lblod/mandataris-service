@@ -38,7 +38,7 @@ async function isValidId(id: string): Promise<boolean> {
         mu:uuid ${sparqlEscapeString(id)}.
     }
   `;
-  const sparqlResult = await querySudo(askQuery);
+  const sparqlResult = await query(askQuery);
 
   return getBooleanSparqlResult(sparqlResult);
 }

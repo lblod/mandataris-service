@@ -1,5 +1,4 @@
-import { sparqlEscapeString } from 'mu';
-import { querySudo } from '@lblod/mu-auth-sudo';
+import { sparqlEscapeString, query } from 'mu';
 import { getBooleanSparqlResult } from '../util/sparql-result';
 
 export const bestuursperiode = {
@@ -16,7 +15,7 @@ async function isValidId(id: string): Promise<boolean> {
         mu:uuid ${sparqlEscapeString(id)}.
     }
   `;
-  const sparqlResult = await querySudo(askQuery);
+  const sparqlResult = await query(askQuery);
 
   return getBooleanSparqlResult(sparqlResult);
 }
