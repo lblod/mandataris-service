@@ -250,11 +250,6 @@ async function getFractie(
           mu:uuid ${sparqlEscapeString(id)};
           extlmb:currentFracties ?fractie.
 
-        ?mandataris a mandaat:Mandataris;
-          mandaat:isBestuurlijkeAliasVan ?persoon;
-          org:holds ?mandaat.
-
-        ?mandaat ^org:hasPost ?bestuursorgaan.
         ?bestuursorgaan ext:heeftBestuursperiode ?bestuursperiode.
         ?fractie org:memberOf ?bestuursorgaan. 
       }
