@@ -1,5 +1,4 @@
-import { sparqlEscapeString, sparqlEscapeUri, query } from 'mu';
-import { updateSudo, querySudo } from '@lblod/mu-auth-sudo';
+import { sparqlEscapeString, sparqlEscapeUri, query, update } from 'mu';
 
 import { getSparqlResults } from '../util/sparql-result';
 import { TermProperty } from '../types';
@@ -24,18 +23,11 @@ async function forBestuursperiode(
     WHERE {
       ?bestuursperiode a ext:Bestuursperiode;
         mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
-
-      GRAPH ?graph {
-        ?bestuursorgaan a besluit:Bestuursorgaan;
-          ext:heeftBestuursperiode ?bestuursperiode.
-        ?fractie a mandaat:Fractie;
-          mu:uuid ?fractieId;
-          org:memberOf ?bestuursorgaan.
-      }
-      
-      FILTER NOT EXISTS {
-        ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-      }
+      ?bestuursorgaan a besluit:Bestuursorgaan;
+        ext:heeftBestuursperiode ?bestuursperiode.
+      ?fractie a mandaat:Fractie;
+        mu:uuid ?fractieId;
+        org:memberOf ?bestuursorgaan.
     }
   `;
 
@@ -55,28 +47,21 @@ async function addFractieOnPerson(
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
     INSERT {
-      GRAPH ?graph{
-        ?persoon extlmb:currentFracties ${escapedFractie} .
-      }
+      ?persoon extlmb:currentFracties ${escapedFractie} .
     }
     WHERE {
-      GRAPH ?graph {
-        ?persoon a person:Person;
-          mu:uuid ${sparqlEscapeString(personId)}.
-      }
-      FILTER NOT EXISTS {
-        ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-      }
+      ?persoon a person:Person;
+        mu:uuid ${sparqlEscapeString(personId)}.
     }
   `;
 
-  await updateSudo(insertQuery);
+  await update(insertQuery);
 }
 
 async function removeFractieWhenNoLidmaatschap(
   bestuursperiodeId: string,
 ): Promise<Array<string>> {
-  const deleteQuery = `
+  const getFractiesQuery = `
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -89,21 +74,12 @@ async function removeFractieWhenNoLidmaatschap(
         mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
     ?bestuursorgaan a besluit:Bestuursorgaan;
       ext:heeftBestuursperiode ?bestuursperiode.
-      GRAPH ?graph {
-        ?fractie a mandaat:Fractie;
-          org:memberOf ?bestuursorgaan;
-          ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk>.
-      }
-      
-      FILTER NOT EXISTS {
-        ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory> 
-      }
-      FILTER NOT EXISTS {
-      ?something ?p ?fractie.
-      }
+    ?fractie a mandaat:Fractie;
+      org:memberOf ?bestuursorgaan;
+      ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk>.
     }
   `;
-  const sparqlResult = await querySudo(deleteQuery);
+  const sparqlResult = await query(getFractiesQuery);
   const results = getSparqlResults(sparqlResult);
   const fractieUris = results.map((f) => f.fractie?.value).filter((f) => f);
   const escaped = fractieUris.map((uri) => sparqlEscapeUri(uri)).join(' ');
@@ -112,19 +88,15 @@ async function removeFractieWhenNoLidmaatschap(
       PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
 
       DELETE {
-        GRAPH ?graph {
-          ?fractie ?p ?o.
-        }
+        ?fractie ?p ?o.
       }
       WHERE {
-        GRAPH ?graph {
-          VALUES ?fractie { ${escaped} }
-          ?fractie a mandaat:Fractie;
-            ?p  ?o.
-        }
+        VALUES ?fractie { ${escaped} }
+        ?fractie a mandaat:Fractie;
+          ?p  ?o.
       }
     `;
-    await updateSudo(deleteFractie);
+    await update(deleteFractie);
   }
 
   return fractieUris;

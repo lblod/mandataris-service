@@ -84,7 +84,7 @@ async function findCurrentFractieForPerson(
       FILTER ( ?mandatarisStatus != ${escapedBeeindigdState})
     } ORDER BY DESC ( ?mandatarisStart ) LIMIT 1
   `;
-  const sparqlResult = await querySudo(getQuery);
+  const sparqlResult = await query(getQuery);
 
   return findFirstSparqlResult(sparqlResult);
 }
@@ -491,26 +491,20 @@ async function getPersonWithBestuursperiode(
 
     SELECT DISTINCT ?persoonId ?bestuursperiodeId
     WHERE {
-      GRAPH ?graph {
-        ?mandataris a mandaat:Mandataris;
-          mu:uuid ${sparqlEscapeString(mandatarisId)};
-          mandaat:isBestuurlijkeAliasVan ?persoon;
-          org:holds ?mandaat.
-        
-        ?persoon mu:uuid ?persoonId.
-        ?mandaat ^org:hasPost ?bestuursorgaan.
-        ?bestuursorgaan ext:heeftBestuursperiode ?bestuursperiode.
-      }
+      ?mandataris a mandaat:Mandataris;
+        mu:uuid ${sparqlEscapeString(mandatarisId)};
+        mandaat:isBestuurlijkeAliasVan ?persoon;
+        org:holds ?mandaat.
+      
+      ?persoon mu:uuid ?persoonId.
+      ?mandaat ^org:hasPost ?bestuursorgaan.
+      ?bestuursorgaan ext:heeftBestuursperiode ?bestuursperiode.
 
       ?bestuursperiode mu:uuid ?bestuursperiodeId.
-
-      FILTER NOT EXISTS {
-        ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-      }
     }
   `;
 
-  const sparqlResult = await querySudo(getQuery);
+  const sparqlResult = await query(getQuery);
   const first = findFirstSparqlResult(sparqlResult);
 
   return {

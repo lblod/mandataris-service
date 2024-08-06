@@ -26,14 +26,14 @@ async function updateCurrentFractie(mandatarisId: string): Promise<void> {
 
   const personAndperiodIds =
     await mandataris.getPersonWithBestuursperiode(mandatarisId);
-  const fractieInBestuursperiode = await persoon.getFractie(
+  const existingFractieInBestuursperiode = await persoon.getFractie(
     personAndperiodIds.persoonId,
     personAndperiodIds.bestuursperiodeId,
   );
-  if (fractieInBestuursperiode?.fractie) {
+  if (existingFractieInBestuursperiode?.fractie) {
     await persoon.removeFractieFromCurrent(
       personAndperiodIds.persoonId,
-      fractieInBestuursperiode.fractie.value,
+      existingFractieInBestuursperiode.fractie.value,
     );
   }
 

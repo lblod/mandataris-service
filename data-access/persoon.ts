@@ -245,23 +245,16 @@ async function getFractie(
 
     SELECT DISTINCT ?fractie
     WHERE {
-      GRAPH ?graph {
-        ?persoon a person:Person;
-          mu:uuid ${sparqlEscapeString(id)};
-          extlmb:currentFracties ?fractie.
-
-        ?bestuursorgaan ext:heeftBestuursperiode ?bestuursperiode.
-        ?fractie org:memberOf ?bestuursorgaan. 
-      }
+      ?persoon a person:Person;
+        mu:uuid ${sparqlEscapeString(id)};
+        extlmb:currentFracties ?fractie.
+      ?bestuursorgaan ext:heeftBestuursperiode ?bestuursperiode.
+      ?fractie org:memberOf ?bestuursorgaan. 
       ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
-        
-      FILTER NOT EXISTS {
-        ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-      }
     }
   `;
 
-  const sparqlResult = await querySudo(getQuery);
+  const sparqlResult = await query(getQuery);
 
   return findFirstSparqlResult(sparqlResult);
 }
@@ -279,22 +272,16 @@ async function getMandatarisFracties(
 
     SELECT DISTINCT ?fractieId
     WHERE {
-      GRAPH ?persoonGraph {
-        ?mandataris a mandaat:Mandataris;
-          mandaat:isBestuurlijkeAliasVan ?person;
-          org:hasMembership ?member.
-        ?person mu:uuid ${sparqlEscapeString(id)}.
-        ?member org:organisation ?fractie.
-        ?bestuursorgaan a besluit:Bestuursorgaan;
-          ext:heeftBestuursperiode ?bestuursperiode.
-        ?fractie org:memberOf ?bestuursorgaan;
-          mu:uuid ?fractieId.            
-      }
+      ?mandataris a mandaat:Mandataris;
+        mandaat:isBestuurlijkeAliasVan ?person;
+        org:hasMembership ?member.
+      ?person mu:uuid ${sparqlEscapeString(id)}.
+      ?member org:organisation ?fractie.
+      ?bestuursorgaan a besluit:Bestuursorgaan;
+        ext:heeftBestuursperiode ?bestuursperiode.
+      ?fractie org:memberOf ?bestuursorgaan;
+        mu:uuid ?fractieId.            
       ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
-
-      FILTER NOT EXISTS {
-        ?persoonGraph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-      }
     }
   `;
   const results = await query(getAllQuery);
@@ -312,15 +299,11 @@ async function removeFractieFromCurrent(
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
     DELETE {
-      GRAPH ?graph {
-        ?persoon extlmb:currentFracties ${sparqlEscapeUri(fractieUris)}.
-      }
+      ?persoon extlmb:currentFracties ${sparqlEscapeUri(fractieUris)}.
     }
     WHERE {
-      GRAPH ?graph {
-        ?persoon a person:Person;
-          mu:uuid ${sparqlEscapeString(persoonId)}.
-      }
+      ?persoon a person:Person;
+        mu:uuid ${sparqlEscapeString(persoonId)}.
     }
   `;
 
