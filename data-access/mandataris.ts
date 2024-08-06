@@ -63,21 +63,19 @@ async function findCurrentFractieForPerson(
           mu:uuid ${sparqlEscapeString(mandatarisId)};
           mandaat:isBestuurlijkeAliasVan ?persoon;
           org:holds ?mandaat.
-        
         ?mandaat ^org:hasPost ?bestuursorgaan.
         ?bestuursorgaan ext:heeftBestuursperiode ?bestuursperiode.
       
-        # Get mandataris in besuursperiode for that person
+        # Get mandataris in bestuursperiode for that person
         ?mandatarisOfPerson a mandaat:Mandataris;
           mandaat:isBestuurlijkeAliasVan ?persoon;
           org:holds ?mandaatOfPersonMandataris;
           mandaat:start ?mandatarisStart;
           mandaat:status ?mandatarisStatus.
-        
+
         ?mandaatOfPersonMandataris ^org:hasPost ?bestuursorgaanOfPersonMandataris.
         ?bestuursorgaanOfPersonMandataris ext:heeftBestuursperiode ?bestuursperiode.
 
-        # Get fractie of active last modified mandataris
         ?mandatarisOfPerson org:hasMembership ?member.
         ?member org:organisation ?fractie.
 
@@ -499,7 +497,6 @@ async function getPersonWithBestuursperiode(
       ?persoon mu:uuid ?persoonId.
       ?mandaat ^org:hasPost ?bestuursorgaan.
       ?bestuursorgaan ext:heeftBestuursperiode ?bestuursperiode.
-
       ?bestuursperiode mu:uuid ?bestuursperiodeId.
     }
   `;

@@ -248,6 +248,7 @@ async function getFractie(
       ?persoon a person:Person;
         mu:uuid ${sparqlEscapeString(id)};
         extlmb:currentFracties ?fractie.
+
       ?bestuursorgaan ext:heeftBestuursperiode ?bestuursperiode.
       ?fractie org:memberOf ?bestuursorgaan. 
       ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
@@ -275,12 +276,16 @@ async function getMandatarisFracties(
       ?mandataris a mandaat:Mandataris;
         mandaat:isBestuurlijkeAliasVan ?person;
         org:hasMembership ?member.
+      
       ?person mu:uuid ${sparqlEscapeString(id)}.
       ?member org:organisation ?fractie.
+
       ?bestuursorgaan a besluit:Bestuursorgaan;
         ext:heeftBestuursperiode ?bestuursperiode.
+      
       ?fractie org:memberOf ?bestuursorgaan;
-        mu:uuid ?fractieId.            
+        mu:uuid ?fractieId.  
+
       ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
     }
   `;
