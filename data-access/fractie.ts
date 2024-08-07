@@ -1,4 +1,10 @@
-import { sparqlEscapeString, sparqlEscapeUri, query, update } from 'mu';
+import {
+  sparqlEscapeString,
+  sparqlEscapeUri,
+  sparqlEscapeDateTime,
+  query,
+  update,
+} from 'mu';
 
 import { getSparqlResults } from '../util/sparql-result';
 import { TermProperty } from '../types';
@@ -91,21 +97,23 @@ async function removeFractieWhenNoLidmaatschap(
   if (results.length >= 1) {
     const deleteFractie = `
       PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+      PREFIX astreams: <http://www.w3.org/ns/activitystreams#>
 
       DELETE {
-        GRAPH ?graph {
-          ?fractie ?p ?o.
-        }
+        ?fractie ?p ?o.
+      }
+      INSERT {
+        ?fractie a astreams:Tombstone ;
+          astreams:deleted ${sparqlEscapeDateTime(new Date())} ;
+          astreams:formerType mandaat:Fractie .
       }
       WHERE {
         VALUES ?fractie { ${escaped} }
-        GRAPH ?graph {
-          ?fractie a mandaat:Fractie;
-            ?p  ?o.
-        }
+        ?fractie a mandaat:Fractie;
+          ?p  ?o.
       }
     `;
-    await update(deleteFractie);
+    await query(deleteFractie);
   }
 
   return fractieUris;
