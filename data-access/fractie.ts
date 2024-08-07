@@ -72,11 +72,16 @@ async function removeFractieWhenNoLidmaatschap(
     WHERE {
       ?bestuursperiode a ext:Bestuursperiode;
         mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
-    ?bestuursorgaan a besluit:Bestuursorgaan;
-      ext:heeftBestuursperiode ?bestuursperiode.
-    ?fractie a mandaat:Fractie;
-      org:memberOf ?bestuursorgaan;
-      ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk>.
+      ?bestuursorgaan a besluit:Bestuursorgaan;
+        ext:heeftBestuursperiode ?bestuursperiode.
+      ?fractie a mandaat:Fractie;
+        org:memberOf ?bestuursorgaan;
+        ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk>.
+    
+      FILTER NOT EXISTS {
+        ?lidmaatschap a org:Membership;
+          org:organisation ?fractie.
+      }
     }
   `;
   const sparqlResult = await query(getFractiesQuery);
