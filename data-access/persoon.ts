@@ -304,13 +304,17 @@ async function removeFractieFromCurrent(
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
     DELETE {
-      ?persoon extlmb:currentFracties ${sparqlEscapeUri(fractieUris)}.
+      GRAPH ?graph {
+        ?persoon extlmb:currentFracties ${sparqlEscapeUri(fractieUris)}.
+      }
     }
     WHERE {
-      ?persoon a person:Person;
-        mu:uuid ${sparqlEscapeString(persoonId)}.
+      GRAPH ?graph {
+        ?persoon a person:Person;
+          mu:uuid ${sparqlEscapeString(persoonId)}.
+      }
     }
   `;
 
-  await updateSudo(deleteQuery);
+  await update(deleteQuery);
 }

@@ -93,12 +93,16 @@ async function removeFractieWhenNoLidmaatschap(
       PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
 
       DELETE {
-        ?fractie ?p ?o.
+        GRAPH ?graph {
+          ?fractie ?p ?o.
+        }
       }
       WHERE {
         VALUES ?fractie { ${escaped} }
-        ?fractie a mandaat:Fractie;
-          ?p  ?o.
+        GRAPH ?graph {
+          ?fractie a mandaat:Fractie;
+            ?p  ?o.
+        }
       }
     `;
     await update(deleteFractie);
