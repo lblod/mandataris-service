@@ -49,3 +49,20 @@ personenRouter.get(
     }
   },
 );
+personenRouter.put(
+  '/:id/end-active-mandates',
+  async (req: Request, res: Response) => {
+    const personId = req.params.id;
+
+    try {
+      await persoonUsecase.endActiveMandatarissen(personId);
+      return res.status(STATUS_CODE.OK).send({});
+    } catch (error) {
+      const message =
+        error.message ??
+        `Something went wrong while terminating all active mandatarissen for person with id: ${personId}`;
+      const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
+      return res.status(statusCode).send({ message });
+    }
+  },
+);
