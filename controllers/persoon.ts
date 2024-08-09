@@ -6,7 +6,7 @@ import { HttpError } from '../util/http-error';
 export const persoonUsecase = {
   getFractie,
   getMandatarisFracties,
-  endActiveMandatarissen,
+  setEndDateOfActiveMandatarissen,
 };
 
 async function getFractie(
@@ -59,7 +59,7 @@ async function getMandatarisFracties(
   return results.map((result) => result.fractieId.value);
 }
 
-async function endActiveMandatarissen(id: string): Promise<void> {
+async function setEndDateOfActiveMandatarissen(id: string): Promise<void> {
   const isPersoon = await persoon.isValidId(id);
   if (!isPersoon) {
     throw new HttpError(
@@ -68,5 +68,5 @@ async function endActiveMandatarissen(id: string): Promise<void> {
     );
   }
 
-  await persoon.setActiveMandatarissenEndDate(id, new Date());
+  await persoon.setEndDateOfActiveMandatarissen(id, new Date());
 }

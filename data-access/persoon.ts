@@ -25,7 +25,7 @@ export const persoon = {
   getFractie,
   getMandatarisFracties,
   removeFractieFromCurrent,
-  setActiveMandatarissenEndDate,
+  setEndDateOfActiveMandatarissen,
 };
 
 async function isValidId(id: string): Promise<boolean> {
@@ -323,7 +323,7 @@ async function removeFractieFromCurrent(
   await update(deleteQuery);
 }
 
-async function setActiveMandatarissenEndDate(
+async function setEndDateOfActiveMandatarissen(
   id: string,
   endDate: Date,
 ): Promise<void> {
