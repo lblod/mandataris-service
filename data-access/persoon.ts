@@ -1,4 +1,10 @@
-import { query, update, sparqlEscapeString, sparqlEscapeUri } from 'mu';
+import {
+  query,
+  update,
+  sparqlEscapeString,
+  sparqlEscapeUri,
+  sparqlEscapeDateTime,
+} from 'mu';
 import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
 import { v4 as uuidv4 } from 'uuid';
 import { Term, TermProperty } from '../types';
@@ -10,6 +16,7 @@ import {
   getSparqlResults,
 } from '../util/sparql-result';
 import { getIdentifierFromPersonUri } from '../util/find-uuid-in-uri';
+import { MANDATARIS_STATUS } from '../util/constants';
 
 // note since we use the regular query, not sudo queries, be sure to log in when using this endpoint. E.g. use the vendor login
 
@@ -317,6 +324,42 @@ async function removeFractieFromCurrent(
 }
 
 async function setActiveMandatarissenEndDate(
-  persoonId: string,
+  id: string,
   endDate: Date,
-): Promise<void> {}
+): Promise<void> {
+  const escaped = {
+    persoonId: sparqlEscapeString(id),
+    endDate: sparqlEscapeDateTime(endDate),
+    dateNow: sparqlEscapeDateTime(new Date()),
+    beeindigdStatus: sparqlEscapeUri(MANDATARIS_STATUS.BEEINDIGD),
+  };
+  const updateQuery = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+    DELETE {
+      ?mandataris mandaat:einde ?endDate.
+    }
+    INSERT {
+      ?mandataris mandaat:einde ${escaped.endDate}.
+    }
+    WHERE {
+      ?mandataris a mandaat:Mandataris ;
+        mandaat:isBestuurlijkeAliasVan ?persoon;
+        mandaat:start ?startDate;
+        mandaat:status ?mandatarisStatus.
+      ?persoon mu:uuid ${escaped.persoonId}.
+      OPTIONAL {
+        ?mandataris mandaat:einde ?endDate.
+      }
+      FILTER (
+          ${escaped.dateNow} >= xsd:dateTime(?startDate) &&
+          ${escaped.dateNow} <= ?safeEnd &&
+          ?mandatarisStatus != ${escaped.beeindigdStatus}
+      )
+      BIND(IF(BOUND(?endDate), ?endDate,  ${escaped.dateNow}) as ?safeEnd )
+    }
+  `;
+  await query(updateQuery);
+}
