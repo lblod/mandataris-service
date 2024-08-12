@@ -117,7 +117,7 @@ export const createPerson = async (
 export const personExistsInGraph = async (
   personUri: string,
   orgGraph: Term,
-) => {
+): Promise<boolean> => {
   const result = await querySudo(`
     ASK {
       GRAPH ${sparqlEscapeTermValue(orgGraph)} {
@@ -125,9 +125,7 @@ export const personExistsInGraph = async (
       }
     }
   `);
-  if (!result.boolean) {
-    throw new HttpError(`Person with uri ${personUri} not found`, 400);
-  }
+  return getBooleanSparqlResult(result);
 };
 
 // All graphs except the staging graph

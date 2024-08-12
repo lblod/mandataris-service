@@ -75,7 +75,6 @@ const validateAndParseRequest = async (req: Request) => {
 
   const isDistrictBestuurseenheid =
     await isBestuurseenheidDistrict(bestuurseenheidUri);
-
   if (isDistrictBestuurseenheid) {
     throw new HttpError(
       'Ratification of districtsburgemeesters is not yet supported.',
@@ -86,7 +85,11 @@ const validateAndParseRequest = async (req: Request) => {
   const { orgGraph, burgemeesterMandaat, aangewezenBurgemeesterMandaat } =
     await findBurgemeesterMandates(bestuurseenheidUri, date);
 
-  await personExistsInGraph(burgemeesterUri, orgGraph);
+  const personExists = await personExistsInGraph(burgemeesterUri, orgGraph);
+  if (!personExists) {
+    throw new HttpError(`Person with uri ${burgemeesterUri} not found`, 400);
+  }
+
   return {
     bestuurseenheidUri,
     burgemeesterUri,
