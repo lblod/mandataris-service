@@ -152,7 +152,7 @@ export const markCurrentBurgemeesterAsRejected = async (
   }
 
   endExistingMandataris(orgGraph, result.mandataris, date, benoeming);
-  // TODO: check use case if mandataris is waarnemend
+  // TODO: check use case if mandataris is waarnemend -> should something happen to the verhindering?
 
   const mandatarisUri = sparqlEscapeTermValue(result.mandataris);
   const benoemingUri = sparqlEscapeUri(benoeming);
