@@ -208,16 +208,16 @@ export const benoemBurgemeester = async (
   burgemeesterMandaat: Term,
   date: Date,
   benoeming: string,
-  existingMandataris: string | undefined,
-  existingPersoon: string | undefined,
+  existingMandataris: Term | null,
 ) => {
   let newMandatarisUri;
-  if (existingPersoon === burgemeesterUri && existingMandataris) {
+  if (existingMandataris) {
     // we can copy over the existing values for the new burgemeester from the previous mandataris
     newMandatarisUri = await copyFromPreviousMandataris(
       orgGraph,
       existingMandataris,
       date,
+      burgemeesterMandaat,
     );
   } else {
     // we need to create a new mandataris from scratch

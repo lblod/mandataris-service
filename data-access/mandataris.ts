@@ -225,10 +225,10 @@ export const validateNoOverlappingMandate = async (
   return false;
 };
 
-// Seems dangerous, what if there are multiple?
-export const findExistingMandataris = async (
+export const findExistingMandatarisOfPerson = async (
   orgGraph: Term,
-  mandaatUri: Term,
+  mandaat: Term,
+  persoonUri: string,
 ) => {
   const sparql = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -238,35 +238,38 @@ export const findExistingMandataris = async (
       GRAPH ${sparqlEscapeTermValue(orgGraph)} {
         ?mandataris org:holds ?mandaatUri ;
           mandaat:start ?start ;
-          mandaat:isBestuurlijkeAliasVan ?persoon.
+          mandaat:isBestuurlijkeAliasVan ${sparqlEscapeUri(persoonUri)}.
 
       }
-      VALUES ?mandaatUri { ${sparqlEscapeTermValue(mandaatUri)} }
+      VALUES ?mandaatUri { ${sparqlEscapeTermValue(mandaat)} }
 
-    } ORDER BY DESC(?start) LIMIT 1`;
+    } ORDER BY DESC(?start) LIMIT 1
+  `;
+
   const result = await querySudo(sparql);
-  if (result.results.bindings.length === 0) {
-    return null;
-  }
-  return {
-    mandataris: result.results.bindings[0].mandataris,
-    persoon: result.results.bindings[0].persoon,
-  };
+  const sparqlresult = findFirstSparqlResult(result);
+  return sparqlresult?.mandataris;
 };
 
 export const copyFromPreviousMandataris = async (
   orgGraph: Term,
-  existingMandataris: string,
+  existingMandataris: Term,
   date: Date,
+  mandate?: Term,
 ) => {
   const uuid = uuidv4();
   const newMandatarisUri = `http://mu.semte.ch/vocabularies/ext/mandatarissen/${uuid}`;
+
+  const filter = `FILTER (?p NOT IN (mandaat:start, extlmb:hasPublicationStatus, mu:uuid
+    ${mandate ? ', org:holds' : ''}))`;
+
   await updateSudo(`
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX mps: <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/>
     PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX org: <http://www.w3.org/ns/org#>
 
     INSERT {
       GRAPH ${sparqlEscapeTermValue(orgGraph)} {
@@ -274,10 +277,9 @@ export const copyFromPreviousMandataris = async (
           # copy other properties the mandataris might have but not the ones that need editing
           # this is safe because the mandataris is for the same person and mandate
           ?p ?o ;
+          ${mandate ? `org:holds ${sparqlEscapeTermValue(mandate)}; \n` : ''}
           mu:uuid ${sparqlEscapeString(uuid)} ;
           mandaat:start ${sparqlEscapeDateTime(date)} ;
-          # effectief
-          mandaat:status <http://data.vlaanderen.be/id/concept/MandatarisStatusCode/21063a5b-912c-4241-841c-cc7fb3c73e75> ;
           # immediately make this status bekrachtigd
           extlmb:hasPublicationStatus mps:9d8fd14d-95d0-4f5e-b3a5-a56a126227b6.
       }
@@ -285,7 +287,7 @@ export const copyFromPreviousMandataris = async (
       GRAPH ${sparqlEscapeTermValue(orgGraph)} {
         ${sparqlEscapeUri(existingMandataris)} a mandaat:Mandataris ;
           ?p ?o .
-          FILTER (?p NOT IN (mandaat:start, mandaat:status, extlmb:hasPublicationStatus, mu:uuid) )
+        ${filter}
       }
     }`);
   return newMandatarisUri;

@@ -12,7 +12,7 @@ import { BENOEMING_STATUS } from '../util/constants';
 import { checkAuthorization } from '../data-access/authorization';
 import {
   endExistingMandataris,
-  findExistingMandataris,
+  findExistingMandatarisOfPerson,
 } from '../data-access/mandataris';
 import { personExistsInGraph } from '../data-access/persoon';
 
@@ -123,9 +123,10 @@ const onBurgemeesterBenoemingSafe = async (req: Request) => {
     orgGraph,
   );
   if (status === BENOEMING_STATUS.BENOEMD) {
-    const existing = await findExistingMandataris(
+    const mandataris = await findExistingMandatarisOfPerson(
       orgGraph,
-      burgemeesterMandaat,
+      aangewezenBurgemeesterMandaat,
+      burgemeesterUri,
     );
     await benoemBurgemeester(
       orgGraph,
@@ -133,16 +134,10 @@ const onBurgemeesterBenoemingSafe = async (req: Request) => {
       burgemeesterMandaat,
       date,
       benoeming,
-      existing?.mandataris?.value,
-      existing?.persoon?.value,
+      mandataris,
     );
-    if (existing) {
-      await endExistingMandataris(
-        orgGraph,
-        existing.mandataris,
-        date,
-        benoeming,
-      );
+    if (mandataris) {
+      await endExistingMandataris(orgGraph, mandataris, date, benoeming);
     }
   } else if (status === BENOEMING_STATUS.AFGEWEZEN) {
     await markCurrentBurgemeesterAsRejected(
