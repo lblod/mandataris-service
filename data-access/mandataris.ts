@@ -328,7 +328,7 @@ export async function endExistingMandataris(
       GRAPH ${sparqlEscapeTermValue(graph)} {
         ?mandataris a mandaat:Mandataris .
         VALUES ?mandataris {
-          ${sparqlEscapeTermValue(mandataris)}.
+          ${sparqlEscapeTermValue(mandataris)}
         }
         OPTIONAL {
           ?mandataris mandaat:einde ?einde .
