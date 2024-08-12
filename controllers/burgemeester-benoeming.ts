@@ -5,6 +5,7 @@ import {
   benoemBurgemeester,
   createBurgemeesterBenoeming,
   findBurgemeesterMandaat,
+  isBestuurseenheidDistrict,
   markCurrentBurgemeesterAsRejected,
 } from '../data-access/burgemeester';
 import { BENOEMING_STATUS } from '../util/constants';
@@ -71,6 +72,16 @@ const validateAndParseRequest = async (req: Request) => {
   const parsedBody = parseBody(req.body);
 
   const { bestuurseenheidUri, burgemeesterUri, status, date } = parsedBody;
+
+  const isDistrictBestuurseenheid =
+    await isBestuurseenheidDistrict(bestuurseenheidUri);
+
+  if (isDistrictBestuurseenheid) {
+    throw new HttpError(
+      'Ratification of districtsburgemeesters is not yet supported.',
+      400,
+    );
+  }
 
   const { orgGraph, mandaatUri: burgemeesterMandaat } =
     await findBurgemeesterMandaat(bestuurseenheidUri, date);
