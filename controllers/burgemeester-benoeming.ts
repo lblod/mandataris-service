@@ -3,7 +3,6 @@ import { HttpError } from '../util/http-error';
 
 import {
   benoemBurgemeester,
-  confirmKnownPerson,
   createBurgemeesterBenoeming,
   findBurgemeesterMandaat,
   findExistingMandataris,
@@ -12,6 +11,7 @@ import {
 import { BENOEMING_STATUS } from '../util/constants';
 import { checkAuthorization } from '../data-access/authorization';
 import { endExistingMandataris } from '../data-access/mandataris';
+import { personExistsInGraph } from '../data-access/persoon';
 
 const parseBody = (body) => {
   if (body == null) {
@@ -73,7 +73,7 @@ const validateAndParseRequest = async (req: Request) => {
   const { orgGraph, mandaatUri: burgemeesterMandaat } =
     await findBurgemeesterMandaat(bestuurseenheidUri, date);
 
-  await confirmKnownPerson(orgGraph, burgemeesterUri);
+  await personExistsInGraph(burgemeesterUri, orgGraph);
   return {
     bestuurseenheidUri,
     burgemeesterUri,

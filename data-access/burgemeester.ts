@@ -275,19 +275,3 @@ export const benoemBurgemeester = async (
       }
     }`);
 };
-
-export const confirmKnownPerson = async (
-  orgGraph: string,
-  personUri: string,
-) => {
-  const result = await querySudo(`
-    ASK {
-      GRAPH ${sparqlEscapeUri(orgGraph)} {
-        ${sparqlEscapeUri(personUri)} a <http://www.w3.org/ns/person#Person> .
-      }
-    }
-  `);
-  if (!result.boolean) {
-    throw new HttpError(`Person with uri ${personUri} not found`, 400);
-  }
-};
