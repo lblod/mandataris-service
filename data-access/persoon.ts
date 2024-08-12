@@ -16,6 +16,7 @@ import {
   getSparqlResults,
 } from '../util/sparql-result';
 import { getIdentifierFromPersonUri } from '../util/find-uuid-in-uri';
+import { HttpError } from '../util/http-error';
 
 // note since we use the regular query, not sudo queries, be sure to log in when using this endpoint. E.g. use the vendor login
 
@@ -111,6 +112,22 @@ export const createPerson = async (
     voornaam: fName,
     naam: lName,
   };
+};
+
+export const personExistsInGraph = async (
+  personUri: string,
+  orgGraph: string,
+) => {
+  const result = await querySudo(`
+    ASK {
+      GRAPH ${sparqlEscapeUri(orgGraph)} {
+        ${sparqlEscapeUri(personUri)} a <http://www.w3.org/ns/person#Person> .
+      }
+    }
+  `);
+  if (!result.boolean) {
+    throw new HttpError(`Person with uri ${personUri} not found`, 400);
+  }
 };
 
 // All graphs except the staging graph
