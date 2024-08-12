@@ -13,7 +13,10 @@ import {
 } from '../util/sparql-result';
 import { Term } from '../types';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
-import { copyFromPreviousMandataris } from './mandataris';
+import {
+  copyFromPreviousMandataris,
+  endExistingMandataris,
+} from './mandataris';
 
 export async function isBestuurseenheidDistrict(
   bestuurseenheidUri: string,
@@ -124,9 +127,10 @@ export const markCurrentBurgemeesterAsRejected = async (
   orgGraph: Term,
   burgemeesterUri: string,
   burgemeesterMandaat: Term,
+  date: Date,
   benoeming: string,
 ) => {
-  const result = await querySudo(`
+  const findMandataris = await querySudo(`
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
 
@@ -139,14 +143,18 @@ export const markCurrentBurgemeesterAsRejected = async (
     } ORDER BY DESC(?start) LIMIT 1
   `);
 
-  if (!result.results.bindings.length) {
+  const result = findFirstSparqlResult(findMandataris);
+  if (!result) {
     throw new HttpError(
       `No existing mandataris found for burgemeester(${burgemeesterUri})`,
       400,
     );
   }
-  const mandataris = result.results.bindings[0].mandataris.value;
-  const mandatarisUri = sparqlEscapeUri(mandataris);
+
+  endExistingMandataris(orgGraph, result.mandataris, date, benoeming);
+  // TODO: check use case if mandataris is waarnemend
+
+  const mandatarisUri = sparqlEscapeTermValue(result.mandataris);
   const benoemingUri = sparqlEscapeUri(benoeming);
 
   const sparql = `

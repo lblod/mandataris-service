@@ -148,7 +148,8 @@ const onBurgemeesterBenoemingSafe = async (req: Request) => {
     await markCurrentBurgemeesterAsRejected(
       orgGraph,
       burgemeesterUri,
-      burgemeesterMandaat,
+      aangewezenBurgemeesterMandaat,
+      date,
       benoeming,
     );
   } else {
