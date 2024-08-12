@@ -208,7 +208,7 @@ export const benoemBurgemeester = async (
   burgemeesterMandaat: Term,
   date: Date,
   benoeming: string,
-  existingMandataris: Term | null,
+  existingMandataris: Term | undefined | null,
 ) => {
   let newMandatarisUri;
   if (existingMandataris) {

@@ -229,7 +229,7 @@ export const findExistingMandatarisOfPerson = async (
   orgGraph: Term,
   mandaat: Term,
   persoonUri: string,
-) => {
+): Promise<Term | undefined> => {
   const sparql = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
