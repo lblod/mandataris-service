@@ -37,7 +37,7 @@ export async function isBestuurseenheidDistrict(
   return getBooleanSparqlResult(result);
 }
 
-export const findBurgemeesterMandaat = async (
+export const findBurgemeesterMandates = async (
   bestuurseenheidUri: string,
   date: Date,
 ) => {
@@ -48,16 +48,14 @@ export const findBurgemeesterMandaat = async (
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
-    SELECT DISTINCT ?orgGraph ?mandaatUri WHERE {
+    SELECT DISTINCT ?orgGraph ?burgemeesterMandaat ?aangewezenBurgemeesterMandaat WHERE {
       ?bestuurseenheid a besluit:Bestuurseenheid ;
         ^besluit:bestuurt ?bestuursOrgaan .
       VALUES ?bestuurseenheid { ${sparqlEscapeUri(bestuurseenheidUri)} }
       GRAPH ?orgGraph {
         ?bestuursOrgaan besluit:classificatie ?classificatie .
         VALUES ?classificatie {
-          # districtsburgemeester
-          <http://lblod.data.gift/concept-schemes/0887b850-b810-40d4-be0f-cafd01d3259b>
-          # burgemeester
+          # bestuursorgaan burgemeester
           <http://data.vlaanderen.be/id/concept/BestuursorgaanClassificatieCode/4955bd72cd0e4eb895fdbfab08da0284>
         }
       }
@@ -67,17 +65,10 @@ export const findBurgemeesterMandaat = async (
       ?bestuursOrgaanIt mandaat:isTijdspecialisatieVan ?bestuursOrgaan .
       ?bestuursOrgaanIt mandaat:bindingStart ?start .
       OPTIONAL { ?bestuursOrgaanIt mandaat:bindingEinde ?einde }
-      ?bestuursOrgaanIt org:hasPost ?mandaatUri .
-      ?mandaatUri <http://www.w3.org/ns/org#role> ?code.
-      VALUES ?code {
-        # TODO there is also the 'aangewezen burgemeester' mandate. I believe this should be a status.
-        # if not we probably need to use only that one, but what happens to districtsburgemeesters then?
-        # so many questions
-        # burgemeester
-        <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000013>
-        # districtsburgemeester
-        <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e00001d>
-      }
+      ?bestuursOrgaanIt org:hasPost ?burgemeesterMandaat .
+      ?bestuursOrgaanIt org:hasPost ?aangewezenBurgemeesterMandaat .
+      ?burgemeesterMandaat org:role <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000013> .
+      ?aangewezenBurgemeesterMandaat org:role <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/7b038cc40bba10bec833ecfe6f15bc7a>.
       FILTER(
         ?start <= ${sparqlEscapeDateTime(date)} &&
         (!BOUND(?einde) || ?einde > ${sparqlEscapeDateTime(date)})
@@ -93,7 +84,8 @@ export const findBurgemeesterMandaat = async (
   }
   return {
     orgGraph: result.orgGraph,
-    mandaatUri: result.mandaatUri,
+    burgemeesterMandaat: result.burgemeesterMandaat,
+    aangewezenBurgemeesterMandaat: result.aangewezenBurgemeesterMandaat,
   };
 };
 

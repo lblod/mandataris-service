@@ -4,7 +4,7 @@ import { HttpError } from '../util/http-error';
 import {
   benoemBurgemeester,
   createBurgemeesterBenoeming,
-  findBurgemeesterMandaat,
+  findBurgemeesterMandates,
   isBestuurseenheidDistrict,
   markCurrentBurgemeesterAsRejected,
 } from '../data-access/burgemeester';
@@ -83,8 +83,8 @@ const validateAndParseRequest = async (req: Request) => {
     );
   }
 
-  const { orgGraph, mandaatUri: burgemeesterMandaat } =
-    await findBurgemeesterMandaat(bestuurseenheidUri, date);
+  const { orgGraph, burgemeesterMandaat, aangewezenBurgemeesterMandaat } =
+    await findBurgemeesterMandates(bestuurseenheidUri, date);
 
   await personExistsInGraph(burgemeesterUri, orgGraph);
   return {
@@ -95,6 +95,7 @@ const validateAndParseRequest = async (req: Request) => {
     file: req.file,
     orgGraph,
     burgemeesterMandaat,
+    aangewezenBurgemeesterMandaat,
   };
 };
 
@@ -107,6 +108,7 @@ const onBurgemeesterBenoemingSafe = async (req: Request) => {
     file,
     orgGraph,
     burgemeesterMandaat,
+    aangewezenBurgemeesterMandaat,
   } = await validateAndParseRequest(req);
 
   const benoeming = await createBurgemeesterBenoeming(
