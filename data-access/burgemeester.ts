@@ -7,10 +7,35 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { HttpError } from '../util/http-error';
 import { storeFile } from './file';
-import { findFirstSparqlResult } from '../util/sparql-result';
+import {
+  findFirstSparqlResult,
+  getBooleanSparqlResult,
+} from '../util/sparql-result';
 import { Term } from '../types';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import { copyFromPreviousMandataris } from './mandataris';
+
+export async function isBestuurseenheidDistrict(
+  bestuurseenheidUri: string,
+): Promise<boolean> {
+  const q = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+
+    ASK {
+      GRAPH ?g {
+        ${sparqlEscapeUri(bestuurseenheidUri)} a besluit:Bestuurseenheid ;
+          besluit:classificatie ?classificatie.
+        VALUES ?classificatie {
+          <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/5ab0e9b8a3b2ca7c5e000003>
+        }
+      }
+    }
+  `;
+  const result = await querySudo(q);
+
+  return getBooleanSparqlResult(result);
+}
 
 export const findBurgemeesterMandaat = async (
   bestuurseenheidUri: string,
