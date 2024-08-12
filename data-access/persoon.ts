@@ -83,11 +83,11 @@ export const createPerson = async (
 
 export const personExistsInGraph = async (
   personUri: string,
-  orgGraph: string,
+  orgGraph: Term,
 ) => {
   const result = await querySudo(`
     ASK {
-      GRAPH ${sparqlEscapeUri(orgGraph)} {
+      GRAPH ${sparqlEscapeTermValue(orgGraph)} {
         ${sparqlEscapeUri(personUri)} a <http://www.w3.org/ns/person#Person> .
       }
     }
