@@ -225,6 +225,72 @@ export const validateNoOverlappingMandate = async (
   return false;
 };
 
+// Seems dangerous, what if there are multiple?
+export const findExistingMandataris = async (
+  orgGraph: Term,
+  mandaatUri: Term,
+) => {
+  const sparql = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX org: <http://www.w3.org/ns/org#>
+
+    SELECT ?mandataris ?persoon WHERE {
+      GRAPH ${sparqlEscapeTermValue(orgGraph)} {
+        ?mandataris org:holds ?mandaatUri ;
+          mandaat:start ?start ;
+          mandaat:isBestuurlijkeAliasVan ?persoon.
+
+      }
+      VALUES ?mandaatUri { ${sparqlEscapeTermValue(mandaatUri)} }
+
+    } ORDER BY DESC(?start) LIMIT 1`;
+  const result = await querySudo(sparql);
+  if (result.results.bindings.length === 0) {
+    return null;
+  }
+  return {
+    mandataris: result.results.bindings[0].mandataris,
+    persoon: result.results.bindings[0].persoon,
+  };
+};
+
+export const copyFromPreviousMandataris = async (
+  orgGraph: Term,
+  existingMandataris: string,
+  date: Date,
+) => {
+  const uuid = uuidv4();
+  const newMandatarisUri = `http://mu.semte.ch/vocabularies/ext/mandatarissen/${uuid}`;
+  await updateSudo(`
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mps: <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/>
+    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+    INSERT {
+      GRAPH ${sparqlEscapeTermValue(orgGraph)} {
+        ${sparqlEscapeUri(newMandatarisUri)} a mandaat:Mandataris ;
+          # copy other properties the mandataris might have but not the ones that need editing
+          # this is safe because the mandataris is for the same person and mandate
+          ?p ?o ;
+          mu:uuid ${sparqlEscapeString(uuid)} ;
+          mandaat:start ${sparqlEscapeDateTime(date)} ;
+          # effectief
+          mandaat:status <http://data.vlaanderen.be/id/concept/MandatarisStatusCode/21063a5b-912c-4241-841c-cc7fb3c73e75> ;
+          # immediately make this status bekrachtigd
+          extlmb:hasPublicationStatus mps:9d8fd14d-95d0-4f5e-b3a5-a56a126227b6.
+      }
+    } WHERE {
+      GRAPH ${sparqlEscapeTermValue(orgGraph)} {
+        ${sparqlEscapeUri(existingMandataris)} a mandaat:Mandataris ;
+          ?p ?o .
+          FILTER (?p NOT IN (mandaat:start, mandaat:status, extlmb:hasPublicationStatus, mu:uuid) )
+      }
+    }`);
+  return newMandatarisUri;
+};
+
 export async function endExistingMandataris(
   graph: Term,
   mandataris: Term,
