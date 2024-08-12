@@ -5,12 +5,14 @@ import {
   benoemBurgemeester,
   createBurgemeesterBenoeming,
   findBurgemeesterMandaat,
-  findExistingMandataris,
   markCurrentBurgemeesterAsRejected,
 } from '../data-access/burgemeester';
 import { BENOEMING_STATUS } from '../util/constants';
 import { checkAuthorization } from '../data-access/authorization';
-import { endExistingMandataris } from '../data-access/mandataris';
+import {
+  endExistingMandataris,
+  findExistingMandataris,
+} from '../data-access/mandataris';
 import { personExistsInGraph } from '../data-access/persoon';
 
 const parseBody = (body) => {
