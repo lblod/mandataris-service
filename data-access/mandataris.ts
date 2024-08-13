@@ -306,7 +306,7 @@ export const findExistingMandatarisOfPerson = async (
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
 
-    SELECT ?mandataris ?persoon WHERE {
+    SELECT ?mandataris WHERE {
       GRAPH ${sparqlEscapeTermValue(orgGraph)} {
         ?mandataris org:holds ?mandaatUri ;
           mandaat:start ?start ;
