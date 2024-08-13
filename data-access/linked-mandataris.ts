@@ -22,6 +22,7 @@ export async function findLinkedMandate(mandatarisId, valueBindings) {
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 
     SELECT DISTINCT ?currentMandaatLabel ?linkedMandaatLabel WHERE {
       GRAPH ?g {
