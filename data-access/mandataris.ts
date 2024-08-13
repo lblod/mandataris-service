@@ -285,7 +285,7 @@ export const copyFromPreviousMandataris = async (
       }
     } WHERE {
       GRAPH ${sparqlEscapeTermValue(orgGraph)} {
-        ${sparqlEscapeUri(existingMandataris)} a mandaat:Mandataris ;
+        ${sparqlEscapeTermValue(existingMandataris)} a mandaat:Mandataris ;
           ?p ?o .
         ${filter}
       }
