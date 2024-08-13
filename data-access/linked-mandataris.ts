@@ -96,7 +96,10 @@ export async function checkDuplicateMandataris(mandatarisId, valueBindings) {
   return getBooleanSparqlResult(result);
 }
 
-export async function getDestinationGraphLinkedMandataris(mandatarisId) {
+export async function getDestinationGraphLinkedMandataris(
+  mandatarisId,
+  valueBindings,
+) {
   const q = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
@@ -119,10 +122,14 @@ export async function getDestinationGraphLinkedMandataris(mandatarisId) {
       }
 
       GRAPH ?g {
-        ?currentBestuurseenheid besluit:werkingsgebied ?werkingsgebied .
-        ?linkedBestuurseenheid besluit:werkingsgebied ?werkingsgebied .
+        ?currentBestuurseenheid besluit:werkingsgebied ?werkingsgebied ;
+          besluit:classificatie ?currentClassifiactie .
+        ?linkedBestuurseenheid besluit:werkingsgebied ?werkingsgebied ;
+          besluit:classificatie ?linkedClassificatie .
       }
-      FILTER (?currentBestuurseenheid != ?linkedBestuurseenheid)
+      VALUES (?currentClassificate ?linkedClassificatie) {
+        ${valueBindings}
+      }
     } 
     LIMIT 1
   `;

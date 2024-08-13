@@ -23,7 +23,7 @@ export const checkLinkedMandataris = async (req) => {
     throw new HttpError('No mandataris with given id found', 404);
   }
 
-  const valueBindings = getLinkedMandaten();
+  const valueBindings = getValueBindings(linkedMandaten);
 
   const linkedMandateExists = await findLinkedMandate(
     mandatarisId,
@@ -57,8 +57,10 @@ export const createLinkedMandataris = async (req) => {
   }
 
   // Get destination graph
-  const destinationGraph =
-    await getDestinationGraphLinkedMandataris(mandatarisId);
+  const destinationGraph = await getDestinationGraphLinkedMandataris(
+    mandatarisId,
+    getValueBindings(linkedBestuurseenheden),
+  );
   if (!destinationGraph) {
     throw new HttpError('No destination graph found', 500);
   }
@@ -86,37 +88,50 @@ export const createLinkedMandataris = async (req) => {
   }
 
   // Add duplicate mandatee
-  copyMandataris(mandatarisId, fractie, destinationGraph, getLinkedMandaten());
+  copyMandataris(
+    mandatarisId,
+    fractie,
+    destinationGraph,
+    getValueBindings(linkedMandaten),
+  );
 };
 
-function getLinkedMandaten() {
-  const linkedMandatenArray: string[] = [];
-  linkedMandaten.forEach((value, key) => {
-    linkedMandatenArray.push(
-      `(${sparqlEscapeUri(value)} ${sparqlEscapeUri(key)})`,
-    );
-    linkedMandatenArray.push(
-      `(${sparqlEscapeUri(key)} ${sparqlEscapeUri(value)})`,
-    );
+function getValueBindings(mapping) {
+  const stringArray: string[] = [];
+  mapping.forEach((value, key) => {
+    stringArray.push(`(${sparqlEscapeUri(value)} ${sparqlEscapeUri(key)})`);
+    stringArray.push(`(${sparqlEscapeUri(key)} ${sparqlEscapeUri(value)})`);
   });
-  return linkedMandatenArray.join('\n');
+  return stringArray.join('\n');
 }
 
 const linkedMandaten = new Map([
   [
+    // Gemeenteraadslid - Lid RMW
     'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000011',
     'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000015',
   ],
   [
+    // Voorzitter Gemeenteraad - Voorzitter RMW
     'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000012',
     'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000016',
   ],
   [
+    // Schepen - Lid VB
     'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000014',
     'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000017',
   ],
   [
+    // Burgemeester - Voorzitter VB
     'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000013',
     'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000018',
+  ],
+]);
+
+const linkedBestuurseenheden = new Map([
+  [
+    // Gemeente - OCMW
+    'http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/5ab0e9b8a3b2ca7c5e000001',
+    'http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/5ab0e9b8a3b2ca7c5e000002',
   ],
 ]);
