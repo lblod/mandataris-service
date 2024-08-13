@@ -308,10 +308,10 @@ export const findExistingMandatarisOfPerson = async (
 
     SELECT ?mandataris WHERE {
       GRAPH ${sparqlEscapeTermValue(orgGraph)} {
-        ?mandataris org:holds ?mandaatUri ;
+        ?mandataris a mandaat:Mandataris ;
+          org:holds ?mandaatUri ;
           mandaat:start ?start ;
           mandaat:isBestuurlijkeAliasVan ${sparqlEscapeUri(persoonUri)}.
-
       }
       VALUES ?mandaatUri { ${sparqlEscapeTermValue(mandaat)} }
 
