@@ -13,10 +13,7 @@ import {
 } from '../util/sparql-result';
 import { Term } from '../types';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
-import {
-  copyFromPreviousMandataris,
-  endExistingMandataris,
-} from './mandataris';
+import { copyFromPreviousMandataris } from './mandataris';
 
 export async function isBestuurseenheidDistrict(
   bestuurseenheidUri: string,
@@ -126,35 +123,19 @@ export const createBurgemeesterBenoeming = async (
 export const markCurrentBurgemeesterAsRejected = async (
   orgGraph: Term,
   burgemeesterUri: string,
-  burgemeesterMandaat: Term,
-  date: Date,
   benoeming: string,
+  existingMandataris: Term | undefined,
 ) => {
-  const findMandataris = await querySudo(`
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX org: <http://www.w3.org/ns/org#>
-
-    SELECT ?mandataris WHERE {
-      ?mandataris a mandaat:Mandataris ;
-        org:holds ${sparqlEscapeTermValue(burgemeesterMandaat)} ;
-        mandaat:isBestuurlijkeAliasVan ${sparqlEscapeUri(burgemeesterUri)} ;
-        mandaat:start ?start .
-
-    } ORDER BY DESC(?start) LIMIT 1
-  `);
-
-  const result = findFirstSparqlResult(findMandataris);
-  if (!result) {
+  if (!existingMandataris) {
     throw new HttpError(
       `No existing mandataris found for burgemeester(${burgemeesterUri})`,
       400,
     );
   }
 
-  endExistingMandataris(orgGraph, result.mandataris, date, benoeming);
   // TODO: check use case if mandataris is waarnemend -> should something happen to the verhindering?
 
-  const mandatarisUri = sparqlEscapeTermValue(result.mandataris);
+  const mandatarisUri = sparqlEscapeTermValue(existingMandataris);
   const benoemingUri = sparqlEscapeUri(benoeming);
 
   const sparql = `

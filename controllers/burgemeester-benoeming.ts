@@ -122,34 +122,34 @@ const onBurgemeesterBenoemingSafe = async (req: Request) => {
     file,
     orgGraph,
   );
+  const originalMandataris = await findExistingMandatarisOfPerson(
+    orgGraph,
+    aangewezenBurgemeesterMandaat,
+    burgemeesterUri,
+  );
   if (status === BENOEMING_STATUS.BENOEMD) {
-    const mandataris = await findExistingMandatarisOfPerson(
-      orgGraph,
-      aangewezenBurgemeesterMandaat,
-      burgemeesterUri,
-    );
     await benoemBurgemeester(
       orgGraph,
       burgemeesterUri,
       burgemeesterMandaat,
       date,
       benoeming,
-      mandataris,
+      originalMandataris,
     );
-    if (mandataris) {
-      await endExistingMandataris(orgGraph, mandataris, date, benoeming);
-    }
   } else if (status === BENOEMING_STATUS.AFGEWEZEN) {
     await markCurrentBurgemeesterAsRejected(
       orgGraph,
       burgemeesterUri,
-      aangewezenBurgemeesterMandaat,
-      date,
       benoeming,
+      originalMandataris,
     );
   } else {
     // this was already checked during validation, just for clarity
     throw new HttpError('Invalid status provided', 400);
+  }
+  // Both on ratification as rejection, if the mandataris exists, it gets terminated.
+  if (originalMandataris) {
+    await endExistingMandataris(orgGraph, originalMandataris, date, benoeming);
   }
 };
 
