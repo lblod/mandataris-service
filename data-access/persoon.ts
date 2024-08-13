@@ -1,4 +1,10 @@
-import { query, update, sparqlEscapeString, sparqlEscapeUri } from 'mu';
+import {
+  query,
+  update,
+  sparqlEscapeString,
+  sparqlEscapeUri,
+  sparqlEscapeDateTime,
+} from 'mu';
 import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
 import { v4 as uuidv4 } from 'uuid';
 import { Term, TermProperty } from '../types';
@@ -18,6 +24,7 @@ export const persoon = {
   getFractie,
   getMandatarisFracties,
   removeFractieFromCurrent,
+  setEndDateOfActiveMandatarissen,
 };
 
 async function isValidId(id: string): Promise<boolean> {
@@ -141,10 +148,10 @@ export async function createrPersonFromUri(
   PREFIX person: <http://www.w3.org/ns/person#>
   PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
   PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-  
+
   INSERT DATA {
       GRAPH ${sparqlEscapeTermValue(graph)} {
-        ${sparqlEscapeTermValue(personUri)} a person:Person; 
+        ${sparqlEscapeTermValue(personUri)} a person:Person;
           mu:uuid ${sparqlEscapeString(personIdentifier)};
           persoon:gebruikteVoornaam ${sparqlEscapeTermValue(firstname)};
           foaf:familyName ${sparqlEscapeTermValue(lastname)}.
@@ -250,7 +257,7 @@ async function getFractie(
         extlmb:currentFracties ?fractie.
 
       ?bestuursorgaan ext:heeftBestuursperiode ?bestuursperiode.
-      ?fractie org:memberOf ?bestuursorgaan. 
+      ?fractie org:memberOf ?bestuursorgaan.
       ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
     }
   `;
@@ -276,15 +283,15 @@ async function getMandatarisFracties(
       ?mandataris a mandaat:Mandataris;
         mandaat:isBestuurlijkeAliasVan ?person;
         org:hasMembership ?member.
-      
+
       ?person mu:uuid ${sparqlEscapeString(id)}.
       ?member org:organisation ?fractie.
 
       ?bestuursorgaan a besluit:Bestuursorgaan;
         ext:heeftBestuursperiode ?bestuursperiode.
-      
+
       ?fractie org:memberOf ?bestuursorgaan;
-        mu:uuid ?fractieId.  
+        mu:uuid ?fractieId.
 
       ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
     }
@@ -313,4 +320,43 @@ async function removeFractieFromCurrent(
   `;
 
   await update(deleteQuery);
+}
+
+async function setEndDateOfActiveMandatarissen(
+  id: string,
+  endDate: Date,
+): Promise<void> {
+  const escaped = {
+    persoonId: sparqlEscapeString(id),
+    endDate: sparqlEscapeDateTime(endDate),
+    dateNow: sparqlEscapeDateTime(new Date()),
+  };
+  const updateQuery = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+    DELETE {
+      ?mandataris mandaat:einde ?endDate.
+    }
+    INSERT {
+      ?mandataris mandaat:einde ${escaped.endDate}.
+    }
+    WHERE {
+      ?mandataris a mandaat:Mandataris ;
+        mandaat:isBestuurlijkeAliasVan ?persoon;
+        mandaat:start ?startDate;
+        mandaat:status ?mandatarisStatus.
+      ?persoon mu:uuid ${escaped.persoonId}.
+      OPTIONAL {
+        ?mandataris mandaat:einde ?endDate.
+      }
+      FILTER (
+          ${escaped.dateNow} >= xsd:dateTime(?startDate) &&
+          ${escaped.dateNow} <= ?safeEnd
+      )
+      BIND(IF(BOUND(?endDate), ?endDate,  ${escaped.dateNow}) as ?safeEnd )
+    }
+  `;
+  await query(updateQuery);
 }

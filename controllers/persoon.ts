@@ -6,6 +6,7 @@ import { HttpError } from '../util/http-error';
 export const persoonUsecase = {
   getFractie,
   getMandatarisFracties,
+  setEndDateOfActiveMandatarissen,
 };
 
 async function getFractie(
@@ -56,4 +57,16 @@ async function getMandatarisFracties(
   const results = await persoon.getMandatarisFracties(id, bestuursperiodeId);
 
   return results.map((result) => result.fractieId.value);
+}
+
+async function setEndDateOfActiveMandatarissen(id: string): Promise<void> {
+  const isPersoon = await persoon.isValidId(id);
+  if (!isPersoon) {
+    throw new HttpError(
+      `Persoon with id ${id} not found.`,
+      STATUS_CODE.BAD_REQUEST,
+    );
+  }
+
+  await persoon.setEndDateOfActiveMandatarissen(id, new Date());
 }

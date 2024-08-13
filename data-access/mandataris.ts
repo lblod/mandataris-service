@@ -14,7 +14,7 @@ import {
 } from '../types';
 import moment from 'moment';
 import { v4 as uuidv4 } from 'uuid';
-import { MANDATARIS_STATUS, PUBLICATION_STATUS } from '../util/constants';
+import { PUBLICATION_STATUS } from '../util/constants';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import {
   findFirstSparqlResult,
@@ -46,7 +46,6 @@ async function isValidId(id: string): Promise<boolean> {
 async function findCurrentFractieForPerson(
   mandatarisId: string,
 ): Promise<TermProperty | null> {
-  const escapedBeeindigdState = sparqlEscapeUri(MANDATARIS_STATUS.BEEINDIGD);
   const getQuery = `
     PREFIX person: <http://www.w3.org/ns/person#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
@@ -65,7 +64,7 @@ async function findCurrentFractieForPerson(
           org:holds ?mandaat.
         ?mandaat ^org:hasPost ?bestuursorgaan.
         ?bestuursorgaan ext:heeftBestuursperiode ?bestuursperiode.
-      
+
         # Get mandataris in bestuursperiode for that person
         ?mandatarisOfPerson a mandaat:Mandataris;
           mandaat:isBestuurlijkeAliasVan ?persoon;
@@ -79,7 +78,6 @@ async function findCurrentFractieForPerson(
         ?mandatarisOfPerson org:hasMembership ?member.
         ?member org:organisation ?fractie.
 
-      FILTER ( ?mandatarisStatus != ${escapedBeeindigdState})
     } ORDER BY DESC ( ?mandatarisStart ) LIMIT 1
   `;
   const sparqlResult = await query(getQuery);
@@ -309,7 +307,6 @@ export async function terminateMandataris(
     );
   }
 
-  const statusBeeindigd = sparqlEscapeUri(MANDATARIS_STATUS.BEEINDIGD);
   const datumBeeindigd = sparqlEscapeDateTime(endDate);
   const terminateQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -317,21 +314,18 @@ export async function terminateMandataris(
     DELETE {
       GRAPH ?graph {
       ${sparqlEscapeTermValue(mandataris)}
-        mandaat:status ?status ;
         mandaat:einde ?einde .
       }
     }
     INSERT {
       GRAPH ?graph {
         ${sparqlEscapeTermValue(mandataris)}
-          mandaat:status ${statusBeeindigd} ;
           mandaat:einde ${datumBeeindigd} .
       }
     }
     WHERE {
       GRAPH ?graph {
         ${sparqlEscapeTermValue(mandataris)}
-          mandaat:status ?status ;
           mandaat:einde ?einde .
       }
     }
@@ -374,8 +368,8 @@ export async function findDecisionForMandataris(
   const besluiteQuery = `
    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-   PREFIX ext: <http://mu.semte.ch/vocabularies/ext/> 
-   
+   PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+
    SELECT ?artikel WHERE {
       ?artikel ext:bekrachtigtAanstellingVan ${mandatarisSubject}.
     }
@@ -493,7 +487,7 @@ async function getPersonWithBestuursperiode(
         mu:uuid ${sparqlEscapeString(mandatarisId)};
         mandaat:isBestuurlijkeAliasVan ?persoon;
         org:holds ?mandaat.
-      
+
       ?persoon mu:uuid ?persoonId.
       ?mandaat ^org:hasPost ?bestuursorgaan.
       ?bestuursorgaan ext:heeftBestuursperiode ?bestuursperiode.
