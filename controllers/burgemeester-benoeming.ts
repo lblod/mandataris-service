@@ -10,10 +10,7 @@ import {
 } from '../data-access/burgemeester';
 import { BENOEMING_STATUS } from '../util/constants';
 import { checkAuthorization } from '../data-access/authorization';
-import {
-  endExistingMandataris,
-  findExistingMandatarisOfPerson,
-} from '../data-access/mandataris';
+import { findExistingMandatarisOfPerson } from '../data-access/mandataris';
 import { personExistsInGraph } from '../data-access/persoon';
 
 const parseBody = (body) => {
@@ -140,16 +137,13 @@ const onBurgemeesterBenoemingSafe = async (req: Request) => {
     await markCurrentBurgemeesterAsRejected(
       orgGraph,
       burgemeesterUri,
+      date,
       benoeming,
       originalMandataris,
     );
   } else {
     // this was already checked during validation, just for clarity
     throw new HttpError('Invalid status provided', 400);
-  }
-  // Both on ratification as rejection, if the mandataris exists, it gets terminated.
-  if (originalMandataris) {
-    await endExistingMandataris(orgGraph, originalMandataris, date, benoeming);
   }
 };
 
