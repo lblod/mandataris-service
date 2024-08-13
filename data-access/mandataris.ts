@@ -5,13 +5,85 @@ import {
   sparqlEscapeDateTime,
   sparqlEscapeUri,
 } from 'mu';
-import { CSVRow, CsvUploadState, MandateHit, Term } from '../types';
+import {
+  CSVRow,
+  CsvUploadState,
+  MandateHit,
+  Term,
+  TermProperty,
+} from '../types';
 import moment from 'moment';
 import { v4 as uuidv4 } from 'uuid';
-import { MANDATARIS_STATUS, PUBLICATION_STATUS } from '../util/constants';
+import { PUBLICATION_STATUS } from '../util/constants';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
-import { findFirstSparqlResult } from '../util/sparql-result';
+import {
+  findFirstSparqlResult,
+  getBooleanSparqlResult,
+} from '../util/sparql-result';
 import { TERM_MANDATARIS_TYPE } from './mandatees-decisions';
+
+export const mandataris = {
+  isValidId,
+  findCurrentFractieForPerson,
+  getPersonWithBestuursperiode,
+};
+
+async function isValidId(id: string): Promise<boolean> {
+  const askQuery = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+    ASK {
+      ?mandataris a mandaat:Mandataris;
+        mu:uuid ${sparqlEscapeString(id)}.
+    }
+  `;
+  const sparqlResult = await query(askQuery);
+
+  return getBooleanSparqlResult(sparqlResult);
+}
+
+async function findCurrentFractieForPerson(
+  mandatarisId: string,
+): Promise<TermProperty | null> {
+  const getQuery = `
+    PREFIX person: <http://www.w3.org/ns/person#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+
+    SELECT DISTINCT ?fractie
+    WHERE {
+        ?mandataris a mandaat:Mandataris;
+          mu:uuid ${sparqlEscapeString(mandatarisId)};
+          mandaat:isBestuurlijkeAliasVan ?persoon;
+          org:holds ?mandaat.
+        ?mandaat ^org:hasPost ?bestuursorgaan.
+        ?bestuursorgaan ext:heeftBestuursperiode ?bestuursperiode.
+
+        # Get mandataris in bestuursperiode for that person
+        ?mandatarisOfPerson a mandaat:Mandataris;
+          mandaat:isBestuurlijkeAliasVan ?persoon;
+          org:holds ?mandaatOfPersonMandataris;
+          mandaat:start ?mandatarisStart;
+          mandaat:status ?mandatarisStatus.
+
+        ?mandaatOfPersonMandataris ^org:hasPost ?bestuursorgaanOfPersonMandataris.
+        ?bestuursorgaanOfPersonMandataris ext:heeftBestuursperiode ?bestuursperiode.
+
+        ?mandatarisOfPerson org:hasMembership ?member.
+        ?member org:organisation ?fractie.
+
+    } ORDER BY DESC ( ?mandatarisStart ) LIMIT 1
+  `;
+  const sparqlResult = await query(getQuery);
+
+  return findFirstSparqlResult(sparqlResult);
+}
 
 export const findGraphAndMandates = async (row: CSVRow) => {
   const mandates = await findMandatesByName(row);
@@ -235,7 +307,6 @@ export async function terminateMandataris(
     );
   }
 
-  const statusBeeindigd = sparqlEscapeUri(MANDATARIS_STATUS.BEEINDIGD);
   const datumBeeindigd = sparqlEscapeDateTime(endDate);
   const terminateQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -243,21 +314,18 @@ export async function terminateMandataris(
     DELETE {
       GRAPH ?graph {
       ${sparqlEscapeTermValue(mandataris)}
-        mandaat:status ?status ;
         mandaat:einde ?einde .
       }
     }
     INSERT {
       GRAPH ?graph {
         ${sparqlEscapeTermValue(mandataris)}
-          mandaat:status ${statusBeeindigd} ;
           mandaat:einde ${datumBeeindigd} .
       }
     }
     WHERE {
       GRAPH ?graph {
         ${sparqlEscapeTermValue(mandataris)}
-          mandaat:status ?status ;
           mandaat:einde ?einde .
       }
     }
@@ -300,8 +368,8 @@ export async function findDecisionForMandataris(
   const besluiteQuery = `
    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-   PREFIX ext: <http://mu.semte.ch/vocabularies/ext/> 
-   
+   PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+
    SELECT ?artikel WHERE {
       ?artikel ext:bekrachtigtAanstellingVan ${mandatarisSubject}.
     }
@@ -402,4 +470,36 @@ export async function updatePublicationStatusOfMandataris(
       `|> Could not update mandataris: ${mandataris.value} status to ${status}`,
     );
   }
+}
+
+async function getPersonWithBestuursperiode(
+  mandatarisId: string,
+): Promise<{ persoonId: string; bestuursperiodeId: string }> {
+  const getQuery = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+
+    SELECT DISTINCT ?persoonId ?bestuursperiodeId
+    WHERE {
+      ?mandataris a mandaat:Mandataris;
+        mu:uuid ${sparqlEscapeString(mandatarisId)};
+        mandaat:isBestuurlijkeAliasVan ?persoon;
+        org:holds ?mandaat.
+
+      ?persoon mu:uuid ?persoonId.
+      ?mandaat ^org:hasPost ?bestuursorgaan.
+      ?bestuursorgaan ext:heeftBestuursperiode ?bestuursperiode.
+      ?bestuursperiode mu:uuid ?bestuursperiodeId.
+    }
+  `;
+
+  const sparqlResult = await query(getQuery);
+  const first = findFirstSparqlResult(sparqlResult);
+
+  return {
+    persoonId: first?.persoonId.value as string,
+    bestuursperiodeId: first?.bestuursperiodeId.value as string,
+  };
 }
