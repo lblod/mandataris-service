@@ -34,10 +34,12 @@ export async function findLinkedMandate(mandatarisId, valueBindings) {
       }
       GRAPH ?h {
         ?currentBestuursfunctie skos:prefLabel ?currentMandaatLabel .
-        ?linkedBestuursfunctie skos:prefLabel ?linkedMandaatLabel .
       }
-      VALUES (?currentBestuursfunctie ?linkedBestuursfunctie) {
-        ${valueBindings}
+      OPTIONAL {
+        VALUES (?currentBestuursfunctie ?linkedBestuursfunctie) {
+          ${valueBindings}
+        }
+        ?linkedBestuursfunctie skos:prefLabel ?linkedMandaatLabel .
       }
     }
     LIMIT 1
@@ -48,7 +50,7 @@ export async function findLinkedMandate(mandatarisId, valueBindings) {
   }
   return {
     currentMandate: result.results.bindings[0].currentMandaatLabel.value,
-    duplicateMandate: result.results.bindings[0].linkedMandaatLabel.value,
+    duplicateMandate: result.results.bindings[0].linkedMandaatLabel?.value,
   };
 }
 

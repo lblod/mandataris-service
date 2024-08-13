@@ -25,13 +25,10 @@ export const checkLinkedMandataris = async (req) => {
 
   const valueBindings = getValueBindings(linkedMandaten);
 
-  const linkedMandateExists = await findLinkedMandate(
-    mandatarisId,
-    valueBindings,
-  );
+  const linkedMandates = await findLinkedMandate(mandatarisId, valueBindings);
 
-  if (!linkedMandateExists) {
-    return null;
+  if (!linkedMandates?.duplicateMandate) {
+    return linkedMandates;
   }
 
   const linkedMandatarisExists = await checkDuplicateMandataris(
@@ -40,7 +37,7 @@ export const checkLinkedMandataris = async (req) => {
   );
 
   return {
-    ...linkedMandateExists,
+    ...linkedMandates,
     hasDouble: linkedMandatarisExists,
   };
 };
