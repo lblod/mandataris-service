@@ -14,7 +14,7 @@ import {
 } from '../types';
 import moment from 'moment';
 import { v4 as uuidv4 } from 'uuid';
-import { MANDATARIS_STATUS, PUBLICATION_STATUS } from '../util/constants';
+import { PUBLICATION_STATUS } from '../util/constants';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import {
   findFirstSparqlResult,

@@ -16,7 +16,6 @@ import {
   getSparqlResults,
 } from '../util/sparql-result';
 import { getIdentifierFromPersonUri } from '../util/find-uuid-in-uri';
-import { MANDATARIS_STATUS } from '../util/constants';
 
 // note since we use the regular query, not sudo queries, be sure to log in when using this endpoint. E.g. use the vendor login
 
@@ -354,7 +353,7 @@ async function setEndDateOfActiveMandatarissen(
       }
       FILTER (
           ${escaped.dateNow} >= xsd:dateTime(?startDate) &&
-          ${escaped.dateNow} <= ?safeEnd &&
+          ${escaped.dateNow} <= ?safeEnd
       )
       BIND(IF(BOUND(?endDate), ?endDate,  ${escaped.dateNow}) as ?safeEnd )
     }
