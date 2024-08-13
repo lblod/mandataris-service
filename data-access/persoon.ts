@@ -149,10 +149,10 @@ export async function createrPersonFromUri(
   PREFIX person: <http://www.w3.org/ns/person#>
   PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
   PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-  
+
   INSERT DATA {
       GRAPH ${sparqlEscapeTermValue(graph)} {
-        ${sparqlEscapeTermValue(personUri)} a person:Person; 
+        ${sparqlEscapeTermValue(personUri)} a person:Person;
           mu:uuid ${sparqlEscapeString(personIdentifier)};
           persoon:gebruikteVoornaam ${sparqlEscapeTermValue(firstname)};
           foaf:familyName ${sparqlEscapeTermValue(lastname)}.
@@ -258,7 +258,7 @@ async function getFractie(
         extlmb:currentFracties ?fractie.
 
       ?bestuursorgaan ext:heeftBestuursperiode ?bestuursperiode.
-      ?fractie org:memberOf ?bestuursorgaan. 
+      ?fractie org:memberOf ?bestuursorgaan.
       ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
     }
   `;
@@ -284,15 +284,15 @@ async function getMandatarisFracties(
       ?mandataris a mandaat:Mandataris;
         mandaat:isBestuurlijkeAliasVan ?person;
         org:hasMembership ?member.
-      
+
       ?person mu:uuid ${sparqlEscapeString(id)}.
       ?member org:organisation ?fractie.
 
       ?bestuursorgaan a besluit:Bestuursorgaan;
         ext:heeftBestuursperiode ?bestuursperiode.
-      
+
       ?fractie org:memberOf ?bestuursorgaan;
-        mu:uuid ?fractieId.  
+        mu:uuid ?fractieId.
 
       ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
     }
@@ -331,7 +331,6 @@ async function setEndDateOfActiveMandatarissen(
     persoonId: sparqlEscapeString(id),
     endDate: sparqlEscapeDateTime(endDate),
     dateNow: sparqlEscapeDateTime(new Date()),
-    beeindigdStatus: sparqlEscapeUri(MANDATARIS_STATUS.BEEINDIGD),
   };
   const updateQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -356,7 +355,6 @@ async function setEndDateOfActiveMandatarissen(
       FILTER (
           ${escaped.dateNow} >= xsd:dateTime(?startDate) &&
           ${escaped.dateNow} <= ?safeEnd &&
-          ?mandatarisStatus != ${escaped.beeindigdStatus}
       )
       BIND(IF(BOUND(?endDate), ?endDate,  ${escaped.dateNow}) as ?safeEnd )
     }
