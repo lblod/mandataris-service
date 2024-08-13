@@ -13,7 +13,10 @@ import {
 } from '../util/sparql-result';
 import { Term } from '../types';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
-import { copyFromPreviousMandataris } from './mandataris';
+import {
+  copyFromPreviousMandataris,
+  endExistingMandataris,
+} from './mandataris';
 
 export async function isBestuurseenheidDistrict(
   bestuurseenheidUri: string,
@@ -123,6 +126,7 @@ export const createBurgemeesterBenoeming = async (
 export const markCurrentBurgemeesterAsRejected = async (
   orgGraph: Term,
   burgemeesterUri: string,
+  date: Date,
   benoeming: string,
   existingMandataris: Term | undefined,
 ) => {
@@ -132,6 +136,8 @@ export const markCurrentBurgemeesterAsRejected = async (
       400,
     );
   }
+
+  await endExistingMandataris(orgGraph, existingMandataris, date, benoeming);
 
   // TODO: check use case if mandataris is waarnemend -> should something happen to the verhindering?
 
@@ -200,6 +206,8 @@ export const benoemBurgemeester = async (
       date,
       burgemeesterMandaat,
     );
+
+    await endExistingMandataris(orgGraph, existingMandataris, date, benoeming);
   } else {
     // we need to create a new mandataris from scratch
     newMandatarisUri = await createBurgemeesterFromScratch(
