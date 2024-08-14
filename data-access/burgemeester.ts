@@ -7,12 +7,40 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { HttpError } from '../util/http-error';
 import { storeFile } from './file';
-import { findFirstSparqlResult } from '../util/sparql-result';
+import {
+  findFirstSparqlResult,
+  getBooleanSparqlResult,
+} from '../util/sparql-result';
 import { Term } from '../types';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
-import { copyFromPreviousMandataris } from './mandataris';
+import {
+  copyFromPreviousMandataris,
+  endExistingMandataris,
+} from './mandataris';
 
-export const findBurgemeesterMandaat = async (
+export async function isBestuurseenheidDistrict(
+  bestuurseenheidUri: string,
+): Promise<boolean> {
+  const q = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+
+    ASK {
+      GRAPH ?g {
+        ${sparqlEscapeUri(bestuurseenheidUri)} a besluit:Bestuurseenheid ;
+          besluit:classificatie ?classificatie.
+        VALUES ?classificatie {
+          <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/5ab0e9b8a3b2ca7c5e000003>
+        }
+      }
+    }
+  `;
+  const result = await querySudo(q);
+
+  return getBooleanSparqlResult(result);
+}
+
+export const findBurgemeesterMandates = async (
   bestuurseenheidUri: string,
   date: Date,
 ) => {
@@ -23,16 +51,14 @@ export const findBurgemeesterMandaat = async (
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
-    SELECT DISTINCT ?orgGraph ?mandaatUri WHERE {
+    SELECT DISTINCT ?orgGraph ?burgemeesterMandaat ?aangewezenBurgemeesterMandaat WHERE {
       ?bestuurseenheid a besluit:Bestuurseenheid ;
         ^besluit:bestuurt ?bestuursOrgaan .
       VALUES ?bestuurseenheid { ${sparqlEscapeUri(bestuurseenheidUri)} }
       GRAPH ?orgGraph {
         ?bestuursOrgaan besluit:classificatie ?classificatie .
         VALUES ?classificatie {
-          # districtsburgemeester
-          <http://lblod.data.gift/concept-schemes/0887b850-b810-40d4-be0f-cafd01d3259b>
-          # burgemeester
+          # bestuursorgaan burgemeester
           <http://data.vlaanderen.be/id/concept/BestuursorgaanClassificatieCode/4955bd72cd0e4eb895fdbfab08da0284>
         }
       }
@@ -42,17 +68,10 @@ export const findBurgemeesterMandaat = async (
       ?bestuursOrgaanIt mandaat:isTijdspecialisatieVan ?bestuursOrgaan .
       ?bestuursOrgaanIt mandaat:bindingStart ?start .
       OPTIONAL { ?bestuursOrgaanIt mandaat:bindingEinde ?einde }
-      ?bestuursOrgaanIt org:hasPost ?mandaatUri .
-      ?mandaatUri <http://www.w3.org/ns/org#role> ?code.
-      VALUES ?code {
-        # TODO there is also the 'aangewezen burgemeester' mandate. I believe this should be a status.
-        # if not we probably need to use only that one, but what happens to districtsburgemeesters then?
-        # so many questions
-        # burgemeester
-        <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000013>
-        # districtsburgemeester
-        <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e00001d>
-      }
+      ?bestuursOrgaanIt org:hasPost ?burgemeesterMandaat .
+      ?bestuursOrgaanIt org:hasPost ?aangewezenBurgemeesterMandaat .
+      ?burgemeesterMandaat org:role <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000013> .
+      ?aangewezenBurgemeesterMandaat org:role <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/7b038cc40bba10bec833ecfe6f15bc7a>.
       FILTER(
         ?start <= ${sparqlEscapeDateTime(date)} &&
         (!BOUND(?einde) || ?einde > ${sparqlEscapeDateTime(date)})
@@ -68,7 +87,8 @@ export const findBurgemeesterMandaat = async (
   }
   return {
     orgGraph: result.orgGraph,
-    mandaatUri: result.mandaatUri,
+    burgemeesterMandaat: result.burgemeesterMandaat,
+    aangewezenBurgemeesterMandaat: result.aangewezenBurgemeesterMandaat,
   };
 };
 
@@ -106,30 +126,22 @@ export const createBurgemeesterBenoeming = async (
 export const markCurrentBurgemeesterAsRejected = async (
   orgGraph: Term,
   burgemeesterUri: string,
-  burgemeesterMandaat: Term,
+  date: Date,
   benoeming: string,
+  existingMandataris: Term | undefined,
 ) => {
-  const result = await querySudo(`
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX org: <http://www.w3.org/ns/org#>
-
-    SELECT ?mandataris WHERE {
-      ?mandataris a mandaat:Mandataris ;
-        org:holds ${sparqlEscapeTermValue(burgemeesterMandaat)} ;
-        mandaat:isBestuurlijkeAliasVan ${sparqlEscapeUri(burgemeesterUri)} ;
-        mandaat:start ?start .
-
-    } ORDER BY DESC(?start) LIMIT 1
-  `);
-
-  if (!result.results.bindings.length) {
+  if (!existingMandataris) {
     throw new HttpError(
       `No existing mandataris found for burgemeester(${burgemeesterUri})`,
       400,
     );
   }
-  const mandataris = result.results.bindings[0].mandataris.value;
-  const mandatarisUri = sparqlEscapeUri(mandataris);
+
+  await endExistingMandataris(orgGraph, existingMandataris, date, benoeming);
+
+  // TODO: check use case if mandataris is waarnemend -> should something happen to the verhindering?
+
+  const mandatarisUri = sparqlEscapeTermValue(existingMandataris);
   const benoemingUri = sparqlEscapeUri(benoeming);
 
   const sparql = `
@@ -183,17 +195,19 @@ export const benoemBurgemeester = async (
   burgemeesterMandaat: Term,
   date: Date,
   benoeming: string,
-  existingMandataris: string | undefined,
-  existingPersoon: string | undefined,
+  existingMandataris: Term | undefined | null,
 ) => {
   let newMandatarisUri;
-  if (existingPersoon === burgemeesterUri && existingMandataris) {
+  if (existingMandataris) {
     // we can copy over the existing values for the new burgemeester from the previous mandataris
     newMandatarisUri = await copyFromPreviousMandataris(
       orgGraph,
       existingMandataris,
       date,
+      burgemeesterMandaat,
     );
+
+    await endExistingMandataris(orgGraph, existingMandataris, date, benoeming);
   } else {
     // we need to create a new mandataris from scratch
     newMandatarisUri = await createBurgemeesterFromScratch(

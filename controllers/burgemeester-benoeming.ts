@@ -4,15 +4,13 @@ import { HttpError } from '../util/http-error';
 import {
   benoemBurgemeester,
   createBurgemeesterBenoeming,
-  findBurgemeesterMandaat,
+  findBurgemeesterMandates,
+  isBestuurseenheidDistrict,
   markCurrentBurgemeesterAsRejected,
 } from '../data-access/burgemeester';
 import { BENOEMING_STATUS } from '../util/constants';
 import { checkAuthorization } from '../data-access/authorization';
-import {
-  endExistingMandataris,
-  findExistingMandataris,
-} from '../data-access/mandataris';
+import { findExistingMandatarisOfPerson } from '../data-access/mandataris';
 import { personExistsInGraph } from '../data-access/persoon';
 
 const parseBody = (body) => {
@@ -72,10 +70,23 @@ const validateAndParseRequest = async (req: Request) => {
 
   const { bestuurseenheidUri, burgemeesterUri, status, date } = parsedBody;
 
-  const { orgGraph, mandaatUri: burgemeesterMandaat } =
-    await findBurgemeesterMandaat(bestuurseenheidUri, date);
+  const isDistrictBestuurseenheid =
+    await isBestuurseenheidDistrict(bestuurseenheidUri);
+  if (isDistrictBestuurseenheid) {
+    throw new HttpError(
+      'Ratification of districtsburgemeesters is not yet supported.',
+      400,
+    );
+  }
 
-  await personExistsInGraph(burgemeesterUri, orgGraph);
+  const { orgGraph, burgemeesterMandaat, aangewezenBurgemeesterMandaat } =
+    await findBurgemeesterMandates(bestuurseenheidUri, date);
+
+  const personExists = await personExistsInGraph(burgemeesterUri, orgGraph);
+  if (!personExists) {
+    throw new HttpError(`Person with uri ${burgemeesterUri} not found`, 400);
+  }
+
   return {
     bestuurseenheidUri,
     burgemeesterUri,
@@ -84,6 +95,7 @@ const validateAndParseRequest = async (req: Request) => {
     file: req.file,
     orgGraph,
     burgemeesterMandaat,
+    aangewezenBurgemeesterMandaat,
   };
 };
 
@@ -96,6 +108,7 @@ const onBurgemeesterBenoemingSafe = async (req: Request) => {
     file,
     orgGraph,
     burgemeesterMandaat,
+    aangewezenBurgemeesterMandaat,
   } = await validateAndParseRequest(req);
 
   const benoeming = await createBurgemeesterBenoeming(
@@ -106,34 +119,27 @@ const onBurgemeesterBenoemingSafe = async (req: Request) => {
     file,
     orgGraph,
   );
+  const originalMandataris = await findExistingMandatarisOfPerson(
+    orgGraph,
+    aangewezenBurgemeesterMandaat,
+    burgemeesterUri,
+  );
   if (status === BENOEMING_STATUS.BENOEMD) {
-    const existing = await findExistingMandataris(
-      orgGraph,
-      burgemeesterMandaat,
-    );
     await benoemBurgemeester(
       orgGraph,
       burgemeesterUri,
       burgemeesterMandaat,
       date,
       benoeming,
-      existing?.mandataris?.value,
-      existing?.persoon?.value,
+      originalMandataris,
     );
-    if (existing) {
-      await endExistingMandataris(
-        orgGraph,
-        existing.mandataris,
-        date,
-        benoeming,
-      );
-    }
   } else if (status === BENOEMING_STATUS.AFGEWEZEN) {
     await markCurrentBurgemeesterAsRejected(
       orgGraph,
       burgemeesterUri,
-      burgemeesterMandaat,
+      date,
       benoeming,
+      originalMandataris,
     );
   } else {
     // this was already checked during validation, just for clarity

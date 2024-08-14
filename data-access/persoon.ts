@@ -6,7 +6,6 @@ import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import { TERM_STAGING_GRAPH } from './mandatees-decisions';
 import { getBooleanSparqlResult } from '../util/sparql-result';
 import { getIdentifierFromPersonUri } from '../util/find-uuid-in-uri';
-import { HttpError } from '../util/http-error';
 
 // note since we use the regular query, not sudo queries, be sure to log in when using this endpoint. E.g. use the vendor login
 
@@ -84,7 +83,7 @@ export const createPerson = async (
 export const personExistsInGraph = async (
   personUri: string,
   orgGraph: Term,
-) => {
+): Promise<boolean> => {
   const result = await querySudo(`
     ASK {
       GRAPH ${sparqlEscapeTermValue(orgGraph)} {
@@ -92,9 +91,7 @@ export const personExistsInGraph = async (
       }
     }
   `);
-  if (!result.boolean) {
-    throw new HttpError(`Person with uri ${personUri} not found`, 400);
-  }
+  return getBooleanSparqlResult(result);
 };
 
 // All graphs except the staging graph
