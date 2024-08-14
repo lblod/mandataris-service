@@ -297,36 +297,110 @@ export const validateNoOverlappingMandate = async (
   return false;
 };
 
-export async function terminateMandataris(
+export const findExistingMandatarisOfPerson = async (
+  orgGraph: Term,
+  mandaat: Term,
+  persoonUri: string,
+): Promise<Term | undefined> => {
+  const sparql = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX org: <http://www.w3.org/ns/org#>
+
+    SELECT ?mandataris WHERE {
+      GRAPH ${sparqlEscapeTermValue(orgGraph)} {
+        ?mandataris a mandaat:Mandataris ;
+          org:holds ?mandaatUri ;
+          mandaat:start ?start ;
+          mandaat:isBestuurlijkeAliasVan ${sparqlEscapeUri(persoonUri)}.
+      }
+      VALUES ?mandaatUri { ${sparqlEscapeTermValue(mandaat)} }
+
+    } ORDER BY DESC(?start) LIMIT 1
+  `;
+
+  const result = await querySudo(sparql);
+  const sparqlresult = findFirstSparqlResult(result);
+  return sparqlresult?.mandataris;
+};
+
+export const copyFromPreviousMandataris = async (
+  orgGraph: Term,
+  existingMandataris: Term,
+  date: Date,
+  mandate?: Term,
+) => {
+  const uuid = uuidv4();
+  const newMandatarisUri = `http://mu.semte.ch/vocabularies/ext/mandatarissen/${uuid}`;
+
+  const filter = `FILTER (?p NOT IN (mandaat:start, extlmb:hasPublicationStatus, mu:uuid
+    ${mandate ? ', org:holds' : ''}))`;
+
+  await updateSudo(`
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mps: <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/>
+    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+
+    INSERT {
+      GRAPH ${sparqlEscapeTermValue(orgGraph)} {
+        ${sparqlEscapeUri(newMandatarisUri)} a mandaat:Mandataris ;
+          # copy other properties the mandataris might have but not the ones that need editing
+          # this is safe because the mandataris is for the same person and mandate
+          ?p ?o ;
+          ${mandate ? `org:holds ${sparqlEscapeTermValue(mandate)}; \n` : ''}
+          mu:uuid ${sparqlEscapeString(uuid)} ;
+          mandaat:start ${sparqlEscapeDateTime(date)} ;
+          # immediately make this status bekrachtigd
+          extlmb:hasPublicationStatus mps:9d8fd14d-95d0-4f5e-b3a5-a56a126227b6.
+      }
+    } WHERE {
+      GRAPH ${sparqlEscapeTermValue(orgGraph)} {
+        ${sparqlEscapeTermValue(existingMandataris)} a mandaat:Mandataris ;
+          ?p ?o .
+        ${filter}
+      }
+    }`);
+  return newMandatarisUri;
+};
+
+export async function endExistingMandataris(
+  graph: Term,
   mandataris: Term,
   endDate: Date,
+  benoemingUri?: string,
 ): Promise<void> {
-  if (!endDate) {
-    throw Error(
-      `|> End date not set! Mandataris with uri "${mandataris.value}" will not be terminated.`,
-    );
+  let extraTriples = '';
+  if (benoemingUri) {
+    extraTriples = `
+        ?mandataris ext:beeindigdDoor ${sparqlEscapeUri(benoemingUri)}. \n `;
   }
 
-  const datumBeeindigd = sparqlEscapeDateTime(endDate);
   const terminateQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     DELETE {
-      GRAPH ?graph {
-      ${sparqlEscapeTermValue(mandataris)}
-        mandaat:einde ?einde .
+      GRAPH ${sparqlEscapeTermValue(graph)} {
+        ?mandataris mandaat:einde ?einde .
       }
     }
     INSERT {
-      GRAPH ?graph {
-        ${sparqlEscapeTermValue(mandataris)}
-          mandaat:einde ${datumBeeindigd} .
+      GRAPH ${sparqlEscapeTermValue(graph)} {
+        ?mandataris mandaat:einde ${sparqlEscapeDateTime(endDate)} .
+        ${extraTriples}
       }
     }
     WHERE {
-      GRAPH ?graph {
-        ${sparqlEscapeTermValue(mandataris)}
-          mandaat:einde ?einde .
+      GRAPH ${sparqlEscapeTermValue(graph)} {
+        ?mandataris a mandaat:Mandataris .
+        VALUES ?mandataris {
+          ${sparqlEscapeTermValue(mandataris)}
+        }
+        OPTIONAL {
+          ?mandataris mandaat:einde ?einde .
+        }
       }
     }
   `;

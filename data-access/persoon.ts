@@ -113,6 +113,20 @@ export const createPerson = async (
   };
 };
 
+export const personExistsInGraph = async (
+  personUri: string,
+  orgGraph: Term,
+): Promise<boolean> => {
+  const result = await querySudo(`
+    ASK {
+      GRAPH ${sparqlEscapeTermValue(orgGraph)} {
+        ${sparqlEscapeUri(personUri)} a <http://www.w3.org/ns/person#Person> .
+      }
+    }
+  `);
+  return getBooleanSparqlResult(result);
+};
+
 // All graphs except the staging graph
 export async function checkPersonExistsAllGraphs(
   subject: Term,
