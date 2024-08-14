@@ -9,6 +9,7 @@ import { fractiesRouter } from './routes/fractie';
 import { personenRouter } from './routes/persoon';
 import { burgemeesterRouter } from './routes/burgemeester-benoeming';
 import { installatievergaderingRouter } from './routes/intallatievergadering';
+import { mandatenRouter } from './routes/mandaten';
 
 app.use(
   bodyParser.json({
@@ -29,6 +30,7 @@ app.use('/delta', deltaRouter);
 app.use('/mandatarissen', mandatarissenRouter);
 app.use('/fracties', fractiesRouter);
 app.use('/personen', personenRouter);
+app.use('/mandaten', mandatenRouter);
 app.use('/burgemeester-benoeming', burgemeesterRouter);
 app.use('/installatievergadering-api', installatievergaderingRouter);
 
