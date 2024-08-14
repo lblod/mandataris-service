@@ -108,6 +108,7 @@ export async function getDestinationGraphLinkedMandataris(
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     SELECT DISTINCT ?dest WHERE {
       GRAPH ?origin {
@@ -124,6 +125,13 @@ export async function getDestinationGraphLinkedMandataris(
         ?linkedBestuursorgaan besluit:bestuurt ?linkedBestuurseenheid .
       }
 
+      FILTER NOT EXISTS {
+        # these are fake ones created by the preparation of the legislature
+        ?linkedBestuursorgaan ext:origineleBestuurseenheid ?_something .
+      }
+      # the other eenheid should not be our own because that apparently happens sometimes
+      FILTER(?linkedBestuurseenheid != ?currentBestuurseenheid)
+
       GRAPH ?g {
         ?currentBestuurseenheid besluit:werkingsgebied ?werkingsgebied ;
           besluit:classificatie ?currentClassifiactie .
@@ -133,7 +141,7 @@ export async function getDestinationGraphLinkedMandataris(
       VALUES (?currentClassificate ?linkedClassificatie) {
         ${valueBindings}
       }
-    } 
+    }
     LIMIT 1
   `;
 
@@ -190,7 +198,7 @@ export async function personOfMandatarisExistsInGraph(mandatarisId, graph) {
 
 export async function copyPersonOfMandataris(mandatarisId, graph) {
   const q = `
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#> 
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
     PREFIX adms: <http://www.w3.org/ns/adms#>
@@ -254,7 +262,7 @@ export async function getFractieOfMandatarisInGraph(mandatarisId, graph) {
         ?doelFractie a mandaat:Fractie ;
           regorg:legalName ?fractieNaam .
       }
-    } 
+    }
     LIMIT 1
   `;
 
@@ -269,7 +277,7 @@ export async function copyFractieOfMandataris(mandatarisId, graph) {
   const fractieUuid = uuidv4();
   const fractieUri = `http://data.lblod.info/id/fracties/${fractieUuid}`;
   const q = `
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#> 
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
@@ -338,7 +346,7 @@ export async function copyMandataris(
     PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
     PREFIX dct: <http://purl.org/dc/terms/>
-    
+
     INSERT {
       GRAPH ${sparqlEscapeUri(graph)} {
         ${sparqlEscapeUri(newMandatarisUri)} a mandaat:Mandataris ;
