@@ -1,13 +1,9 @@
 import { HttpError } from '../util/http-error';
 import { query, sparqlEscapeString, sparqlEscapeUri } from 'mu';
 import { updateSudo, querySudo } from '@lblod/mu-auth-sudo';
-import {
-  findFirstSparqlResult,
-  getBooleanSparqlResult,
-} from '../util/sparql-result';
+import { getBooleanSparqlResult } from '../util/sparql-result';
 import { v4 as uuidv4 } from 'uuid';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
-import { link } from 'fs';
 
 export async function canAccessMandataris(id: string) {
   const sparql = `
