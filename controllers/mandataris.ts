@@ -7,7 +7,7 @@ import { HttpError } from '../util/http-error';
 
 export const mandatarisUsecase = {
   updateCurrentFractie,
-  createFromMandataris,
+  copyOverNonResourceDomainPredicates,
 };
 
 async function updateCurrentFractie(mandatarisId: string): Promise<void> {
@@ -44,7 +44,10 @@ async function updateCurrentFractie(mandatarisId: string): Promise<void> {
   );
 }
 
-async function createFromMandataris(mandatarisId: string) {
+async function copyOverNonResourceDomainPredicates(
+  mandatarisId: string,
+  newMandatarisId: string,
+): Promise<{ mandatarisId: string; itemsAdded: number }> {
   const isMandataris = await mandataris.isValidId(mandatarisId);
   if (!isMandataris) {
     throw new HttpError(
@@ -52,11 +55,31 @@ async function createFromMandataris(mandatarisId: string) {
       STATUS_CODE.BAD_REQUEST,
     );
   }
+  const isNewMandataris = await mandataris.isValidId(newMandatarisId);
+  if (!isNewMandataris) {
+    throw new HttpError(
+      `New mandataris with id ${mandatarisId} not found.`,
+      STATUS_CODE.BAD_REQUEST,
+    );
+  }
 
-  // TODO:
-  // 1. Updated Old lidmaatschap
-  // 2. End current mandataris
-  // 3. Create new lidmaatschap for the mandataris
-  // 4. Create new mandataris with with updated properties => take care of the replacement
-  // 5. Update current fractie for the person
+  const nonDomainResourceProperties =
+    await mandataris.getNonResourceDomainProperties(mandatarisId);
+
+  if (nonDomainResourceProperties.length === 0) {
+    return {
+      mandatarisId: newMandatarisId,
+      itemsAdded: 0,
+    };
+  }
+
+  await mandataris.addPredicatesToMandataris(
+    newMandatarisId,
+    nonDomainResourceProperties,
+  );
+
+  return {
+    mandatarisId: newMandatarisId,
+    itemsAdded: nonDomainResourceProperties.length,
+  };
 }

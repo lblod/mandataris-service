@@ -1,6 +1,7 @@
 import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
 import {
   query,
+  update,
   sparqlEscapeString,
   sparqlEscapeDateTime,
   sparqlEscapeUri,
@@ -19,6 +20,7 @@ import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
+  getSparqlResults,
 } from '../util/sparql-result';
 import { TERM_MANDATARIS_TYPE } from './mandatees-decisions';
 
@@ -26,6 +28,8 @@ export const mandataris = {
   isValidId,
   findCurrentFractieForPerson,
   getPersonWithBestuursperiode,
+  getNonResourceDomainProperties,
+  addPredicatesToMandataris,
 };
 
 async function isValidId(id: string): Promise<boolean> {
@@ -576,4 +580,87 @@ async function getPersonWithBestuursperiode(
     persoonId: first?.persoonId.value as string,
     bestuursperiodeId: first?.bestuursperiodeId.value as string,
   };
+}
+
+async function getNonResourceDomainProperties(
+  mandatarisId: string,
+): Promise<Array<TermProperty>> {
+  const getQuery = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX extlmb:  <http://mu.semte.ch/vocabularies/ext/lmb/>
+    PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX owl: <http://www.w3.org/2002/07/owl#>
+    PREFIX schema: <http://schema.org/>
+    PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+  
+    SELECT ?predicate ?object
+    WHERE {
+      ?mandataris a mandaat:Mandataris;
+        mu:uuid ${sparqlEscapeString(mandatarisId)};
+        ?predicate ?object.
+      
+      FILTER (
+        ?predicate != mu:uuid &&
+        ?predicate != rdf:type &&
+        ?predicate != mandaat:rangorde &&
+        ?predicate != mandaat:start &&
+        ?predicate != mandaat:einde &&
+        ?predicate != ext:datumEedaflegging &&
+        ?predicate != ext:datumMinistrieelBesluit &&
+        ?predicate != ext:generatedFrom &&
+        ?predicate != skos:changeNote &&
+        ?predicate != ext:linkToBesluit &&
+        ?predicate != dct:modified &&       
+        ?predicate != mandaat:isTijdelijkVervangenDoor &&       
+        ?predicate != schema:contactPoint &&      
+        ?predicate != mandaat:beleidsdomein && 
+        ?predicate != org:holds &&
+        ?predicate != org:hasMembership &&
+        ?predicate != mandaat:isBestuurlijkeAliasVan &&
+        ?predicate != mandaat:status &&
+        ?predicate != owl:sameAs &&
+        ?predicate != extlmb:hasPublicationStatus
+      )
+    }
+  `;
+
+  const sparqlResult = await query(getQuery);
+
+  return getSparqlResults(sparqlResult);
+}
+
+async function addPredicatesToMandataris(
+  mandatarisId: string,
+  termProperties: Array<TermProperty>,
+): Promise<void> {
+  const mapPredicateObject = termProperties.map((tp) => {
+    return {
+      predicate: sparqlEscapeUri(tp.predicate.value),
+      object: sparqlEscapeTermValue(tp.object),
+    };
+  });
+  const queryValues = mapPredicateObject.map(
+    (po: { predicate: string; object: string }) =>
+      `( ${po.predicate} ${po.object} )`,
+  );
+  console.log({ termProperties });
+  const updateQuery = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+  
+    INSERT {
+      ?mandataris ?predicate ?object.
+    }
+    WHERE {
+      VALUES (?predicate ?object) { ${queryValues.join(' ')} }
+      ?mandataris a mandaat:Mandataris;
+        mu:uuid ${sparqlEscapeString(mandatarisId)}.
+    }
+  `;
+
+  await update(updateQuery);
 }
