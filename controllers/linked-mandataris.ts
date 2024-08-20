@@ -10,6 +10,8 @@ import {
   getFractieOfMandatarisInGraph,
   getDestinationGraphLinkedMandataris,
   personOfMandatarisExistsInGraph,
+  getDuplicateMandataris,
+  correctLinkedMandataris,
 } from '../data-access/linked-mandataris';
 
 export const checkLinkedMandataris = async (req) => {
@@ -91,6 +93,31 @@ export const createLinkedMandataris = async (req) => {
     destinationGraph,
     getValueBindings(linkedMandaten),
   );
+};
+
+export const correctMistakesLinkedMandataris = async (req) => {
+  const mandatarisId = req.params.id;
+  if (!mandatarisId) {
+    throw new HttpError('No mandataris id provided', 400);
+  }
+
+  const hasAccess = await canAccessMandataris(mandatarisId);
+  if (!hasAccess) {
+    throw new HttpError('No mandataris with given id found', 404);
+  }
+
+  const linkedMandataris = await getDuplicateMandataris(
+    mandatarisId,
+    getValueBindings(linkedMandaten),
+  );
+  if (!linkedMandataris) {
+    throw new HttpError(
+      `No linked mandataris found for id ${mandatarisId}`,
+      404,
+    );
+  }
+
+  correctLinkedMandataris(mandatarisId, linkedMandataris);
 };
 
 function getValueBindings(mapping) {

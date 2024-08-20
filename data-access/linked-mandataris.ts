@@ -1,8 +1,13 @@
 import { HttpError } from '../util/http-error';
 import { query, sparqlEscapeString, sparqlEscapeUri } from 'mu';
 import { updateSudo, querySudo } from '@lblod/mu-auth-sudo';
-import { getBooleanSparqlResult } from '../util/sparql-result';
+import {
+  findFirstSparqlResult,
+  getBooleanSparqlResult,
+} from '../util/sparql-result';
 import { v4 as uuidv4 } from 'uuid';
+import { sparqlEscapeTermValue } from '../util/sparql-escape';
+import { link } from 'fs';
 
 export async function canAccessMandataris(id: string) {
   const sparql = `
@@ -97,6 +102,57 @@ export async function checkDuplicateMandataris(mandatarisId, valueBindings) {
   `;
   const result = await querySudo(q);
   return getBooleanSparqlResult(result);
+}
+
+export async function getDuplicateMandataris(mandatarisId, valueBindings) {
+  const q = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+
+    SELECT DISTINCT ?linkedMandataris WHERE {
+      GRAPH ?g {
+        ?currentMandataris a mandaat:Mandataris ;
+          mu:uuid ${sparqlEscapeString(mandatarisId)} ;
+          org:holds ?currentMandaat ;
+          mandaat:isBestuurlijkeAliasVan ?persoon.
+        ?currentMandaat a mandaat:Mandaat ;
+          org:role ?currentBestuursfunctie ;
+          ^org:hasPost ?currentBestuursOrgaanIT .
+        ?currentBestuursOrgaanIT ext:heeftBestuursperiode ?bestuursperiode ;
+          mandaat:isTijdspecialisatieVan ?currentBestuursorgaan.
+        ?currentBestuursorgaan besluit:bestuurt ?currentBestuurseenheid .
+      }
+      GRAPH ?h {
+        ?linkedMandataris a mandaat:Mandataris ;
+          org:holds ?linkedMandaat ;
+          mandaat:isBestuurlijkeAliasVan ?persoon.
+        ?linkedMandaat a mandaat:Mandaat ;
+          org:role ?linkedBestuursfunctie ;
+          ^org:hasPost ?linkedBestuursOrgaanIT .
+        ?linkedBestuursOrgaanIT ext:heeftBestuursperiode ?bestuursperiode ;
+          mandaat:isTijdspecialisatieVan ?linkedBestuursorgaan.
+        ?linkedBestuursorgaan besluit:bestuurt ?linkedBestuurseenheid .
+      }
+      GRAPH ?public {
+        ?currentBestuurseenheid besluit:werkingsgebied ?werkingsgebied .
+        ?linkedBestuurseenheid besluit:werkingsgebied ?werkingsgebied .
+      }
+      VALUES (?currentBestuursfunctie ?linkedBestuursfunctie) {
+        ${valueBindings}
+      }
+    }
+    LIMIT 1
+  `;
+  const result = await querySudo(q);
+
+  if (result.results.bindings.length == 0) {
+    return null;
+  }
+
+  return result.results.bindings[0].linkedMandataris;
 }
 
 export async function getDestinationGraphLinkedMandataris(
@@ -395,6 +451,63 @@ export async function copyMandataris(
   } catch (error) {
     throw new HttpError(
       `Error occurred while trying to copy fractie of mandataris ${mandatarisId} to graph ${graph}`,
+      500,
+    );
+  }
+}
+
+export async function correctLinkedMandataris(mandatarisId, linkedMandataris) {
+  const escaped = {
+    current: sparqlEscapeString(mandatarisId),
+    linked: sparqlEscapeTermValue(linkedMandataris),
+  };
+  const q = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
+
+    DELETE {
+      GRAPH ?dest {
+        ${escaped.linked} ?mandatarisP ?linkedMandatarisO .
+      }
+    }
+    INSERT {
+      GRAPH ?dest {
+        ${escaped.linked} ?mandatarisP ?ogMandatarisO .
+      }
+    }
+    WHERE {
+      GRAPH ?origin {
+        ?currentMandataris a mandaat:Mandataris ;
+          mu:uuid ${escaped.current} ;
+          ?mandatarisP ?ogMandatarisO .
+      }
+      FILTER (?mandatarisP NOT IN (mu:uuid, org:holds, mandaat:isBestuurlijkeAliasVan, mandaat:rangorde, ext:linkToBesluit, mandaat:isTijdelijkVervangenDoor, mandaat:beleidsdomein, org:hasMembership, extlmb:hasPublicationStatus))
+
+      GRAPH ?dest {
+        ${escaped.linked} a mandaat:Mandataris .
+      }
+      OPTIONAL {
+        GRAPH ?dest {
+          ${escaped.linked} ?mandatarisP ?linkedMandatarisO .
+        }
+      }
+      FILTER NOT EXISTS {
+        ?dest a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+      }
+      FILTER NOT EXISTS {
+        ?origin a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+      }
+    }
+    `;
+
+  try {
+    await updateSudo(q);
+  } catch (error) {
+    throw new HttpError(
+      `Error while trying to update linked mandataris ${linkedMandataris.value} with changes from mandataris ${mandatarisId}`,
       500,
     );
   }

@@ -6,6 +6,7 @@ import { uploadCsv } from '../controllers/mandataris-upload';
 import { CsvUploadState } from '../types';
 import {
   checkLinkedMandataris,
+  correctMistakesLinkedMandataris,
   createLinkedMandataris,
 } from '../controllers/linked-mandataris';
 
@@ -50,6 +51,22 @@ mandatarissenRouter.post(
     try {
       await createLinkedMandataris(req);
       return res.status(201).send({ status: 'ok' });
+    } catch (error) {
+      const message =
+        error.message ??
+        `Something went wrong while creating duplicate mandate for: ${req.params.id}. Please try again later.`;
+      const statusCode = error.status ?? 500;
+      return res.status(statusCode).send({ message });
+    }
+  },
+);
+
+mandatarissenRouter.put(
+  '/:id/correct-linked-mandataris',
+  async (req: Request, res: Response) => {
+    try {
+      await correctMistakesLinkedMandataris(req);
+      return res.status(200).send({ status: 'ok' });
     } catch (error) {
       const message =
         error.message ??
