@@ -8,6 +8,7 @@ import {
   checkLinkedMandataris,
   createLinkedMandataris,
 } from '../controllers/linked-mandataris';
+import { mandatarisUsecase } from '../controllers/mandataris';
 
 const upload = multer({ dest: 'mandataris-uploads/' });
 
@@ -59,5 +60,19 @@ mandatarissenRouter.post(
     }
   },
 );
+
+mandatarissenRouter.post('/:id/copy', async (req: Request, res: Response) => {
+  try {
+    const mandatarisId = req.params.id;
+    await mandatarisUsecase.createFromMandataris(mandatarisId);
+    return res.status(201).send({ status: 'ok' });
+  } catch (error) {
+    const message =
+      error.message ??
+      `Something went wrong while creating a mandataris of mandataris with id: ${req.params.id}.`;
+    const statusCode = error.status ?? 500;
+    return res.status(statusCode).send({ message });
+  }
+});
 
 export { mandatarissenRouter };
