@@ -304,7 +304,7 @@ export async function sameFractieName(ogMandatarisId, linkedMandataris) {
         ?currentFractie regorg:legalName ?fractieNaam .
       }
 
-      GRAPH ?g {
+      GRAPH ?dest {
         ${sparqlEscapeTermValue(linkedMandataris)} a mandaat:Mandataris ;
           org:hasMembership ?linkedLidmaatschap .
         ?linkedLidmaatschap org:organisation ?linkedFractie .
