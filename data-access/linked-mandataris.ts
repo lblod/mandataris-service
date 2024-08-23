@@ -123,7 +123,7 @@ export async function getDuplicateMandataris(
           ^org:hasPost ?currentBestuursOrgaanIT .
         ?currentBestuursOrgaanIT ext:heeftBestuursperiode ?bestuursperiode .
       }
-      GRAPH ${sparqlEscapeTermValue(destinationGraph)} {
+      GRAPH ${sparqlEscapeUri(destinationGraph)} {
         ?linkedMandataris a mandaat:Mandataris ;
           org:holds ?linkedMandaat ;
           mandaat:isBestuurlijkeAliasVan ?persoon.
