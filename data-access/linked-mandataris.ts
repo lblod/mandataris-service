@@ -435,8 +435,10 @@ export async function replaceFractieOfMandataris(
     PREFIX dct: <http://purl.org/dc/terms/>
 
     DELETE {
-      ${escaped.linked} org:hasMembership ?linkedMembership .
-      ?linkedMembership ?linkedMemberP ?linkedMemberO .
+      GRAPH ${escaped.graph} {
+        ${escaped.linked} org:hasMembership ?linkedMembership .
+        ?linkedMembership ?linkedMemberP ?linkedMemberO .
+      }
     }
     INSERT {
       GRAPH ${escaped.graph} {
@@ -466,7 +468,7 @@ export async function replaceFractieOfMandataris(
     await updateSudo(q);
   } catch (error) {
     throw new HttpError(
-      `Error occurred while trying to copy fractie of mandataris ${mandatarisId} to mandataris ${linkedMandataris}`,
+      `Error occurred while trying to copy fractie of mandataris ${mandatarisId} to mandataris ${linkedMandataris.value}`,
       500,
     );
   }
@@ -539,7 +541,7 @@ export async function copyMandataris(
     await updateSudo(q);
   } catch (error) {
     throw new HttpError(
-      `Error occurred while trying to copy fractie of mandataris ${mandatarisId} to graph ${graph}`,
+      `Error occurred while trying to create linked mandataris of ${mandatarisId} in graph ${graph}`,
       500,
     );
   }
