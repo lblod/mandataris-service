@@ -59,6 +59,7 @@ async function findCurrentFractieForPerson(
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
     SELECT DISTINCT ?fractie
     WHERE {
@@ -67,7 +68,7 @@ async function findCurrentFractieForPerson(
           mandaat:isBestuurlijkeAliasVan ?persoon;
           org:holds ?mandaat.
         ?mandaat ^org:hasPost ?bestuursorgaan.
-        ?bestuursorgaan ext:heeftBestuursperiode ?bestuursperiode.
+        ?bestuursorgaan lmb:heeftBestuursperiode ?bestuursperiode.
 
         # Get mandataris in bestuursperiode for that person
         ?mandatarisOfPerson a mandaat:Mandataris;
@@ -77,7 +78,7 @@ async function findCurrentFractieForPerson(
           mandaat:status ?mandatarisStatus.
 
         ?mandaatOfPersonMandataris ^org:hasPost ?bestuursorgaanOfPersonMandataris.
-        ?bestuursorgaanOfPersonMandataris ext:heeftBestuursperiode ?bestuursperiode.
+        ?bestuursorgaanOfPersonMandataris lmb:heeftBestuursperiode ?bestuursperiode.
 
         ?mandatarisOfPerson org:hasMembership ?member.
         ?member org:organisation ?fractie.
@@ -473,22 +474,22 @@ export async function addLinkToDecisionDocumentToMandataris(
     mandatarisType: sparqlEscapeTermValue(TERM_MANDATARIS_TYPE),
   };
   const addQuery = `
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
     DELETE {
       GRAPH ?graph {
-        ${escaped.mandataris} ext:linkToBesluit ?link.
+        ${escaped.mandataris} lmb:linkToBesluit ?link.
       }
     }
     INSERT {
       GRAPH ?graph {
-        ${escaped.mandataris} ext:linkToBesluit ${escaped.link}.
+        ${escaped.mandataris} lmb:linkToBesluit ${escaped.link}.
       }
     }
     WHERE {
       GRAPH ?graph {
         ${escaped.mandataris} a ${escaped.mandatarisType}.
         OPTIONAL {
-          ${escaped.mandataris} ext:linkToBesluit ?link.
+          ${escaped.mandataris} lmb:linkToBesluit ?link.
         }
       }
     }
@@ -558,6 +559,7 @@ async function getPersonWithBestuursperiode(
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
     SELECT DISTINCT ?persoonId ?bestuursperiodeId
     WHERE {
@@ -568,7 +570,7 @@ async function getPersonWithBestuursperiode(
 
       ?persoon mu:uuid ?persoonId.
       ?mandaat ^org:hasPost ?bestuursorgaan.
-      ?bestuursorgaan ext:heeftBestuursperiode ?bestuursperiode.
+      ?bestuursorgaan lmb:heeftBestuursperiode ?bestuursperiode.
       ?bestuursperiode mu:uuid ?bestuursperiodeId.
     }
   `;
@@ -596,13 +598,14 @@ async function getNonResourceDomainProperties(
     PREFIX owl: <http://www.w3.org/2002/07/owl#>
     PREFIX schema: <http://schema.org/>
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-  
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+
     SELECT ?predicate ?object
     WHERE {
       ?mandataris a mandaat:Mandataris;
         mu:uuid ${sparqlEscapeString(mandatarisId)};
         ?predicate ?object.
-      
+
       FILTER (
         ?predicate != mu:uuid &&
         ?predicate != rdf:type &&
@@ -613,11 +616,11 @@ async function getNonResourceDomainProperties(
         ?predicate != ext:datumMinistrieelBesluit &&
         ?predicate != ext:generatedFrom &&
         ?predicate != skos:changeNote &&
-        ?predicate != ext:linkToBesluit &&
-        ?predicate != dct:modified &&       
-        ?predicate != mandaat:isTijdelijkVervangenDoor &&       
-        ?predicate != schema:contactPoint &&      
-        ?predicate != mandaat:beleidsdomein && 
+        ?predicate != lmb:linkToBesluit &&
+        ?predicate != dct:modified &&
+        ?predicate != mandaat:isTijdelijkVervangenDoor &&
+        ?predicate != schema:contactPoint &&
+        ?predicate != mandaat:beleidsdomein &&
         ?predicate != org:holds &&
         ?predicate != org:hasMembership &&
         ?predicate != mandaat:isBestuurlijkeAliasVan &&
@@ -651,7 +654,7 @@ async function addPredicatesToMandataris(
   const updateQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-  
+
     INSERT {
       ?mandataris ?predicate ?object.
     }
