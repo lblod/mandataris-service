@@ -13,7 +13,7 @@ export function sparqlEscapeTermValue(term: Term): string {
     [TERM_TYPE.URI]: () => sparqlEscapeUri(term.value),
     [TERM_TYPE.STRING]: () => sparqlEscapeString(term.value),
     [TERM_TYPE.LITERAL]: () => sparqlEscapeString(term.value),
-    [TERM_TYPE.TYPED_LITERAL]: () => term.value,
+    [TERM_TYPE.TYPED_LITERAL]: () => sparqlEscapeString(term.value),
     [TERM_TYPE.DATETIME]: () => sparqlEscapeDateTime(term.value),
   };
 

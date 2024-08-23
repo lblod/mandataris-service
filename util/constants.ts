@@ -9,6 +9,7 @@ export enum PUBLICATION_STATUS {
 
 export enum STATUS_CODE {
   OK = 200,
+  CREATED = 201,
   INTERNAL_SERVER_ERROR = 500,
   BAD_REQUEST = 400,
 }
