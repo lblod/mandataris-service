@@ -345,7 +345,6 @@ export async function copyMandataris(
     PREFIX regorg: <https://www.w3.org/ns/regorg#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
     PREFIX dct: <http://purl.org/dc/terms/>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
@@ -355,7 +354,7 @@ export async function copyMandataris(
         ${sparqlEscapeUri(newMandatarisUri)} a mandaat:Mandataris ;
           mu:uuid ${sparqlEscapeString(newMandatarisUuid)} ;
           org:holds ?linkedMandaat ;
-          extlmb:hasPublicationStatus <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/588ce330-4abb-4448-9776-a17d9305df07> ;
+          lmb:hasPublicationStatus <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/588ce330-4abb-4448-9776-a17d9305df07> ;
           org:hasMembership ${sparqlEscapeUri(membershipUri)} ;
           ?mandatarisp ?mandatariso .
         ${sparqlEscapeUri(membershipUri)} ?memberp ?membero ;
@@ -388,7 +387,7 @@ export async function copyMandataris(
         ${valueBindings}
       }
 
-      FILTER (?mandatarisp NOT IN (mu:uuid, org:holds, mandaat:rangorde, lmb:linkToBesluit, mandaat:isTijdelijkVervangenDoor, mandaat:beleidsdomein, org:hasMembership, extlmb:hasPublicationStatus, dct:modified))
+      FILTER (?mandatarisp NOT IN (mu:uuid, org:holds, mandaat:rangorde, lmb:linkToBesluit, mandaat:isTijdelijkVervangenDoor, mandaat:beleidsdomein, org:hasMembership, lmb:hasPublicationStatus, dct:modified))
       FILTER (?memberp NOT IN (mu:uuid, org:organisation, dct:modified))
     }
     `;

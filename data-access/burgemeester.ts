@@ -171,7 +171,7 @@ export const createBurgemeesterFromScratch = async (
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX mps: <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/>
-    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
     PREFIX org: <http://www.w3.org/ns/org#>
 
     INSERT DATA {
@@ -182,7 +182,7 @@ export const createBurgemeesterFromScratch = async (
           mandaat:isBestuurlijkeAliasVan ${sparqlEscapeUri(burgemeesterUri)} ;
           mandaat:start ${sparqlEscapeDateTime(date)} ;
           mandaat:status <http://data.vlaanderen.be/id/concept/MandatarisStatusCode/21063a5b-912c-4241-841c-cc7fb3c73e75> ;
-          extlmb:hasPublicationStatus mps:9d8fd14d-95d0-4f5e-b3a5-a56a126227b6 .
+          lmb:hasPublicationStatus mps:9d8fd14d-95d0-4f5e-b3a5-a56a126227b6 .
         ${benoemingUri} ext:approves ${formattedNewMandatarisUri} .
       }
     }`);

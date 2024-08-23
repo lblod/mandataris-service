@@ -119,7 +119,6 @@ async function ocmwHasFractions(installatievergaderingId: string) {
   PREFIX mandaat:	<http://data.vlaanderen.be/ns/mandaat#>
   PREFIX besluit:	<http://data.vlaanderen.be/ns/besluit#>
   PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-  PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
   PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
   PREFIX bestuurseenheidscode: <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/>
   PREFIX org: <http://www.w3.org/ns/org#>
@@ -154,7 +153,6 @@ async function getExistingGemeenteFractions(installatieVergaderingId: string) {
   const sparql = `PREFIX mandaat:	<http://data.vlaanderen.be/ns/mandaat#>
   PREFIX besluit:	<http://data.vlaanderen.be/ns/besluit#>
   PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-  PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
   PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
   PREFIX bestuurseenheidscode: <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/>
   PREFIX org: <http://www.w3.org/ns/org#>
@@ -201,7 +199,6 @@ async function moveMandatarisesWithFractions(installatievergaderingId: string) {
     PREFIX mandaat:	<http://data.vlaanderen.be/ns/mandaat#>
     PREFIX besluit:	<http://data.vlaanderen.be/ns/besluit#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     PREFIX bestuurseenheidscode: <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/>
     PREFIX org: <http://www.w3.org/ns/org#>
@@ -251,7 +248,6 @@ async function moveMandatarisesWithoutFractions(
     PREFIX mandaat:	<http://data.vlaanderen.be/ns/mandaat#>
     PREFIX besluit:	<http://data.vlaanderen.be/ns/besluit#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     PREFIX bestuurseenheidscode: <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/>
     PREFIX org: <http://www.w3.org/ns/org#>
@@ -295,7 +291,6 @@ async function movePersons(installatievergaderingId: string) {
   PREFIX mandaat:     <http://data.vlaanderen.be/ns/mandaat#>
   PREFIX besluit:     <http://data.vlaanderen.be/ns/besluit#>
   PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-  PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
   PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
   PREFIX bestuurseenheidscode: <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/>
   PREFIX org: <http://www.w3.org/ns/org#>

@@ -244,7 +244,7 @@ export const createMandatarisInstance = async (
   const q = `
   PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
   PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
-  PREFIX extlmb:  <http://mu.semte.ch/vocabularies/ext/lmb/>
+  PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
   PREFIX mps: <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/>
   PREFIX org: <http://www.w3.org/ns/org#>
   PREFIX dct: <http://purl.org/dc/terms/>
@@ -264,7 +264,7 @@ export const createMandatarisInstance = async (
         # effectief
         mandaat:status <http://data.vlaanderen.be/id/concept/MandatarisStatusCode/21063a5b-912c-4241-841c-cc7fb3c73e75> ;
         # bekrachtigd
-        extlmb:hasPublicationStatus mps:9d8fd14d-95d0-4f5e-b3a5-a56a126227b6 .
+        lmb:hasPublicationStatus mps:9d8fd14d-95d0-4f5e-b3a5-a56a126227b6 .
 
         ${membershipTriples}
     }
@@ -337,14 +337,14 @@ export const copyFromPreviousMandataris = async (
   const uuid = uuidv4();
   const newMandatarisUri = `http://mu.semte.ch/vocabularies/ext/mandatarissen/${uuid}`;
 
-  const filter = `FILTER (?p NOT IN (mandaat:start, extlmb:hasPublicationStatus, mu:uuid
+  const filter = `FILTER (?p NOT IN (mandaat:start, lmb:hasPublicationStatus, mu:uuid
     ${mandate ? ', org:holds' : ''}))`;
 
   await updateSudo(`
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX mps: <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/>
-    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX org: <http://www.w3.org/ns/org#>
 
@@ -358,7 +358,7 @@ export const copyFromPreviousMandataris = async (
           mu:uuid ${sparqlEscapeString(uuid)} ;
           mandaat:start ${sparqlEscapeDateTime(date)} ;
           # immediately make this status bekrachtigd
-          extlmb:hasPublicationStatus mps:9d8fd14d-95d0-4f5e-b3a5-a56a126227b6.
+          lmb:hasPublicationStatus mps:9d8fd14d-95d0-4f5e-b3a5-a56a126227b6.
       }
     } WHERE {
       GRAPH ${sparqlEscapeTermValue(orgGraph)} {
@@ -517,23 +517,23 @@ export async function updatePublicationStatusOfMandataris(
     mandatarisType: sparqlEscapeTermValue(TERM_MANDATARIS_TYPE),
   };
   const updateStatusQuery = `
-    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
     DELETE {
       GRAPH ?graph {
-        ${escaped.mandataris} extlmb:hasPublicationStatus ?status.
+        ${escaped.mandataris} lmb:hasPublicationStatus ?status.
       }
     }
     INSERT {
       GRAPH ?graph {
-        ${escaped.mandataris} extlmb:hasPublicationStatus ${escaped.status}.
+        ${escaped.mandataris} lmb:hasPublicationStatus ${escaped.status}.
       }
     }
     WHERE {
       GRAPH ?graph {
         ${escaped.mandataris} a ${escaped.mandatarisType}.
         OPTIONAL {
-          ${escaped.mandataris} extlmb:hasPublicationStatus ?status.
+          ${escaped.mandataris} lmb:hasPublicationStatus ?status.
         }
       }
     }
@@ -591,7 +591,6 @@ async function getNonResourceDomainProperties(
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX org: <http://www.w3.org/ns/org#>
-    PREFIX extlmb:  <http://mu.semte.ch/vocabularies/ext/lmb/>
     PREFIX dct: <http://purl.org/dc/terms/>
     PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
@@ -626,7 +625,7 @@ async function getNonResourceDomainProperties(
         ?predicate != mandaat:isBestuurlijkeAliasVan &&
         ?predicate != mandaat:status &&
         ?predicate != owl:sameAs &&
-        ?predicate != extlmb:hasPublicationStatus
+        ?predicate != lmb:hasPublicationStatus
       )
     }
   `;
