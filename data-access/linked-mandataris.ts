@@ -543,6 +543,7 @@ export async function copyMandataris(
       500,
     );
   }
+  return newMandatarisUri;
 }
 
 export async function correctLinkedMandataris(mandatarisId, linkedMandataris) {
@@ -597,6 +598,44 @@ export async function correctLinkedMandataris(mandatarisId, linkedMandataris) {
   } catch (error) {
     throw new HttpError(
       `Error while trying to update linked mandataris ${linkedMandataris.value} with changes from mandataris ${mandatarisId}`,
+      500,
+    );
+  }
+}
+
+export async function copyExtraValues(oldMandataris, newMandataris) {
+  const escaped = {
+    old: sparqlEscapeTermValue(oldMandataris),
+    new: sparqlEscapeUri(newMandataris),
+  };
+  const q = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+
+    INSERT {
+      GRAPH ?graph {
+        ${escaped.new} ?p ?o .
+      }
+    }
+    WHERE {
+      GRAPH ?graph {
+        ${escaped.old} a mandaat:Mandataris ;
+          ?p ?o .
+      }
+      FILTER NOT EXISTS {
+        ${escaped.new} ?p ?newO .
+
+      }
+      FILTER NOT EXISTS {
+        ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+      }
+    }
+    `;
+
+  try {
+    await updateSudo(q);
+  } catch (error) {
+    throw new HttpError(
+      `Error while trying to copy values from mandataris ${escaped.old} to mandataris ${escaped.new}`,
       500,
     );
   }

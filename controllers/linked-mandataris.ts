@@ -14,6 +14,7 @@ import {
   correctLinkedMandataris,
   replaceFractieOfMandataris,
   sameFractieName,
+  copyExtraValues,
 } from '../data-access/linked-mandataris';
 import { endExistingMandataris } from '../data-access/mandataris';
 
@@ -90,12 +91,13 @@ export const createLinkedMandataris = async (req) => {
   }
 
   // Add duplicate mandatee
-  copyMandataris(
+  const newMandataris = await copyMandataris(
     mandatarisId,
     fractie,
     destinationGraph,
     getValueBindings(linkedMandaten),
   );
+  return newMandataris;
 };
 
 export const correctMistakesLinkedMandataris = async (req) => {
@@ -195,14 +197,15 @@ export const changeStateLinkedMandataris = async (req) => {
   }
 
   // Add duplicate mandatee
-  copyMandataris(
+  const newMandataris = await copyMandataris(
     mandatarisId,
     fractie,
     destinationGraph,
     getValueBindings(linkedMandaten),
   );
 
-  // Copy over values that were in the original linked mandatee
+  // Copy over values that were in the original linked mandatee but are not set in the new mandatee
+  await copyExtraValues(linkedMandataris, newMandataris);
 
   // End original linked mandatee
   const endDate = new Date();
