@@ -123,7 +123,7 @@ export async function getDuplicateMandataris(
           ^org:hasPost ?currentBestuursOrgaanIT .
         ?currentBestuursOrgaanIT ext:heeftBestuursperiode ?bestuursperiode .
       }
-      GRAPH ${sparqlEscapeUri(destinationGraph)} {
+      GRAPH ${sparqlEscapeTermValue(destinationGraph)} {
         ?linkedMandataris a mandaat:Mandataris ;
           org:holds ?linkedMandaat ;
           mandaat:isBestuurlijkeAliasVan ?persoon.
@@ -197,7 +197,7 @@ export async function getDestinationGraphLinkedMandataris(
   if (result.results.bindings.length == 0) {
     return null;
   }
-  return result.results.bindings[0].dest.value;
+  return result.results.bindings[0].dest;
 }
 
 export async function findPersonForMandataris(mandatarisId) {
@@ -234,7 +234,7 @@ export async function personOfMandatarisExistsInGraph(mandatarisId, graph) {
           mandaat:isBestuurlijkeAliasVan ?persoon.
       }
 
-      GRAPH ${sparqlEscapeUri(graph)} {
+      GRAPH ${sparqlEscapeTermValue(graph)} {
         ?persoon a person:Person .
       }
     }
@@ -252,7 +252,7 @@ export async function copyPersonOfMandataris(mandatarisId, graph) {
     PREFIX adms: <http://www.w3.org/ns/adms#>
 
     INSERT {
-      GRAPH ${sparqlEscapeUri(graph)} {
+      GRAPH ${sparqlEscapeTermValue(graph)} {
         ?person ?p ?o .
         ?geboorte ?geboortep ?geboorteo .
         ?id ?idp ?ido .
@@ -341,7 +341,7 @@ export async function getFractieOfMandatarisInGraph(mandatarisId, graph) {
           ext:isFractieType <http://data.vlaanderen.be/id/concept/Fractietype/Samenwerkingsverband>
       }
 
-      GRAPH ${sparqlEscapeUri(graph)} {
+      GRAPH ${sparqlEscapeTermValue(graph)} {
         ?doelFractie a mandaat:Fractie ;
           regorg:legalName ?fractieNaam .
       }
@@ -368,7 +368,7 @@ export async function copyFractieOfMandataris(mandatarisId, graph) {
     PREFIX dct: <http://purl.org/dc/terms/>
 
     INSERT {
-      GRAPH ${sparqlEscapeUri(graph)} {
+      GRAPH ${sparqlEscapeTermValue(graph)} {
         ${sparqlEscapeUri(fractieUri)} ?p ?o ;
           mu:uuid ${sparqlEscapeString(fractieUuid)} ;
           org:memberOf ?linkedBestuursorgaanIT ;
@@ -386,7 +386,7 @@ export async function copyFractieOfMandataris(mandatarisId, graph) {
         ?currentBestuursorgaanIT ext:heeftBestuursperiode ?bestuursperiode .
       }
 
-      GRAPH ${sparqlEscapeUri(graph)} {
+      GRAPH ${sparqlEscapeTermValue(graph)} {
         ?linkedBestuursorgaanIT ext:heeftBestuursperiode ?bestuursperiode ;
           mandaat:isTijdspecialisatieVan ?linkedBestuursorgaan .
         ?linkedBestuursorgaan besluit:bestuurt ?linkedBestuurseenheid .
@@ -425,7 +425,7 @@ export async function replaceFractieOfMandataris(
     fractie: sparqlEscapeUri(fractie),
     membershipUri: sparqlEscapeUri(membershipUri),
     membershipId: sparqlEscapeString(membershipUuid),
-    graph: sparqlEscapeUri(graph),
+    graph: sparqlEscapeTermValue(graph),
   };
 
   const q = `
@@ -493,7 +493,7 @@ export async function copyMandataris(
     PREFIX dct: <http://purl.org/dc/terms/>
 
     INSERT {
-      GRAPH ${sparqlEscapeUri(graph)} {
+      GRAPH ${sparqlEscapeTermValue(graph)} {
         ${sparqlEscapeUri(newMandatarisUri)} a mandaat:Mandataris ;
           mu:uuid ${sparqlEscapeString(newMandatarisUuid)} ;
           org:holds ?linkedMandaat ;
@@ -519,7 +519,7 @@ export async function copyMandataris(
         ?membership ?memberp ?membero .
       }
 
-      GRAPH ${sparqlEscapeUri(graph)} {
+      GRAPH ${sparqlEscapeTermValue(graph)} {
         ?linkedMandaat a mandaat:Mandaat ;
           org:role ?linkedBestuursfunctie ;
           ^org:hasPost ?linkedBestuursOrgaanIT .
