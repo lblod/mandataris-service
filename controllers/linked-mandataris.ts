@@ -15,6 +15,7 @@ import {
   replaceFractieOfMandataris,
   sameFractieName,
 } from '../data-access/linked-mandataris';
+import { endExistingMandataris } from '../data-access/mandataris';
 
 export const checkLinkedMandataris = async (req) => {
   const mandatarisId = req.params.id;
@@ -149,6 +150,63 @@ export const correctMistakesLinkedMandataris = async (req) => {
   }
 
   correctLinkedMandataris(mandatarisId, linkedMandataris);
+};
+
+export const changeStateLinkedMandataris = async (req) => {
+  const mandatarisId = req.params.id;
+  if (!mandatarisId) {
+    throw new HttpError('No mandataris id provided', 400);
+  }
+
+  const hasAccess = await canAccessMandataris(mandatarisId);
+  if (!hasAccess) {
+    throw new HttpError('No mandataris with given id found', 404);
+  }
+
+  const destinationGraph = await getDestinationGraphLinkedMandataris(
+    mandatarisId,
+    getValueBindings(linkedBestuurseenheden),
+  );
+  if (!destinationGraph) {
+    throw new HttpError('No destination graph found', 500);
+  }
+
+  const linkedMandataris = await getDuplicateMandataris(
+    mandatarisId,
+    destinationGraph,
+    getValueBindings(linkedMandaten),
+  );
+  if (!linkedMandataris) {
+    throw new HttpError(
+      `No linked mandataris found for id ${mandatarisId}`,
+      404,
+    );
+  }
+
+  // Check if fractie exists
+  let fractie = await getFractieOfMandatarisInGraph(
+    mandatarisId,
+    destinationGraph,
+  );
+
+  // Add fractie if it does not exist
+  if (!fractie) {
+    fractie = await copyFractieOfMandataris(mandatarisId, destinationGraph);
+  }
+
+  // Add duplicate mandatee
+  copyMandataris(
+    mandatarisId,
+    fractie,
+    destinationGraph,
+    getValueBindings(linkedMandaten),
+  );
+
+  // Copy over values that were in the original linked mandatee
+
+  // End original linked mandatee
+  const endDate = new Date();
+  endExistingMandataris(destinationGraph, linkedMandataris, endDate);
 };
 
 function getValueBindings(mapping) {
