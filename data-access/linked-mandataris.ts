@@ -100,7 +100,11 @@ export async function checkDuplicateMandataris(mandatarisId, valueBindings) {
   return getBooleanSparqlResult(result);
 }
 
-export async function getDuplicateMandataris(mandatarisId, valueBindings) {
+export async function getDuplicateMandataris(
+  mandatarisId,
+  destinationGraph,
+  valueBindings,
+) {
   const q = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
@@ -117,24 +121,16 @@ export async function getDuplicateMandataris(mandatarisId, valueBindings) {
         ?currentMandaat a mandaat:Mandaat ;
           org:role ?currentBestuursfunctie ;
           ^org:hasPost ?currentBestuursOrgaanIT .
-        ?currentBestuursOrgaanIT ext:heeftBestuursperiode ?bestuursperiode ;
-          mandaat:isTijdspecialisatieVan ?currentBestuursorgaan.
-        ?currentBestuursorgaan besluit:bestuurt ?currentBestuurseenheid .
+        ?currentBestuursOrgaanIT ext:heeftBestuursperiode ?bestuursperiode .
       }
-      GRAPH ?h {
+      GRAPH ${sparqlEscapeTermValue(destinationGraph)} {
         ?linkedMandataris a mandaat:Mandataris ;
           org:holds ?linkedMandaat ;
           mandaat:isBestuurlijkeAliasVan ?persoon.
         ?linkedMandaat a mandaat:Mandaat ;
           org:role ?linkedBestuursfunctie ;
           ^org:hasPost ?linkedBestuursOrgaanIT .
-        ?linkedBestuursOrgaanIT ext:heeftBestuursperiode ?bestuursperiode ;
-          mandaat:isTijdspecialisatieVan ?linkedBestuursorgaan.
-        ?linkedBestuursorgaan besluit:bestuurt ?linkedBestuurseenheid .
-      }
-      GRAPH ?public {
-        ?currentBestuurseenheid besluit:werkingsgebied ?werkingsgebied .
-        ?linkedBestuurseenheid besluit:werkingsgebied ?werkingsgebied .
+        ?linkedBestuursOrgaanIT ext:heeftBestuursperiode ?bestuursperiode .
       }
       VALUES (?currentBestuursfunctie ?linkedBestuursfunctie) {
         ${valueBindings}
@@ -292,6 +288,41 @@ export async function copyPersonOfMandataris(mandatarisId, graph) {
   }
 }
 
+export async function sameFractieName(ogMandatarisId, linkedMandataris) {
+  const q = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX regorg: <https://www.w3.org/ns/regorg#>
+
+    ASK {
+      GRAPH ?origin {
+        ?currentMandataris a mandaat:Mandataris ;
+          mu:uuid ${sparqlEscapeString(ogMandatarisId)} ;
+          org:hasMembership ?currentLidmaatschap .
+        ?currentLidmaatschap org:organisation ?currentFractie .
+        ?currentFractie regorg:legalName ?fractieNaam .
+      }
+
+      GRAPH ?g {
+        ${sparqlEscapeTermValue(linkedMandataris)} a mandaat:Mandataris ;
+          org:hasMembership ?linkedLidmaatschap .
+        ?linkedLidmaatschap org:organisation ?linkedFractie .
+        ?linkedFractie regorg:legalName ?fractieNaam .
+      }
+
+      FILTER NOT EXISTS {
+        ?origin a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+      }
+      FILTER NOT EXISTS {
+        ?dest a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+      }
+    }`;
+
+  const result = await querySudo(q);
+  return getBooleanSparqlResult(result);
+}
+
 export async function getFractieOfMandatarisInGraph(mandatarisId, graph) {
   const q = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -377,6 +408,68 @@ export async function copyFractieOfMandataris(mandatarisId, graph) {
     );
   }
   return fractieUri;
+}
+
+export async function replaceFractieOfMandataris(
+  mandatarisId,
+  linkedMandataris,
+  fractie,
+  graph,
+) {
+  const membershipUuid = uuidv4();
+  const membershipUri = `http://data.lblod.info/id/lidmaatschappen/${membershipUuid}`;
+
+  const escaped = {
+    current: sparqlEscapeString(mandatarisId),
+    linked: sparqlEscapeTermValue(linkedMandataris),
+    fractie: sparqlEscapeUri(fractie),
+    membershipUri: sparqlEscapeUri(membershipUri),
+    membershipId: sparqlEscapeString(membershipUuid),
+    graph: sparqlEscapeUri(graph),
+  };
+
+  const q = `
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX dct: <http://purl.org/dc/terms/>
+
+    DELETE {
+      ${escaped.linked} org:hasMembership ?linkedMembership .
+      ?linkedMembership ?linkedMemberP ?linkedMemberO .
+    }
+    INSERT {
+      GRAPH ${escaped.graph} {
+        ${escaped.linked} org:hasMembership ${escaped.membershipUri} .
+        ${escaped.membershipUri} ?ogMemberP ?ogMemberO ;
+          mu:uuid ${escaped.membershipId} ;
+          org:organisation ${escaped.fractie} .
+      }
+    }
+    WHERE {
+      GRAPH ?origin {
+        ?currentMandataris a mandaat:Mandataris ;
+          mu:uuid ${sparqlEscapeString(mandatarisId)} ;
+          org:hasMembership ?ogMembership .
+        ?ogMembership ?ogMemberP ?ogMemberO .
+      }
+      GRAPH ${escaped.graph} {
+        ${escaped.linked} a mandaat:Mandataris ;
+          org:hasMembership ?linkedMembership .
+        ?linkedMembership ?linkedMemberP ?linkedMemberO .
+      }
+
+      FILTER (?ogMemberP NOT IN (mu:uuid, org:organisation, dct:modified))
+    }
+    `;
+  try {
+    await updateSudo(q);
+  } catch (error) {
+    throw new HttpError(
+      `Error occurred while trying to copy fractie of mandataris ${mandatarisId} to mandataris ${linkedMandataris}`,
+      500,
+    );
+  }
 }
 
 export async function copyMandataris(

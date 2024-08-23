@@ -12,6 +12,8 @@ import {
   personOfMandatarisExistsInGraph,
   getDuplicateMandataris,
   correctLinkedMandataris,
+  replaceFractieOfMandataris,
+  sameFractieName,
 } from '../data-access/linked-mandataris';
 
 export const checkLinkedMandataris = async (req) => {
@@ -106,14 +108,43 @@ export const correctMistakesLinkedMandataris = async (req) => {
     throw new HttpError('No mandataris with given id found', 404);
   }
 
+  const destinationGraph = await getDestinationGraphLinkedMandataris(
+    mandatarisId,
+    getValueBindings(linkedBestuurseenheden),
+  );
+  if (!destinationGraph) {
+    throw new HttpError('No destination graph found', 500);
+  }
+
   const linkedMandataris = await getDuplicateMandataris(
     mandatarisId,
+    destinationGraph,
     getValueBindings(linkedMandaten),
   );
   if (!linkedMandataris) {
     throw new HttpError(
       `No linked mandataris found for id ${mandatarisId}`,
       404,
+    );
+  }
+
+  // Fractie needs to be handled differently because of the complex relation
+  const sameFractie = await sameFractieName(mandatarisId, linkedMandataris);
+  if (!sameFractie) {
+    let fractie = await getFractieOfMandatarisInGraph(
+      mandatarisId,
+      destinationGraph,
+    );
+
+    if (!fractie) {
+      fractie = await copyFractieOfMandataris(mandatarisId, destinationGraph);
+    }
+
+    replaceFractieOfMandataris(
+      mandatarisId,
+      linkedMandataris,
+      fractie,
+      destinationGraph,
     );
   }
 
