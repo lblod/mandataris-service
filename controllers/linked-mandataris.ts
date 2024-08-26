@@ -17,6 +17,10 @@ import {
   copyExtraValues,
 } from '../data-access/linked-mandataris';
 import { endExistingMandataris } from '../data-access/mandataris';
+import {
+  fetchUserIdFromSession,
+  saveHistoryItem,
+} from '../data-access/form-queries';
 
 export const checkLinkedMandataris = async (req) => {
   const mandatarisId = req.params.id;
@@ -52,6 +56,11 @@ export const createLinkedMandataris = async (req) => {
   const mandatarisId = req.params.id;
   if (!mandatarisId) {
     throw new HttpError('No mandataris id provided', 400);
+  }
+
+  const userId = await fetchUserIdFromSession(req.get('mu-session-id'));
+  if (!userId) {
+    throw new HttpError('Not authenticated', 401);
   }
 
   const hasAccess = await canAccessMandataris(mandatarisId);
@@ -97,6 +106,14 @@ export const createLinkedMandataris = async (req) => {
     destinationGraph,
     getValueBindings(linkedMandaten),
   );
+
+  // Add history item
+  await saveHistoryItem(
+    newMandataris,
+    userId,
+    `Created as linked mandate for ${mandatarisId}`,
+  );
+
   return newMandataris;
 };
 
@@ -104,6 +121,11 @@ export const correctMistakesLinkedMandataris = async (req) => {
   const mandatarisId = req.params.id;
   if (!mandatarisId) {
     throw new HttpError('No mandataris id provided', 400);
+  }
+
+  const userId = await fetchUserIdFromSession(req.get('mu-session-id'));
+  if (!userId) {
+    throw new HttpError('Not authenticated', 401);
   }
 
   const hasAccess = await canAccessMandataris(mandatarisId);
@@ -152,12 +174,24 @@ export const correctMistakesLinkedMandataris = async (req) => {
   }
 
   correctLinkedMandataris(mandatarisId, linkedMandataris);
+
+  // Add history item
+  await saveHistoryItem(
+    linkedMandataris.value,
+    userId,
+    `Corrected in linked mandate: ${mandatarisId}`,
+  );
 };
 
 export const changeStateLinkedMandataris = async (req) => {
   const mandatarisId = req.params.id;
   if (!mandatarisId) {
     throw new HttpError('No mandataris id provided', 400);
+  }
+
+  const userId = await fetchUserIdFromSession(req.get('mu-session-id'));
+  if (!userId) {
+    throw new HttpError('Not authenticated', 401);
   }
 
   const hasAccess = await canAccessMandataris(mandatarisId);
@@ -206,6 +240,13 @@ export const changeStateLinkedMandataris = async (req) => {
 
   // Copy over values that were in the original linked mandatee but are not set in the new mandatee
   await copyExtraValues(linkedMandataris, newMandataris);
+
+  // Add history item
+  await saveHistoryItem(
+    linkedMandataris.value,
+    userId,
+    `Created as update state for linked mandate: ${mandatarisId}`,
+  );
 
   // End original linked mandatee
   const endDate = new Date();
