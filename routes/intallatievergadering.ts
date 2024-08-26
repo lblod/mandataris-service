@@ -27,11 +27,11 @@ installatievergaderingRouter.post(
 
 async function canSeeInstallatievergadering(id: string) {
   const sparql = `
-  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
   PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+  PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
   SELECT * WHERE {
-    ?s a ext:Installatievergadering .
+    ?s a lmb:Installatievergadering .
     ?s mu:uuid ${sparqlEscapeString(id)} .
   } LIMIT 1`;
   const result = await query(sparql);
@@ -81,6 +81,7 @@ async function moveFracties(installatievergaderingId: string) {
   PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
   PREFIX regorg: <https://www.w3.org/ns/regorg#>
   PREFIX org: <http://www.w3.org/ns/org#>
+  PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
   INSERT {
     GRAPH ?target {
@@ -93,7 +94,7 @@ async function moveFracties(installatievergaderingId: string) {
     }
   } WHERE {
     GRAPH ?origin {
-      ?installatieVergadering ext:heeftBestuursperiode ?period.
+      ?installatieVergadering lmb:heeftBestuursperiode ?period.
       ?installatieVergadering mu:uuid ${escapedId} .
       ?bestuursorgaan ext:origineleBestuursorgaan ?realOrgT.
     }
@@ -118,20 +119,20 @@ async function ocmwHasFractions(installatievergaderingId: string) {
   PREFIX mandaat:	<http://data.vlaanderen.be/ns/mandaat#>
   PREFIX besluit:	<http://data.vlaanderen.be/ns/besluit#>
   PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-  PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
   PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
   PREFIX bestuurseenheidscode: <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/>
   PREFIX org: <http://www.w3.org/ns/org#>
   PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
   PREFIX regorg: <https://www.w3.org/ns/regorg#>
+  PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
   SELECT DISTINCT ?target ?name WHERE {
     GRAPH ?origin {
-      ?installatieVergadering ext:heeftBestuursperiode ?period.
+      ?installatieVergadering lmb:heeftBestuursperiode ?period.
       ?installatieVergadering mu:uuid ${escapedId} .
       ?bestuursorgaan ext:origineleBestuursorgaan ?realOrg.
       ?bestuursorgaan mandaat:isTijdspecialisatieVan ?org.
-      ?bestuursorgaan ext:heeftBestuursperiode ?period.
+      ?bestuursorgaan lmb:heeftBestuursperiode ?period.
     }
     GRAPH ?target {
       ?realOrg a ?type.
@@ -152,16 +153,16 @@ async function getExistingGemeenteFractions(installatieVergaderingId: string) {
   const sparql = `PREFIX mandaat:	<http://data.vlaanderen.be/ns/mandaat#>
   PREFIX besluit:	<http://data.vlaanderen.be/ns/besluit#>
   PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-  PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
   PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
   PREFIX bestuurseenheidscode: <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/>
   PREFIX org: <http://www.w3.org/ns/org#>
   PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
   PREFIX regorg: <https://www.w3.org/ns/regorg#>
+  PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
   SELECT DISTINCT ?fractie ?name ?type WHERE {
     GRAPH ?origin {
-      ?installatieVergadering ext:heeftBestuursperiode ?period.
+      ?installatieVergadering lmb:heeftBestuursperiode ?period.
       ?installatieVergadering mu:uuid ${escapedId} .
       ?bestuursorgaan ext:origineleBestuursorgaan ?realOrg.
       ?bestuursorgaan mandaat:isTijdspecialisatieVan ?org.
@@ -170,7 +171,7 @@ async function getExistingGemeenteFractions(installatieVergaderingId: string) {
       OPTIONAL {
         ?fractie ext:fractieType ?type.
       }
-      ?bestuursorgaan ext:heeftBestuursperiode ?period.
+      ?bestuursorgaan lmb:heeftBestuursperiode ?period.
     }
     FILTER NOT EXISTS {
       ?origin a <http://mu.semte.ch/vocabularies/ext/FormHistory>
@@ -198,12 +199,12 @@ async function moveMandatarisesWithFractions(installatievergaderingId: string) {
     PREFIX mandaat:	<http://data.vlaanderen.be/ns/mandaat#>
     PREFIX besluit:	<http://data.vlaanderen.be/ns/besluit#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     PREFIX bestuurseenheidscode: <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX regorg: <https://www.w3.org/ns/regorg#>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
     INSERT {
       GRAPH ?target {
@@ -213,10 +214,10 @@ async function moveMandatarisesWithFractions(installatievergaderingId: string) {
       }
     } WHERE {
       GRAPH ?origin {
-        ?installatieVergadering ext:heeftBestuursperiode ?period.
+        ?installatieVergadering lmb:heeftBestuursperiode ?period.
         ?installatieVergadering mu:uuid ${escapedId} .
         ?bestuursorgaanT ext:origineleBestuursorgaan ?realOrgT.
-        ?bestuursorgaanT ext:heeftBestuursperiode ?period.
+        ?bestuursorgaanT lmb:heeftBestuursperiode ?period.
         ?bestuursorgaanT org:hasPost ?mandaat.
         ?mandataris org:holds ?mandaat.
         ?mandataris ?p ?o.
@@ -247,12 +248,12 @@ async function moveMandatarisesWithoutFractions(
     PREFIX mandaat:	<http://data.vlaanderen.be/ns/mandaat#>
     PREFIX besluit:	<http://data.vlaanderen.be/ns/besluit#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     PREFIX bestuurseenheidscode: <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX regorg: <https://www.w3.org/ns/regorg#>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
     INSERT {
       GRAPH ?target {
@@ -260,10 +261,10 @@ async function moveMandatarisesWithoutFractions(
       }
     } WHERE {
       GRAPH ?origin {
-        ?installatieVergadering ext:heeftBestuursperiode ?period.
+        ?installatieVergadering lmb:heeftBestuursperiode ?period.
         ?installatieVergadering mu:uuid ${escapedId} .
         ?bestuursorgaanT ext:origineleBestuursorgaan ?realOrgT.
-        ?bestuursorgaanT ext:heeftBestuursperiode ?period.
+        ?bestuursorgaanT lmb:heeftBestuursperiode ?period.
         ?bestuursorgaanT org:hasPost ?mandaat.
         ?mandataris org:holds ?mandaat.
         ?mandataris ?p ?o.
@@ -290,7 +291,6 @@ async function movePersons(installatievergaderingId: string) {
   PREFIX mandaat:     <http://data.vlaanderen.be/ns/mandaat#>
   PREFIX besluit:     <http://data.vlaanderen.be/ns/besluit#>
   PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-  PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
   PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
   PREFIX bestuurseenheidscode: <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/>
   PREFIX org: <http://www.w3.org/ns/org#>
@@ -298,6 +298,7 @@ async function movePersons(installatievergaderingId: string) {
   PREFIX regorg: <https://www.w3.org/ns/regorg#>
   PREFIX adms: <http://www.w3.org/ns/adms#>
   PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
+  PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
   INSERT {
     GRAPH ?target {
@@ -306,8 +307,8 @@ async function movePersons(installatievergaderingId: string) {
     }
   } WHERE {
     ?installatieVergadering mu:uuid ${escapedId} .
-    ?installatieVergadering ext:heeftBestuursperiode ?period.
-    ?bestuursorgaanT ext:heeftBestuursperiode ?period.
+    ?installatieVergadering lmb:heeftBestuursperiode ?period.
+    ?bestuursorgaanT lmb:heeftBestuursperiode ?period.
     ?bestuursorgaanT ext:origineleBestuursorgaan ?realOrg.
     GRAPH ?target {
       ?realOrg org:hasPost ?mandaat.
