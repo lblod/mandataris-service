@@ -294,7 +294,7 @@ export async function copyFractieOfMandataris(mandatarisId, graph) {
         ?currentBestuursorgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
       }
 
-      GRAPH ${sparqlEscapeUri(graph)} {
+      GRAPH ${sparqlEscapeTermValue(graph)} {
         ?linkedBestuursorgaanIT lmb:heeftBestuursperiode ?bestuursperiode ;
           mandaat:isTijdspecialisatieVan ?linkedBestuursorgaan .
         ?linkedBestuursorgaan besluit:bestuurt ?linkedBestuurseenheid .
