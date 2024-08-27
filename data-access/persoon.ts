@@ -281,6 +281,34 @@ async function getFractie(
   return findFirstSparqlResult(sparqlResult);
 }
 
+async function isOnafhankelijkInPeriod(
+  id: string,
+  bestuursperiodeId: string,
+): Promise<boolean> {
+  const getQuery = `
+    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX person: <http://www.w3.org/ns/person#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+
+    ASK {
+      ?persoon a person:Person ;
+        mu:uuid ${sparqlEscapeString(id)} ;
+        extlmb:currentFracties ?fractie .
+      ?bestuursorgaan ext:heeftBestuursperiode ?bestuursperiode .
+      ?fractie org:memberOf ?bestuursorgaan ;
+        ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk> .
+      ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)} .
+    }
+  `;
+
+  const sparqlResult = await query(getQuery);
+
+  return getBooleanSparqlResult(sparqlResult);
+}
+
 async function getMandatarisFracties(
   id: string,
   bestuursperiodeId: string,
