@@ -306,8 +306,8 @@ export async function isOnafhankelijkInPeriod(
         ?bestuursorgaan ext:heeftBestuursperiode ?bestuursperiode .
         ?fractie org:memberOf ?bestuursorgaan ;
           ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk> .
-        ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)} .
       }
+      ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)} .
     }
     LIMIT 1
   `;
