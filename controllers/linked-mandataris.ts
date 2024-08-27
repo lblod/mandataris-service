@@ -109,7 +109,7 @@ export const createLinkedMandataris = async (req) => {
 
   // Add history item
   await saveHistoryItem(
-    newMandataris,
+    newMandataris.uri,
     userId,
     `Created as linked mandate for ${mandatarisId}`,
   );
@@ -239,7 +239,7 @@ export const changeStateLinkedMandataris = async (req) => {
   );
 
   // Copy over values that were in the original linked mandatee but are not set in the new mandatee
-  await copyExtraValues(linkedMandataris, newMandataris);
+  await copyExtraValues(linkedMandataris, newMandataris.uri);
 
   // Add history item
   await saveHistoryItem(

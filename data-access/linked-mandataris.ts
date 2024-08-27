@@ -545,7 +545,7 @@ export async function copyMandataris(
       500,
     );
   }
-  return newMandatarisUri;
+  return { uri: newMandatarisUri, id: newMandatarisUuid };
 }
 
 export async function correctLinkedMandataris(mandatarisId, linkedMandataris) {
