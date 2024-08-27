@@ -90,27 +90,7 @@ export const createLinkedMandataris = async (req) => {
     await copyPersonOfMandataris(mandatarisId, destinationGraph);
   }
 
-  // Check if fractie is onafhankelijk
-  const isOnafhankelijk = await mandataris.isOnafhankelijk(mandatarisId);
-
-  let fractie;
-  if (isOnafhankelijk) {
-    fractie = await getOrCreateOnafhankelijkeFractie(
-      mandatarisId,
-      destinationGraph,
-    );
-  } else {
-    // Check if fractie exists
-    fractie = await getFractieOfMandatarisInGraph(
-      mandatarisId,
-      destinationGraph,
-    );
-
-    // Add fractie if it does not exist
-    if (!fractie) {
-      fractie = await copyFractieOfMandataris(mandatarisId, destinationGraph);
-    }
-  }
+  const fractie = handleFractie(mandatarisId, destinationGraph);
 
   // Add duplicate mandatee
   const newMandataris = await copyMandataris(
@@ -178,7 +158,16 @@ export const correctMistakesLinkedMandataris = async (req) => {
     );
 
     if (!fractie) {
-      fractie = await copyFractieOfMandataris(mandatarisId, destinationGraph);
+      // Check if fractie is onafhankelijk
+      const isOnafhankelijk = await mandataris.isOnafhankelijk(mandatarisId);
+      if (isOnafhankelijk) {
+        fractie = await getOrCreateOnafhankelijkeFractie(
+          mandatarisId,
+          destinationGraph,
+        );
+      } else {
+        fractie = await copyFractieOfMandataris(mandatarisId, destinationGraph);
+      }
     }
 
     replaceFractieOfMandataris(
@@ -238,16 +227,7 @@ export const changeStateLinkedMandataris = async (req) => {
     );
   }
 
-  // Check if fractie exists
-  let fractie = await getFractieOfMandatarisInGraph(
-    mandatarisId,
-    destinationGraph,
-  );
-
-  // Add fractie if it does not exist
-  if (!fractie) {
-    fractie = await copyFractieOfMandataris(mandatarisId, destinationGraph);
-  }
+  const fractie = handleFractie(mandatarisId, destinationGraph);
 
   // Add duplicate mandatee
   const newMandataris = await copyMandataris(
@@ -273,6 +253,24 @@ export const changeStateLinkedMandataris = async (req) => {
   // End original linked mandatee
   const endDate = new Date();
   endExistingMandataris(destinationGraph, linkedMandataris.uri, endDate);
+};
+
+export const handleFractie = async (mandatarisId, graph) => {
+  // Check if fractie is onafhankelijk
+  const isOnafhankelijk = await mandataris.isOnafhankelijk(mandatarisId);
+
+  let fractie;
+  if (isOnafhankelijk) {
+    fractie = await getOrCreateOnafhankelijkeFractie(mandatarisId, graph);
+  } else {
+    // Check if fractie exists
+    fractie = await getFractieOfMandatarisInGraph(mandatarisId, graph);
+
+    // Add fractie if it does not exist
+    if (!fractie) {
+      fractie = await copyFractieOfMandataris(mandatarisId, graph);
+    }
+  }
 };
 
 export const getOrCreateOnafhankelijkeFractie = async (mandatarisId, graph) => {
