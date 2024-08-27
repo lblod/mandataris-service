@@ -265,6 +265,7 @@ async function getFractie(
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX person: <http://www.w3.org/ns/person#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
     SELECT DISTINCT ?fractie
     WHERE {
@@ -272,7 +273,7 @@ async function getFractie(
         mu:uuid ${sparqlEscapeString(id)};
         extlmb:currentFracties ?fractie.
 
-      ?bestuursorgaan ext:heeftBestuursperiode ?bestuursperiode.
+      ?bestuursorgaan lmb:heeftBestuursperiode ?bestuursperiode.
       ?fractie org:memberOf ?bestuursorgaan.
       ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
     }
@@ -329,6 +330,7 @@ async function getMandatarisFracties(
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
     SELECT DISTINCT ?fractieId
     WHERE {
@@ -340,7 +342,7 @@ async function getMandatarisFracties(
       ?member org:organisation ?fractie.
 
       ?bestuursorgaan a besluit:Bestuursorgaan;
-        ext:heeftBestuursperiode ?bestuursperiode.
+        lmb:heeftBestuursperiode ?bestuursperiode.
 
       ?fractie org:memberOf ?bestuursorgaan;
         mu:uuid ?fractieId.

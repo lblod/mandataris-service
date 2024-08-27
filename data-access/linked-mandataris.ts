@@ -274,6 +274,7 @@ export async function copyFractieOfMandataris(mandatarisId, graph) {
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
     INSERT {
       GRAPH ${sparqlEscapeTermValue(graph)} {
@@ -291,11 +292,11 @@ export async function copyFractieOfMandataris(mandatarisId, graph) {
         ?lidmaatschap org:organisation ?fractie .
         ?fractie ?p ?o ;
           org:memberOf ?currentBestuursorgaanIT .
-        ?currentBestuursorgaanIT ext:heeftBestuursperiode ?bestuursperiode .
+        ?currentBestuursorgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
       }
 
-      GRAPH ${sparqlEscapeTermValue(graph)} {
-        ?linkedBestuursorgaanIT ext:heeftBestuursperiode ?bestuursperiode ;
+      GRAPH ${sparqlEscapeUri(graph)} {
+        ?linkedBestuursorgaanIT lmb:heeftBestuursperiode ?bestuursperiode ;
           mandaat:isTijdspecialisatieVan ?linkedBestuursorgaan .
         ?linkedBestuursorgaan besluit:bestuurt ?linkedBestuurseenheid .
       }
@@ -398,16 +399,16 @@ export async function copyMandataris(
     PREFIX regorg: <https://www.w3.org/ns/regorg#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
     PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
     INSERT {
       GRAPH ${sparqlEscapeTermValue(graph)} {
         ${sparqlEscapeUri(newMandatarisUri)} a mandaat:Mandataris ;
           mu:uuid ${sparqlEscapeString(newMandatarisUuid)} ;
           org:holds ?linkedMandaat ;
-          extlmb:hasPublicationStatus <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/588ce330-4abb-4448-9776-a17d9305df07> ;
+          lmb:hasPublicationStatus <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/588ce330-4abb-4448-9776-a17d9305df07> ;
           org:hasMembership ${sparqlEscapeUri(membershipUri)} ;
           ?mandatarisp ?mandatariso .
         ${sparqlEscapeUri(membershipUri)} ?memberp ?membero ;
@@ -425,7 +426,7 @@ export async function copyMandataris(
         ?currentMandaat a mandaat:Mandaat ;
           org:role ?currentBestuursfunctie ;
           ^org:hasPost ?currentBestuursOrgaanIT .
-        ?currentBestuursOrgaanIT ext:heeftBestuursperiode ?bestuursperiode .
+        ?currentBestuursOrgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
         ?membership ?memberp ?membero .
       }
 
@@ -433,14 +434,14 @@ export async function copyMandataris(
         ?linkedMandaat a mandaat:Mandaat ;
           org:role ?linkedBestuursfunctie ;
           ^org:hasPost ?linkedBestuursOrgaanIT .
-        ?linkedBestuursOrgaanIT ext:heeftBestuursperiode ?bestuursperiode .
+        ?linkedBestuursOrgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
       }
 
       VALUES (?currentBestuursfunctie ?linkedBestuursfunctie) {
         ${valueBindings}
       }
 
-      FILTER (?mandatarisp NOT IN (mu:uuid, org:holds, mandaat:rangorde, ext:linkToBesluit, mandaat:isTijdelijkVervangenDoor, mandaat:beleidsdomein, org:hasMembership, extlmb:hasPublicationStatus, dct:modified))
+      FILTER (?mandatarisp NOT IN (mu:uuid, org:holds, mandaat:rangorde, lmb:linkToBesluit, mandaat:isTijdelijkVervangenDoor, mandaat:beleidsdomein, org:hasMembership, lmb:hasPublicationStatus, dct:modified))
       FILTER (?memberp NOT IN (mu:uuid, org:organisation, dct:modified))
     }
     `;

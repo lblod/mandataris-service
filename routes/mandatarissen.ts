@@ -10,6 +10,8 @@ import {
   correctMistakesLinkedMandataris,
   createLinkedMandataris,
 } from '../controllers/linked-mandataris';
+import { mandatarisUsecase } from '../controllers/mandataris';
+import { STATUS_CODE } from '../util/constants';
 
 const upload = multer({ dest: 'mandataris-uploads/' });
 
@@ -89,6 +91,30 @@ mandatarissenRouter.put(
         error.message ??
         `Something went wrong while changing state of duplicate mandate of: ${req.params.id}. Please try again later.`;
       const statusCode = error.status ?? 500;
+      return res.status(statusCode).send({ message });
+    }
+  },
+);
+
+mandatarissenRouter.put(
+  '/:id/copy/:newId',
+  async (req: Request, res: Response) => {
+    try {
+      const mandatarisId = req.params.id;
+      const newMandatarisId = req.params.newId;
+      const update =
+        await mandatarisUsecase.copyOverNonResourceDomainPredicates(
+          mandatarisId,
+          newMandatarisId,
+        );
+      return res.status(STATUS_CODE.OK).send({
+        message: `Added ${update.itemsAdded} predicates to mandataris with id: ${update.mandatarisId}`,
+      });
+    } catch (error) {
+      const message =
+        error.message ??
+        `Something went wrong while copying over no resource domain predicates from mandataris with id: ${req.params.id}.`;
+      const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
       return res.status(statusCode).send({ message });
     }
   },

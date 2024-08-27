@@ -27,13 +27,14 @@ async function forBestuursperiode(
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
     PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
     SELECT DISTINCT ?fractieId
     WHERE {
-      ?bestuursperiode a ext:Bestuursperiode;
+      ?bestuursperiode a lmb:Bestuursperiode;
         mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
       ?bestuursorgaan a besluit:Bestuursorgaan;
-        ext:heeftBestuursperiode ?bestuursperiode.
+        lmb:heeftBestuursperiode ?bestuursperiode.
       ?fractie a mandaat:Fractie;
         mu:uuid ?fractieId;
         org:memberOf ?bestuursorgaan.
@@ -103,17 +104,18 @@ async function removeFractieWhenNoLidmaatschap(
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
     PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
     SELECT DISTINCT ?fractie
     WHERE {
-      ?bestuursperiode a ext:Bestuursperiode;
+      ?bestuursperiode a lmb:Bestuursperiode;
         mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
       ?bestuursorgaan a besluit:Bestuursorgaan;
-        ext:heeftBestuursperiode ?bestuursperiode.
+        lmb:heeftBestuursperiode ?bestuursperiode.
       ?fractie a mandaat:Fractie;
         org:memberOf ?bestuursorgaan;
         ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk>.
-    
+
       FILTER NOT EXISTS {
         ?lidmaatschap a org:Membership;
           org:organisation ?fractie.

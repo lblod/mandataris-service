@@ -7,11 +7,11 @@ export const bestuursperiode = {
 
 async function isValidId(id: string): Promise<boolean> {
   const askQuery = `
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
     ASK {
-      ?bestuursperiode a ext:Bestuursperiode;
+      ?bestuursperiode a lmb:Bestuursperiode;
         mu:uuid ${sparqlEscapeString(id)}.
     }
   `;
