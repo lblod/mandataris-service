@@ -264,6 +264,7 @@ export const handleFractie = async (mandatarisId, graph) => {
       fractie = await copyFractieOfMandataris(mandatarisId, graph);
     }
   }
+  return fractie;
 };
 
 export const getOrCreateOnafhankelijkeFractie = async (mandatarisId, graph) => {
