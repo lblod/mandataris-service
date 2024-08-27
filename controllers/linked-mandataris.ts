@@ -243,7 +243,7 @@ export const changeStateLinkedMandataris = async (req) => {
 
   // Add history item
   await saveHistoryItem(
-    linkedMandataris.value,
+    newMandataris.uri,
     userId,
     `Created as update state for linked mandate: ${mandatarisId}`,
   );
