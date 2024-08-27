@@ -16,12 +16,13 @@ import {
   sameFractieName,
   copyExtraValues,
 } from '../data-access/linked-mandataris';
-import { endExistingMandataris } from '../data-access/mandataris';
+import { endExistingMandataris, mandataris } from '../data-access/mandataris';
 import {
   fetchUserIdFromSession,
   saveHistoryItem,
 } from '../data-access/form-queries';
 import { mandatarisUsecase } from './mandataris';
+import { isOnafhankelijkInPeriod } from '../data-access/persoon';
 
 export const checkLinkedMandataris = async (req) => {
   const mandatarisId = req.params.id;
@@ -89,15 +90,26 @@ export const createLinkedMandataris = async (req) => {
     await copyPersonOfMandataris(mandatarisId, destinationGraph);
   }
 
-  // Check if fractie exists
-  let fractie = await getFractieOfMandatarisInGraph(
-    mandatarisId,
-    destinationGraph,
-  );
+  // Check if fractie is onafhankelijk
+  const isOnafhankelijk = await mandataris.isOnafhankelijk(mandatarisId);
 
-  // Add fractie if it does not exist
-  if (!fractie) {
-    fractie = await copyFractieOfMandataris(mandatarisId, destinationGraph);
+  let fractie;
+  if (isOnafhankelijk) {
+    fractie = await getOrCreateOnafhankelijkeFractie(
+      mandatarisId,
+      destinationGraph,
+    );
+  } else {
+    // Check if fractie exists
+    fractie = await getFractieOfMandatarisInGraph(
+      mandatarisId,
+      destinationGraph,
+    );
+
+    // Add fractie if it does not exist
+    if (!fractie) {
+      fractie = await copyFractieOfMandataris(mandatarisId, destinationGraph);
+    }
   }
 
   // Add duplicate mandatee
@@ -261,6 +273,20 @@ export const changeStateLinkedMandataris = async (req) => {
   // End original linked mandatee
   const endDate = new Date();
   endExistingMandataris(destinationGraph, linkedMandataris.uri, endDate);
+};
+
+export const getOrCreateOnafhankelijkeFractie = async (mandatarisId, graph) => {
+  const { persoonId, bestuursperiodeId } =
+    await mandataris.getPersonWithBestuursperiode(mandatarisId);
+  const onafhankelijk = await isOnafhankelijkInPeriod(
+    persoonId,
+    bestuursperiodeId,
+    graph,
+  );
+  if (onafhankelijk) {
+    return onafhankelijk;
+  }
+  return await copyFractieOfMandataris(mandatarisId, graph);
 };
 
 function getValueBindings(mapping) {

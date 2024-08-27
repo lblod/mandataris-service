@@ -281,11 +281,12 @@ async function getFractie(
   return findFirstSparqlResult(sparqlResult);
 }
 
-async function isOnafhankelijkInPeriod(
+export async function isOnafhankelijkInPeriod(
   id: string,
   bestuursperiodeId: string,
-): Promise<boolean> {
-  const getQuery = `
+  graph: Term,
+): Promise<string | null> {
+  const q = `
     PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -293,20 +294,25 @@ async function isOnafhankelijkInPeriod(
     PREFIX person: <http://www.w3.org/ns/person#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
-    ASK {
-      ?persoon a person:Person ;
-        mu:uuid ${sparqlEscapeString(id)} ;
-        extlmb:currentFracties ?fractie .
-      ?bestuursorgaan ext:heeftBestuursperiode ?bestuursperiode .
-      ?fractie org:memberOf ?bestuursorgaan ;
-        ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk> .
-      ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)} .
+    SELECT DISTINCT ?fractie {
+      GRAPH ${sparqlEscapeTermValue(graph)}{
+        ?persoon a person:Person ;
+          mu:uuid ${sparqlEscapeString(id)} ;
+          extlmb:currentFracties ?fractie .
+        ?bestuursorgaan ext:heeftBestuursperiode ?bestuursperiode .
+        ?fractie org:memberOf ?bestuursorgaan ;
+          ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk> .
+        ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)} .
+      }
     }
+    LIMIT 1
   `;
 
-  const sparqlResult = await query(getQuery);
-
-  return getBooleanSparqlResult(sparqlResult);
+  const result = await querySudo(q);
+  if (result.results.bindings.length == 0) {
+    return null;
+  }
+  return result.results.bindings[0].fractie.value;
 }
 
 async function getMandatarisFracties(
