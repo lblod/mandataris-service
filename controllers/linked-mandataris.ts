@@ -193,9 +193,13 @@ export const correctMistakesLinkedMandataris = async (req) => {
 };
 
 export const changeStateLinkedMandataris = async (req) => {
-  const mandatarisId = req.params.id;
-  if (!mandatarisId) {
-    throw new HttpError('No mandataris id provided', 400);
+  const oldMandatarisId = req.params.oldId;
+  const newMandatarisId = req.params.newId;
+  if (!oldMandatarisId) {
+    throw new HttpError('No old mandataris id provided', 400);
+  }
+  if (!newMandatarisId) {
+    throw new HttpError('No new mandataris id provided', 400);
   }
 
   const userId = await fetchUserIdFromSession(req.get('mu-session-id'));
@@ -203,54 +207,54 @@ export const changeStateLinkedMandataris = async (req) => {
     throw new HttpError('Not authenticated', 401);
   }
 
-  const hasAccess = await canAccessMandataris(mandatarisId);
+  const hasAccess = await canAccessMandataris(newMandatarisId);
   if (!hasAccess) {
     throw new HttpError('No mandataris with given id found', 404);
   }
 
   const destinationGraph = await getDestinationGraphLinkedMandataris(
-    mandatarisId,
+    newMandatarisId,
     getValueBindings(linkedBestuurseenheden),
   );
   if (!destinationGraph) {
     throw new HttpError('No destination graph found', 500);
   }
 
-  const linkedMandataris = await findLinkedInstance(mandatarisId);
+  const linkedMandataris = await findLinkedInstance(oldMandatarisId);
   if (!linkedMandataris) {
     throw new HttpError(
-      `No linked mandataris found for id ${mandatarisId}`,
+      `No linked mandataris found for id ${oldMandatarisId}`,
       404,
     );
   }
 
-  const fractie = await handleFractie(mandatarisId, destinationGraph);
+  const fractie = await handleFractie(newMandatarisId, destinationGraph);
 
   // Add duplicate mandatee
-  const newMandataris = await copyMandataris(
-    mandatarisId,
+  const newLinkedMandataris = await copyMandataris(
+    newMandatarisId,
     fractie,
     destinationGraph,
     getValueBindings(linkedMandaten),
   );
 
   // Copy over values that were in the original linked mandatee but are not set in the new mandatee
-  await copyExtraValues(linkedMandataris.uri, newMandataris.uri);
+  await copyExtraValues(linkedMandataris.uri, newLinkedMandataris.uri);
 
   // Update current fractie on person
   await mandatarisUsecase.updateCurrentFractieUnsafe(
-    newMandataris.id,
+    newLinkedMandataris.id,
     destinationGraph,
   );
 
   // Add history item
   await saveHistoryItem(
-    newMandataris.uri,
+    newLinkedMandataris.uri,
     userId,
-    `Created as update state for linked mandate: ${mandatarisId}`,
+    `Created as update state for linked mandate: ${newMandatarisId}`,
   );
 
-  await linkInstances(mandatarisId, newMandataris.id);
+  await linkInstances(newMandatarisId, newLinkedMandataris.id);
 
   // End original linked mandatee
   const endDate = new Date();

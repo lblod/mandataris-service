@@ -79,7 +79,7 @@ mandatarissenRouter.put(
 );
 
 mandatarissenRouter.put(
-  '/:id/update-state-linked-mandataris',
+  '/:oldId/:newId/update-state-linked-mandataris',
   async (req: Request, res: Response) => {
     try {
       await changeStateLinkedMandataris(req);
