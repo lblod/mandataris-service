@@ -586,7 +586,7 @@ export async function findLinkedInstance(instance1: string) {
       GRAPH ?g {
         ?i1 mu:uuid ${sparqlEscapeString(instance1)} .
       }
-      GRAPH ?g {
+      GRAPH ?h {
         ?i2Uri mu:uuid ?i2Id .
       }
     }
