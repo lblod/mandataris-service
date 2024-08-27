@@ -272,7 +272,6 @@ export async function copyFractieOfMandataris(mandatarisId, graph) {
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX dct: <http://purl.org/dc/terms/>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
@@ -398,7 +397,6 @@ export async function copyMandataris(
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX regorg: <https://www.w3.org/ns/regorg#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
     PREFIX dct: <http://purl.org/dc/terms/>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
@@ -466,8 +464,7 @@ export async function correctLinkedMandataris(mandatarisId, linkedMandataris) {
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
     DELETE {
       GRAPH ?dest {
@@ -485,7 +482,7 @@ export async function correctLinkedMandataris(mandatarisId, linkedMandataris) {
           mu:uuid ${escaped.current} ;
           ?mandatarisP ?ogMandatarisO .
       }
-      FILTER (?mandatarisP NOT IN (mu:uuid, org:holds, mandaat:isBestuurlijkeAliasVan, mandaat:rangorde, ext:linkToBesluit, mandaat:isTijdelijkVervangenDoor, mandaat:beleidsdomein, org:hasMembership, extlmb:hasPublicationStatus))
+      FILTER (?mandatarisP NOT IN (mu:uuid, org:holds, mandaat:isBestuurlijkeAliasVan, mandaat:rangorde, lmb:linkToBesluit, mandaat:isTijdelijkVervangenDoor, mandaat:beleidsdomein, org:hasMembership, lmb:hasPublicationStatus))
 
       GRAPH ?dest {
         ${escaped.linked} a mandaat:Mandataris .

@@ -264,7 +264,6 @@ async function getFractie(
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX person: <http://www.w3.org/ns/person#>
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
     SELECT DISTINCT ?fractie
@@ -297,6 +296,7 @@ export async function isOnafhankelijkInPeriod(
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX person: <http://www.w3.org/ns/person#>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     SELECT DISTINCT ?fractie {
@@ -304,7 +304,7 @@ export async function isOnafhankelijkInPeriod(
         ?persoon a person:Person ;
           mu:uuid ${sparqlEscapeString(id)} ;
           extlmb:currentFracties ?fractie .
-        ?bestuursorgaan ext:heeftBestuursperiode ?bestuursperiode .
+        ?bestuursorgaan lmb:heeftBestuursperiode ?bestuursperiode .
         ?fractie org:memberOf ?bestuursorgaan ;
           ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk> .
       }
@@ -325,7 +325,6 @@ async function getMandatarisFracties(
   bestuursperiodeId: string,
 ): Promise<Array<TermProperty>> {
   const getAllQuery = `
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>

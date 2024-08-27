@@ -78,7 +78,6 @@ async function findCurrentFractieForPerson(
 ): Promise<TermProperty | null> {
   const getQuery = `
     PREFIX person: <http://www.w3.org/ns/person#>
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX dct: <http://purl.org/dc/terms/>
@@ -370,7 +369,6 @@ export const copyFromPreviousMandataris = async (
 
   await updateSudo(`
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX mps: <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -587,7 +585,6 @@ async function getPersonWithBestuursperiode(
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX org: <http://www.w3.org/ns/org#>
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
     SELECT DISTINCT ?persoonId ?bestuursperiodeId

@@ -22,7 +22,6 @@ async function forBestuursperiode(
   bestuursperiodeId: string,
 ): Promise<Array<TermProperty>> {
   const getQuery = `
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
