@@ -112,7 +112,7 @@ export async function getDuplicateMandataris(
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
 
-    SELECT DISTINCT ?linkedMandataris WHERE {
+    SELECT DISTINCT ?linkedMandatarisUri ?linkedMandatarisId WHERE {
       GRAPH ?g {
         ?currentMandataris a mandaat:Mandataris ;
           mu:uuid ${sparqlEscapeString(mandatarisId)} ;
@@ -124,7 +124,8 @@ export async function getDuplicateMandataris(
         ?currentBestuursOrgaanIT ext:heeftBestuursperiode ?bestuursperiode .
       }
       GRAPH ${sparqlEscapeTermValue(destinationGraph)} {
-        ?linkedMandataris a mandaat:Mandataris ;
+        ?linkedMandatarisUri a mandaat:Mandataris ;
+          mu:uuid ?linkedMandatarisId ;
           org:holds ?linkedMandaat ;
           mandaat:isBestuurlijkeAliasVan ?persoon.
         ?linkedMandaat a mandaat:Mandaat ;
@@ -144,7 +145,10 @@ export async function getDuplicateMandataris(
     return null;
   }
 
-  return result.results.bindings[0].linkedMandataris;
+  return {
+    uri: result.results.bindings[0].linkedMandatarisUri,
+    id: result.results.bindings[0].linkedMandatarisId,
+  };
 }
 
 export async function getDestinationGraphLinkedMandataris(

@@ -154,7 +154,7 @@ export const correctMistakesLinkedMandataris = async (req) => {
   }
 
   // Fractie needs to be handled differently because of the complex relation
-  const sameFractie = await sameFractieName(mandatarisId, linkedMandataris);
+  const sameFractie = await sameFractieName(mandatarisId, linkedMandataris.uri);
   if (!sameFractie) {
     let fractie = await getFractieOfMandatarisInGraph(
       mandatarisId,
@@ -167,17 +167,17 @@ export const correctMistakesLinkedMandataris = async (req) => {
 
     replaceFractieOfMandataris(
       mandatarisId,
-      linkedMandataris,
+      linkedMandataris.uri,
       fractie,
       destinationGraph,
     );
   }
 
-  correctLinkedMandataris(mandatarisId, linkedMandataris);
+  correctLinkedMandataris(mandatarisId, linkedMandataris.uri);
 
   // Add history item
   await saveHistoryItem(
-    linkedMandataris.value,
+    linkedMandataris.uri.value,
     userId,
     `Corrected in linked mandate: ${mandatarisId}`,
   );
@@ -239,7 +239,7 @@ export const changeStateLinkedMandataris = async (req) => {
   );
 
   // Copy over values that were in the original linked mandatee but are not set in the new mandatee
-  await copyExtraValues(linkedMandataris, newMandataris.uri);
+  await copyExtraValues(linkedMandataris.uri, newMandataris.uri);
 
   // Add history item
   await saveHistoryItem(
@@ -250,7 +250,7 @@ export const changeStateLinkedMandataris = async (req) => {
 
   // End original linked mandatee
   const endDate = new Date();
-  endExistingMandataris(destinationGraph, linkedMandataris, endDate);
+  endExistingMandataris(destinationGraph, linkedMandataris.uri, endDate);
 };
 
 function getValueBindings(mapping) {
