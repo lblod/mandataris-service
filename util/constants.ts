@@ -4,7 +4,7 @@ export enum MANDATARIS_STATUS {
 
 export enum PUBLICATION_STATUS {
   DRAFT = 'http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/588ce330-4abb-4448-9776-a17d9305df07',
-  BEKRACHTIGT = 'http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/9d8fd14d-95d0-4f5e-b3a5-a56a126227b6',
+  BEKRACHTIGD = 'http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/9d8fd14d-95d0-4f5e-b3a5-a56a126227b6',
 }
 
 export enum STATUS_CODE {

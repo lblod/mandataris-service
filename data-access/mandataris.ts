@@ -440,17 +440,16 @@ export async function findStartDateOfMandataris(
   return null;
 }
 
+// TODO: this is not searching for mandaat:bekrachtigtOntslagVan
 export async function findDecisionForMandataris(
   mandataris: Term,
 ): Promise<Term | null> {
   const mandatarisSubject = sparqlEscapeTermValue(mandataris);
   const besluiteQuery = `
-   PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-   PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-   PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
 
    SELECT ?artikel WHERE {
-      ?artikel ext:bekrachtigtAanstellingVan ${mandatarisSubject}.
+      ?artikel mandaat:bekrachtigtAanstellingVan ${mandatarisSubject}.
     }
   `;
 
