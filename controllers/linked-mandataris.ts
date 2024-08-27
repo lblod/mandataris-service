@@ -98,7 +98,10 @@ export const createLinkedMandataris = async (req) => {
   );
 
   // Update current fractie on person
-  await mandatarisUsecase.updateCurrentFractie(newMandataris.id);
+  await mandatarisUsecase.updateCurrentFractieUnsafe(
+    newMandataris.id,
+    destinationGraph,
+  );
 
   // Add history item
   await saveHistoryItem(
@@ -173,7 +176,10 @@ export const correctMistakesLinkedMandataris = async (req) => {
     );
 
     // Update current fractie on person
-    await mandatarisUsecase.updateCurrentFractie(linkedMandataris.id.value);
+    await mandatarisUsecase.updateCurrentFractieUnsafe(
+      linkedMandataris.id.value,
+      destinationGraph,
+    );
   }
 
   correctLinkedMandataris(mandatarisId, linkedMandataris.uri);
@@ -232,7 +238,10 @@ export const changeStateLinkedMandataris = async (req) => {
   await copyExtraValues(linkedMandataris.uri, newMandataris.uri);
 
   // Update current fractie on person
-  await mandatarisUsecase.updateCurrentFractie(newMandataris.id);
+  await mandatarisUsecase.updateCurrentFractieUnsafe(
+    newMandataris.id,
+    destinationGraph,
+  );
 
   // Add history item
   await saveHistoryItem(

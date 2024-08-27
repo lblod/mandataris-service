@@ -1,12 +1,14 @@
 import { fractie } from '../data-access/fractie';
 import { mandataris } from '../data-access/mandataris';
 import { persoon } from '../data-access/persoon';
+import { Term } from '../types';
 
 import { STATUS_CODE } from '../util/constants';
 import { HttpError } from '../util/http-error';
 
 export const mandatarisUsecase = {
   updateCurrentFractie,
+  updateCurrentFractieUnsafe,
 };
 
 async function updateCurrentFractie(mandatarisId: string): Promise<void> {
@@ -40,5 +42,49 @@ async function updateCurrentFractie(mandatarisId: string): Promise<void> {
   await fractie.addFractieOnPerson(
     personAndperiodIds.persoonId,
     currentFractie.fractie.value,
+  );
+}
+
+async function updateCurrentFractieUnsafe(
+  mandatarisId: string,
+  graph: Term,
+): Promise<void> {
+  const isMandataris = await mandataris.isValidId(mandatarisId, true);
+  if (!isMandataris) {
+    throw new HttpError(
+      `Mandataris with id ${mandatarisId} not found.`,
+      STATUS_CODE.BAD_REQUEST,
+    );
+  }
+
+  const currentFractie = await mandataris.findCurrentFractieForPerson(
+    mandatarisId,
+    true,
+  );
+  if (!currentFractie) {
+    return;
+  }
+
+  const personAndperiodIds = await mandataris.getPersonWithBestuursperiode(
+    mandatarisId,
+    true,
+  );
+  const existingFractieInBestuursperiode = await persoon.getFractie(
+    personAndperiodIds.persoonId,
+    personAndperiodIds.bestuursperiodeId,
+    true,
+  );
+  if (existingFractieInBestuursperiode?.fractie) {
+    await persoon.removeFractieFromCurrentWithGraph(
+      personAndperiodIds.persoonId,
+      existingFractieInBestuursperiode.fractie.value,
+      graph,
+    );
+  }
+
+  await fractie.addFractieOnPersonWithGraph(
+    personAndperiodIds.persoonId,
+    currentFractie.fractie.value,
+    graph,
   );
 }

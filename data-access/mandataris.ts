@@ -29,7 +29,10 @@ export const mandataris = {
   getPersonWithBestuursperiode,
 };
 
-async function isValidId(id: string): Promise<boolean> {
+async function isValidId(
+  id: string,
+  unsafe: boolean = false,
+): Promise<boolean> {
   const askQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -39,9 +42,9 @@ async function isValidId(id: string): Promise<boolean> {
         mu:uuid ${sparqlEscapeString(id)}.
     }
   `;
-  const sparqlResult = await query(askQuery);
+  const result = unsafe ? await querySudo(askQuery) : await query(askQuery);
 
-  return getBooleanSparqlResult(sparqlResult);
+  return getBooleanSparqlResult(result);
 }
 
 async function isOnafhankelijk(mandatarisId: string): Promise<boolean> {
@@ -67,6 +70,7 @@ async function isOnafhankelijk(mandatarisId: string): Promise<boolean> {
 
 async function findCurrentFractieForPerson(
   mandatarisId: string,
+  unsafe: boolean = false,
 ): Promise<TermProperty | null> {
   const getQuery = `
     PREFIX person: <http://www.w3.org/ns/person#>
@@ -102,7 +106,9 @@ async function findCurrentFractieForPerson(
 
     } ORDER BY DESC ( ?mandatarisStart ) LIMIT 1
   `;
-  const sparqlResult = await query(getQuery);
+  const sparqlResult = unsafe
+    ? await querySudo(getQuery)
+    : await query(getQuery);
 
   return findFirstSparqlResult(sparqlResult);
 }
@@ -570,6 +576,7 @@ export async function updatePublicationStatusOfMandataris(
 
 async function getPersonWithBestuursperiode(
   mandatarisId: string,
+  unsafe: boolean = false,
 ): Promise<{ persoonId: string; bestuursperiodeId: string }> {
   const getQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -591,7 +598,9 @@ async function getPersonWithBestuursperiode(
     }
   `;
 
-  const sparqlResult = await query(getQuery);
+  const sparqlResult = unsafe
+    ? await querySudo(getQuery)
+    : await query(getQuery);
   const first = findFirstSparqlResult(sparqlResult);
 
   return {

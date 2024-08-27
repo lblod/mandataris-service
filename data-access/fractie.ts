@@ -5,13 +5,16 @@ import {
   query,
   update,
 } from 'mu';
+import { updateSudo } from '@lblod/mu-auth-sudo';
 
 import { getSparqlResults } from '../util/sparql-result';
-import { TermProperty } from '../types';
+import { Term, TermProperty } from '../types';
+import { sparqlEscapeTermValue } from '../util/sparql-escape';
 
 export const fractie = {
   forBestuursperiode,
   addFractieOnPerson,
+  addFractieOnPersonWithGraph,
   removeFractieWhenNoLidmaatschap,
 };
 
@@ -62,6 +65,33 @@ async function addFractieOnPerson(
   `;
 
   await update(insertQuery);
+}
+
+async function addFractieOnPersonWithGraph(
+  personId: string,
+  fractieUri: string,
+  graph: Term,
+): Promise<void> {
+  const escapedFractie = sparqlEscapeUri(fractieUri);
+  const insertQuery = `
+    PREFIX person: <http://www.w3.org/ns/person#>
+    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+    INSERT {
+      GRAPH ${sparqlEscapeTermValue(graph)} {
+        ?persoon extlmb:currentFracties ${escapedFractie} .
+      }
+    }
+    WHERE {
+      GRAPH ${sparqlEscapeTermValue(graph)} {
+        ?persoon a person:Person;
+          mu:uuid ${sparqlEscapeString(personId)}.
+      }
+    }
+  `;
+
+  await updateSudo(insertQuery);
 }
 
 async function removeFractieWhenNoLidmaatschap(

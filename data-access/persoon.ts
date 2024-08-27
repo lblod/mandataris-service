@@ -24,6 +24,7 @@ export const persoon = {
   getFractie,
   getMandatarisFracties,
   removeFractieFromCurrent,
+  removeFractieFromCurrentWithGraph,
   setEndDateOfActiveMandatarissen,
 };
 
@@ -255,6 +256,7 @@ export async function copyPerson(subject: Term, graph: Term) {
 async function getFractie(
   id: string,
   bestuursperiodeId: string,
+  unsafe: boolean = false,
 ): Promise<TermProperty | null> {
   const getQuery = `
     PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
@@ -276,7 +278,9 @@ async function getFractie(
     }
   `;
 
-  const sparqlResult = await query(getQuery);
+  const sparqlResult = unsafe
+    ? await querySudo(getQuery)
+    : await query(getQuery);
 
   return findFirstSparqlResult(sparqlResult);
 }
@@ -368,6 +372,32 @@ async function removeFractieFromCurrent(
   `;
 
   await update(deleteQuery);
+}
+
+async function removeFractieFromCurrentWithGraph(
+  persoonId: string,
+  fractieUris: string,
+  graph: Term,
+): Promise<void> {
+  const deleteQuery = `
+    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
+    PREFIX person: <http://www.w3.org/ns/person#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+    DELETE {
+      GRAPH ${sparqlEscapeTermValue(graph)} {
+        ?persoon extlmb:currentFracties ${sparqlEscapeUri(fractieUris)}.
+      }
+    }
+    WHERE {
+      GRAPH ${sparqlEscapeTermValue(graph)} {
+        ?persoon a person:Person;
+          mu:uuid ${sparqlEscapeString(persoonId)}.
+      }
+    }
+  `;
+
+  await updateSudo(deleteQuery);
 }
 
 async function setEndDateOfActiveMandatarissen(
