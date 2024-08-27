@@ -55,102 +55,6 @@ export async function findLinkedMandate(mandatarisId, valueBindings) {
   };
 }
 
-export async function checkDuplicateMandataris(mandatarisId, valueBindings) {
-  const q = `
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX org: <http://www.w3.org/ns/org#>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-    PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
-
-    ASK {
-      GRAPH ?g {
-        ?currentMandataris a mandaat:Mandataris ;
-          mu:uuid ${sparqlEscapeString(mandatarisId)} ;
-          org:holds ?currentMandaat ;
-          mandaat:isBestuurlijkeAliasVan ?persoon.
-        ?currentMandaat a mandaat:Mandaat ;
-          org:role ?currentBestuursfunctie ;
-          ^org:hasPost ?currentBestuursOrgaanIT .
-        ?currentBestuursOrgaanIT ext:heeftBestuursperiode ?bestuursperiode ;
-          mandaat:isTijdspecialisatieVan ?currentBestuursorgaan.
-        ?currentBestuursorgaan besluit:bestuurt ?currentBestuurseenheid .
-      }
-      GRAPH ?h {
-        ?linkedMandataris a mandaat:Mandataris ;
-          org:holds ?linkedMandaat ;
-          mandaat:isBestuurlijkeAliasVan ?persoon.
-        ?linkedMandaat a mandaat:Mandaat ;
-          org:role ?linkedBestuursfunctie ;
-          ^org:hasPost ?linkedBestuursOrgaanIT .
-        ?linkedBestuursOrgaanIT ext:heeftBestuursperiode ?bestuursperiode ;
-          mandaat:isTijdspecialisatieVan ?linkedBestuursorgaan.
-        ?linkedBestuursorgaan besluit:bestuurt ?linkedBestuurseenheid .
-      }
-      GRAPH ?public {
-        ?currentBestuurseenheid besluit:werkingsgebied ?werkingsgebied .
-        ?linkedBestuurseenheid besluit:werkingsgebied ?werkingsgebied .
-      }
-      VALUES (?currentBestuursfunctie ?linkedBestuursfunctie) {
-        ${valueBindings}
-      }
-    }
-  `;
-  const result = await querySudo(q);
-  return getBooleanSparqlResult(result);
-}
-
-export async function getDuplicateMandataris(
-  mandatarisId,
-  destinationGraph,
-  valueBindings,
-) {
-  const q = `
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX org: <http://www.w3.org/ns/org#>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-    PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
-
-    SELECT DISTINCT ?linkedMandatarisUri ?linkedMandatarisId WHERE {
-      GRAPH ?g {
-        ?currentMandataris a mandaat:Mandataris ;
-          mu:uuid ${sparqlEscapeString(mandatarisId)} ;
-          org:holds ?currentMandaat ;
-          mandaat:isBestuurlijkeAliasVan ?persoon.
-        ?currentMandaat a mandaat:Mandaat ;
-          org:role ?currentBestuursfunctie ;
-          ^org:hasPost ?currentBestuursOrgaanIT .
-        ?currentBestuursOrgaanIT ext:heeftBestuursperiode ?bestuursperiode .
-      }
-      GRAPH ${sparqlEscapeTermValue(destinationGraph)} {
-        ?linkedMandatarisUri a mandaat:Mandataris ;
-          mu:uuid ?linkedMandatarisId ;
-          org:holds ?linkedMandaat ;
-          mandaat:isBestuurlijkeAliasVan ?persoon.
-        ?linkedMandaat a mandaat:Mandaat ;
-          org:role ?linkedBestuursfunctie ;
-          ^org:hasPost ?linkedBestuursOrgaanIT .
-        ?linkedBestuursOrgaanIT ext:heeftBestuursperiode ?bestuursperiode .
-      }
-      VALUES (?currentBestuursfunctie ?linkedBestuursfunctie) {
-        ${valueBindings}
-      }
-    }
-    LIMIT 1
-  `;
-  const result = await querySudo(q);
-
-  if (result.results.bindings.length == 0) {
-    return null;
-  }
-
-  return {
-    uri: result.results.bindings[0].linkedMandatarisUri,
-    id: result.results.bindings[0].linkedMandatarisId,
-  };
-}
-
 export async function getDestinationGraphLinkedMandataris(
   mandatarisId,
   valueBindings,
@@ -645,4 +549,55 @@ export async function copyExtraValues(oldMandataris, newMandataris) {
       500,
     );
   }
+}
+
+export async function linkInstances(instance1: string, instance2: string) {
+  const insertQuery = `
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+    INSERT {
+      GRAPH <http://mu.semte.ch/graphs/linkedInstances> {
+        ?i1 ext:linked ?i2 .
+      }
+    }
+    WHERE {
+      GRAPH ?g {
+        ?i1 mu:uuid ${sparqlEscapeString(instance1)} .
+      }
+      GRAPH ?h {
+        ?i2 mu:uuid ${sparqlEscapeString(instance2)} .
+      }
+    }
+  `;
+
+  await updateSudo(insertQuery);
+}
+
+export async function findLinkedInstance(instance1: string) {
+  const query = `
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+    WHERE ?i2Uri ?i2Id {
+      GRAPH <http://mu.semte.ch/graphs/linkedInstances> {
+        { ?i1 ext:linked ?i2Uri . } UNION { ?i2Uri ext:linked ?i1 . }
+      }
+      GRAPH ?g {
+        ?i1 mu:uuid ${sparqlEscapeString(instance1)} .
+      }
+      GRAPH ?g {
+        ?i2Uri mu:uuid ?i2Id .
+      }
+    }
+  `;
+
+  const result = await querySudo(query);
+  if (result.results.bindings.length == 0) {
+    return null;
+  }
+  return {
+    uri: result.results.bindings[0].i2Uri,
+    id: result.results.bindings[0].i2Id,
+  };
 }

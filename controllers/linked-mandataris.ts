@@ -2,7 +2,6 @@ import { HttpError } from '../util/http-error';
 import { sparqlEscapeUri } from 'mu';
 import {
   canAccessMandataris,
-  checkDuplicateMandataris,
   findLinkedMandate,
   copyFractieOfMandataris,
   copyMandataris,
@@ -10,11 +9,12 @@ import {
   getFractieOfMandatarisInGraph,
   getDestinationGraphLinkedMandataris,
   personOfMandatarisExistsInGraph,
-  getDuplicateMandataris,
   correctLinkedMandataris,
   replaceFractieOfMandataris,
   sameFractieName,
   copyExtraValues,
+  findLinkedInstance,
+  linkInstances,
 } from '../data-access/linked-mandataris';
 import { endExistingMandataris, mandataris } from '../data-access/mandataris';
 import {
@@ -43,14 +43,11 @@ export const checkLinkedMandataris = async (req) => {
     return linkedMandates;
   }
 
-  const linkedMandatarisExists = await checkDuplicateMandataris(
-    mandatarisId,
-    valueBindings,
-  );
+  const linkedMandataris = await findLinkedInstance(mandatarisId);
 
   return {
     ...linkedMandates,
-    hasDouble: linkedMandatarisExists,
+    hasDouble: linkedMandataris?.id.value,
   };
 };
 
@@ -110,6 +107,8 @@ export const createLinkedMandataris = async (req) => {
     `Created as linked mandate for ${mandatarisId}`,
   );
 
+  await linkInstances(mandatarisId, newMandataris.id);
+
   return newMandataris;
 };
 
@@ -137,11 +136,7 @@ export const correctMistakesLinkedMandataris = async (req) => {
     throw new HttpError('No destination graph found', 500);
   }
 
-  const linkedMandataris = await getDuplicateMandataris(
-    mandatarisId,
-    destinationGraph,
-    getValueBindings(linkedMandaten),
-  );
+  const linkedMandataris = await findLinkedInstance(mandatarisId);
   if (!linkedMandataris) {
     throw new HttpError(
       `No linked mandataris found for id ${mandatarisId}`,
@@ -215,11 +210,7 @@ export const changeStateLinkedMandataris = async (req) => {
     throw new HttpError('No destination graph found', 500);
   }
 
-  const linkedMandataris = await getDuplicateMandataris(
-    mandatarisId,
-    destinationGraph,
-    getValueBindings(linkedMandaten),
-  );
+  const linkedMandataris = await findLinkedInstance(mandatarisId);
   if (!linkedMandataris) {
     throw new HttpError(
       `No linked mandataris found for id ${mandatarisId}`,
@@ -249,6 +240,8 @@ export const changeStateLinkedMandataris = async (req) => {
     userId,
     `Created as update state for linked mandate: ${mandatarisId}`,
   );
+
+  await linkInstances(mandatarisId, newMandataris.id);
 
   // End original linked mandatee
   const endDate = new Date();
