@@ -440,7 +440,6 @@ export async function findStartDateOfMandataris(
   return null;
 }
 
-// TODO: this is not searching for mandaat:bekrachtigtOntslagVan
 export async function findDecisionForMandataris(
   mandataris: Term,
 ): Promise<Term | null> {
@@ -448,8 +447,10 @@ export async function findDecisionForMandataris(
   const besluiteQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
 
-   SELECT ?artikel WHERE {
-      ?artikel mandaat:bekrachtigtAanstellingVan ${mandatarisSubject}.
+   SELECT ?artikel
+   WHERE {
+      OPTIONAL { ?artikel mandaat:bekrachtigtAanstellingVan ${mandatarisSubject}. }
+      OPTIONAL { ?artikel mandaat:bekrachtigtOntslagVan ${mandatarisSubject}. }
     }
   `;
 
