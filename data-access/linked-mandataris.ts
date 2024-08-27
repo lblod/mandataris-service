@@ -579,7 +579,7 @@ export async function findLinkedInstance(instance1: string) {
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
-    WHERE ?i2Uri ?i2Id {
+    SELECT DISTINCT ?i2Uri ?i2Id WHERE {
       GRAPH <http://mu.semte.ch/graphs/linkedInstances> {
         { ?i1 ext:linked ?i2Uri . } UNION { ?i2Uri ext:linked ?i1 . }
       }
@@ -590,6 +590,7 @@ export async function findLinkedInstance(instance1: string) {
         ?i2Uri mu:uuid ?i2Id .
       }
     }
+    LIMIT 1
   `;
 
   const result = await querySudo(query);
