@@ -82,6 +82,11 @@ async function updateCurrentFractieUnsafe(
       graph,
     );
   }
+  await fractie.addFractieOnPersonWithGraph(
+    personAndperiodIds.persoonId,
+    currentFractie.fractie.value,
+    graph,
+  );
 }
 
 async function copyOverNonResourceDomainPredicates(
