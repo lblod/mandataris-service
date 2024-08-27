@@ -21,6 +21,7 @@ import {
   fetchUserIdFromSession,
   saveHistoryItem,
 } from '../data-access/form-queries';
+import { mandatarisUsecase } from './mandataris';
 
 export const checkLinkedMandataris = async (req) => {
   const mandatarisId = req.params.id;
@@ -107,6 +108,9 @@ export const createLinkedMandataris = async (req) => {
     getValueBindings(linkedMandaten),
   );
 
+  // Update current fractie on person
+  await mandatarisUsecase.updateCurrentFractie(newMandataris.id);
+
   // Add history item
   await saveHistoryItem(
     newMandataris.uri,
@@ -171,6 +175,9 @@ export const correctMistakesLinkedMandataris = async (req) => {
       fractie,
       destinationGraph,
     );
+
+    // Update current fractie on person
+    await mandatarisUsecase.updateCurrentFractie(linkedMandataris.id.value);
   }
 
   correctLinkedMandataris(mandatarisId, linkedMandataris.uri);
@@ -240,6 +247,9 @@ export const changeStateLinkedMandataris = async (req) => {
 
   // Copy over values that were in the original linked mandatee but are not set in the new mandatee
   await copyExtraValues(linkedMandataris.uri, newMandataris.uri);
+
+  // Update current fractie on person
+  await mandatarisUsecase.updateCurrentFractie(newMandataris.id);
 
   // Add history item
   await saveHistoryItem(
