@@ -87,7 +87,7 @@ export const createLinkedMandataris = async (req) => {
     await copyPersonOfMandataris(mandatarisId, destinationGraph);
   }
 
-  const fractie = handleFractie(mandatarisId, destinationGraph);
+  const fractie = await handleFractie(mandatarisId, destinationGraph);
 
   // Add duplicate mandatee
   const newMandataris = await copyMandataris(
@@ -218,7 +218,7 @@ export const changeStateLinkedMandataris = async (req) => {
     );
   }
 
-  const fractie = handleFractie(mandatarisId, destinationGraph);
+  const fractie = await handleFractie(mandatarisId, destinationGraph);
 
   // Add duplicate mandatee
   const newMandataris = await copyMandataris(
