@@ -272,7 +272,6 @@ export async function copyFractieOfMandataris(mandatarisId, graph) {
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
-    PREFIX dct: <http://purl.org/dc/terms/>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
     INSERT {
@@ -300,7 +299,7 @@ export async function copyFractieOfMandataris(mandatarisId, graph) {
         ?linkedBestuursorgaan besluit:bestuurt ?linkedBestuurseenheid .
       }
 
-      FILTER (?p NOT IN (mu:uuid, org:memberOf, org:linkedTo, dct:modified))
+      FILTER (?p NOT IN (mu:uuid, org:memberOf, org:linkedTo))
 
       FILTER NOT EXISTS {
         ?origin a <http://mu.semte.ch/vocabularies/ext/FormHistory>
@@ -340,7 +339,6 @@ export async function replaceFractieOfMandataris(
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
-    PREFIX dct: <http://purl.org/dc/terms/>
 
     DELETE {
       GRAPH ${escaped.graph} {
@@ -369,7 +367,7 @@ export async function replaceFractieOfMandataris(
         ?linkedMembership ?linkedMemberP ?linkedMemberO .
       }
 
-      FILTER (?ogMemberP NOT IN (mu:uuid, org:organisation, dct:modified))
+      FILTER (?ogMemberP NOT IN (mu:uuid, org:organisation))
     }
     `;
   try {
@@ -398,7 +396,6 @@ export async function copyMandataris(
     PREFIX regorg: <https://www.w3.org/ns/regorg#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
-    PREFIX dct: <http://purl.org/dc/terms/>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
     INSERT {
@@ -439,8 +436,8 @@ export async function copyMandataris(
         ${valueBindings}
       }
 
-      FILTER (?mandatarisp NOT IN (mu:uuid, org:holds, mandaat:rangorde, lmb:linkToBesluit, mandaat:isTijdelijkVervangenDoor, mandaat:beleidsdomein, org:hasMembership, lmb:hasPublicationStatus, dct:modified))
-      FILTER (?memberp NOT IN (mu:uuid, org:organisation, dct:modified))
+      FILTER (?mandatarisp NOT IN (mu:uuid, org:holds, mandaat:rangorde, lmb:linkToBesluit, mandaat:isTijdelijkVervangenDoor, mandaat:beleidsdomein, org:hasMembership, lmb:hasPublicationStatus))
+      FILTER (?memberp NOT IN (mu:uuid, org:organisation))
     }
     `;
 
