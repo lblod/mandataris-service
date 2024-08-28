@@ -10,14 +10,15 @@ const deltaRouter = Router();
 export const mandatarisQueue = new ProcessingQueue();
 
 deltaRouter.post('/decisions', async (req: Request, res: Response) => {
-  console.log('|>Triggered the decisions endpoint!');
+  console.log('\n\t |>Triggered the DELTA decisions endpoint!');
   const changesets: Changeset[] = req.body;
+  console.log(`\n\t Changesets:`, changesets, '\n\n');
   const insertTriples = changesets
     .map((changeset: Changeset) => changeset.inserts)
     .flat();
 
   const mandatarisSubjects = Array.from(
-    new Set(insertTriples.map((quad: Quad) => quad.object)),
+    new Set(insertTriples.map((quad: Quad) => quad.subject)),
   );
 
   mandatarisQueue.setMethodToExecute(processMandatarisForDecisions);

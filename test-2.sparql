@@ -1,0 +1,8 @@
+     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+ 
+     SELECT ?persoon
+     WHERE {
+       GRAPH <http://mu.semte.ch/graph/organizations/974816591f269bb7d74aa1720922651529f3d3b2a787f5c60b73e5a0384950a4/LoketLB-mandaatGebruiker>{
+         <http://data.lblod.info/id/mandatarissen/600A91F5291D6E00090000000000004> mandaat:isBestuurlijkeAliasVan ?persoon .
+       }
+     }
