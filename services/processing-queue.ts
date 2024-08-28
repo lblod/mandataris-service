@@ -42,10 +42,9 @@ export class ProcessingQueue {
     }
 
     const subjectsInQueue = this.queue.map((subject: Term) => subject.value);
-    const nonDuplicates = subjects.filter(
-      (term: Term) => !subjectsInQueue.includes(term.value),
+    const nonDuplicates = removeDuplicates(
+      subjects.filter((term: Term) => !subjectsInQueue.includes(term.value)),
     );
-
     console.log(
       `|> [${new Date().toISOString()}] Added ${
         nonDuplicates.length
@@ -78,3 +77,12 @@ export class ProcessingQueue {
     this.toExecute = method;
   }
 }
+
+const removeDuplicates = (terms: Term[]): Term[] => {
+  const uniqueItems = terms.filter(
+    (item, index, self) =>
+      index ===
+      self.findIndex((t) => t.type === item.type && t.value === item.value),
+  );
+  return uniqueItems;
+};
