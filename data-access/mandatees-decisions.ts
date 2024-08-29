@@ -22,6 +22,10 @@ export async function isSubjectOfType(
   rdfType: Term,
   subject: Term,
 ): Promise<boolean> {
+  if (subject.type !== 'uri') {
+    return false;
+  }
+
   const queryForType = `
     ASK {
       ${sparqlEscapeTermValue(subject)} a ${sparqlEscapeTermValue(rdfType)} .
