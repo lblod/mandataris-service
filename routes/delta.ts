@@ -16,9 +16,13 @@ deltaRouter.post('/decisions', async (req: Request, res: Response) => {
     .map((changeset: Changeset) => changeset.inserts)
     .flat();
 
-  const mandatarisSubjects = Array.from(
-    insertTriples.map((quad: Quad) => quad.object),
-  );
+  const decisionPredicates = [
+    'http://data.vlaanderen.be/ns/mandaat#bekrachtigtAanstellingVan',
+    'http://data.vlaanderen.be/ns/mandaat#bekrachtigtOntslagVan',
+  ];
+  const mandatarisSubjects = insertTriples
+    .filter((quad: Quad) => decisionPredicates.includes(quad.predicate.value))
+    .map((quad: Quad) => quad.object);
 
   mandatarisQueue.setMethodToExecute(processMandatarisForDecisions);
   mandatarisQueue.moveManualQueueToQueue();
