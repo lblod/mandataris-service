@@ -17,7 +17,7 @@ deltaRouter.post('/decisions', async (req: Request, res: Response) => {
     .flat();
 
   const mandatarisSubjects = Array.from(
-    new Set(insertTriples.map((quad: Quad) => quad.object)),
+    insertTriples.map((quad: Quad) => quad.object),
   );
 
   mandatarisQueue.setMethodToExecute(processMandatarisForDecisions);
