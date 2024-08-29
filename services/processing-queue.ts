@@ -40,9 +40,9 @@ export class ProcessingQueue {
     if (!this.toExecute) {
       throw Error('|> No method is set to execute the queue items on.');
     }
-
+    const uniqueSubjects = removeDuplicatesInTermArray(subjects);
     const subjectsInQueue = this.queue.map((subject: Term) => subject.value);
-    const nonDuplicates = subjects.filter(
+    const nonDuplicates = uniqueSubjects.filter(
       (term: Term) => !subjectsInQueue.includes(term.value),
     );
 
@@ -78,3 +78,12 @@ export class ProcessingQueue {
     this.toExecute = method;
   }
 }
+
+const removeDuplicatesInTermArray = (terms: Term[]): Term[] => {
+  const uniqueItems = terms.filter(
+    (item, index, self) =>
+      index ===
+      self.findIndex((t) => t.type === item.type && t.value === item.value),
+  );
+  return uniqueItems;
+};
