@@ -390,6 +390,8 @@ export async function copyMandataris(
   const newMandatarisUri = `http://data.lblod.info/id/mandatarissen/${newMandatarisUuid}`;
   const membershipUuid = uuidv4();
   const membershipUri = `http://data.lblod.info/id/lidmaatschappen/${membershipUuid}`;
+  const tijdsIntervalUuid = uuidv4();
+  const tijdsIntervalUri = `http://data.lblod.info/id/tijdsintervallen/${tijdsIntervalUuid}`;
   const q = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
@@ -408,7 +410,11 @@ export async function copyMandataris(
           ?mandatarisp ?mandatariso .
         ${sparqlEscapeUri(membershipUri)} ?memberp ?membero ;
           mu:uuid ${sparqlEscapeString(membershipUuid)} ;
-          org:organisation ${sparqlEscapeUri(fractie)} .
+          org:organisation ${sparqlEscapeUri(fractie)} ;
+          org:memberDuring ?tijdsinterval .
+
+        ${sparqlEscapeUri(tijdsIntervalUri)} ?tijdsintervalp ?tijdsintervalo ;
+          mu:uuid ${sparqlEscapeString(tijdsIntervalUuid)} .
       }
     }
     WHERE {
@@ -422,7 +428,9 @@ export async function copyMandataris(
           org:role ?currentBestuursfunctie ;
           ^org:hasPost ?currentBestuursOrgaanIT .
         ?currentBestuursOrgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
-        ?membership ?memberp ?membero .
+        ?membership org:memberDuring ?tijdsinterval ;
+          ?memberp ?membero .
+        ?tijdsinterval ?tijdsintervalp ?tijdsintervalo .
       }
 
       GRAPH ${sparqlEscapeTermValue(graph)} {
@@ -437,7 +445,8 @@ export async function copyMandataris(
       }
 
       FILTER (?mandatarisp NOT IN (mu:uuid, org:holds, mandaat:rangorde, lmb:linkToBesluit, mandaat:isTijdelijkVervangenDoor, mandaat:beleidsdomein, org:hasMembership, lmb:hasPublicationStatus))
-      FILTER (?memberp NOT IN (mu:uuid, org:organisation))
+      FILTER (?memberp NOT IN (mu:uuid, org:organisation, org:memberDuring))
+      FILTER (?tijdsintervalp NOT IN (mu:uuid))
     }
     `;
 
