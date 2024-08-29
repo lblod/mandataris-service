@@ -11,7 +11,8 @@ import { MANDATARIS_STATUS, PUBLICATION_STATUS } from '../util/constants';
 
 export const TERM_STAGING_GRAPH = {
   type: TERM_TYPE.URI,
-  value: 'http://mu.semte.ch/graphs/besluiten-consumed',
+  value:
+    'http://mu.semte.ch/graphs/besluiten-consumed974816591f269bb7d74aa1720922651529f3d3b2a787f5c60b73e5a0384950a4/LoketLB-mandaatGebruiker',
 };
 export const TERM_MANDATARIS_TYPE = {
   type: TERM_TYPE.URI,
@@ -86,23 +87,6 @@ export async function getQuadsInLmbFromTriples(
   const resultsInTarget = await querySudo(query);
 
   return getSparqlResults(resultsInTarget) as Array<Quad>;
-}
-
-export async function isMandatarisInTarget(subject: Term) {
-  const mandatarisType = sparqlEscapeTermValue(TERM_MANDATARIS_TYPE);
-  const askIfMandataris = `
-    ASK {
-      ${sparqlEscapeTermValue(subject)} a ${mandatarisType} .
-      MINUS {
-        GRAPH ${sparqlEscapeTermValue(TERM_STAGING_GRAPH)} {
-          ${sparqlEscapeTermValue(subject)} a ${mandatarisType} .
-        }
-      }
-    }
-  `;
-  const result = await querySudo(askIfMandataris);
-
-  return getBooleanSparqlResult(result);
 }
 
 export async function findPersoonForMandatarisInGraph(
@@ -185,12 +169,12 @@ export async function updateDifferencesOfMandataris(
             `|> Updated value for predicate (${incomingTriple.predicate.value}) to ${incomingTriple.object.value}.`,
           );
         } catch (error) {
-          throw Error(
-            `Could not update mandataris predicate value: ${subjectPredicate}`,
-          );
+          console.log(`|> Could not update mandataris predicate value: ${subjectPredicate}`);
+          continue;
         }
       }
     } else {
+      // NOTE: mandatarissen are not validated if they contain all the required fields, this will possibly break the application
       const escaped = {
         subject: sparqlEscapeTermValue(incomingTriple.subject),
         predicate: sparqlEscapeTermValue(incomingTriple.predicate),
@@ -257,42 +241,6 @@ export async function findOverlappingMandataris(
   const mandatarisResult = await querySudo(queryMandataris);
 
   return findFirstSparqlResult(mandatarisResult)?.mandataris ?? null;
-}
-
-export async function insertTriplesInGraph(
-  triples: Array<Triple>,
-  graph: Term,
-): Promise<void> {
-  if (triples.length === 0) {
-    return;
-  }
-
-  const insertTriples = triples.map((triple: Triple) => {
-    const subject = sparqlEscapeTermValue(triple.subject);
-    const predicate = sparqlEscapeTermValue(triple.predicate);
-    const object = sparqlEscapeTermValue(triple.object);
-
-    return `${subject} ${predicate} ${object} .`;
-  });
-
-  const insertQuery = `
-    INSERT DATA {
-      GRAPH ${sparqlEscapeTermValue(graph)} {
-        ${insertTriples.join('\n')}
-      }
-    }
-  `;
-
-  try {
-    await updateSudo(insertQuery, {}, { mayRetry: true });
-    console.log(
-      `|> Inserted new mandataris triples (${triples.length}) in graph (${graph.value}).`,
-    );
-  } catch (error) {
-    throw Error(
-      `Could not insert ${triples.length} triples in graph (${graph.value}).`,
-    );
-  }
 }
 
 export async function findNameOfPersoonFromStaging(

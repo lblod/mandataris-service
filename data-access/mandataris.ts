@@ -445,12 +445,16 @@ export async function findDecisionForMandataris(
 ): Promise<Term | null> {
   const mandatarisSubject = sparqlEscapeTermValue(mandataris);
   const besluiteQuery = `
-   PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-   PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-   PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+  PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
 
-   SELECT ?artikel WHERE {
-      ?artikel ext:bekrachtigtAanstellingVan ${mandatarisSubject}.
+  SELECT ?artikel
+   WHERE {
+      OPTIONAL { ?artikel a besluit:Besluit. }
+      OPTIONAL { ?artikel a besluit:Artikel. }
+
+      OPTIONAL { ?artikel mandaat:bekrachtigtAanstellingVan ${mandatarisSubject}. }
+      OPTIONAL { ?artikel mandaat:bekrachtigtOntslagVan ${mandatarisSubject}. }
     }
   `;
 
@@ -462,49 +466,6 @@ export async function findDecisionForMandataris(
   }
 
   return null;
-}
-
-export async function addLinkToDecisionDocumentToMandataris(
-  mandataris: Term,
-  linkToDocument: Term,
-): Promise<void> {
-  const escaped = {
-    mandataris: sparqlEscapeTermValue(mandataris),
-    link: sparqlEscapeTermValue(linkToDocument),
-    mandatarisType: sparqlEscapeTermValue(TERM_MANDATARIS_TYPE),
-  };
-  const addQuery = `
-    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
-    DELETE {
-      GRAPH ?graph {
-        ${escaped.mandataris} lmb:linkToBesluit ?link.
-      }
-    }
-    INSERT {
-      GRAPH ?graph {
-        ${escaped.mandataris} lmb:linkToBesluit ${escaped.link}.
-      }
-    }
-    WHERE {
-      GRAPH ?graph {
-        ${escaped.mandataris} a ${escaped.mandatarisType}.
-        OPTIONAL {
-          ${escaped.mandataris} lmb:linkToBesluit ?link.
-        }
-      }
-    }
-  `;
-
-  try {
-    await updateSudo(addQuery);
-    console.log(
-      `|> Added decision document link: ${linkToDocument.value} to mandataris: ${mandataris.value}`,
-    );
-  } catch (error) {
-    console.log(
-      `|> Something went wrongwhen adding the decision document link: ${linkToDocument.value} to the mandataris: ${mandataris.value}`,
-    );
-  }
 }
 
 export async function updatePublicationStatusOfMandataris(

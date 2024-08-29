@@ -142,7 +142,6 @@ export async function checkPersonExistsAllGraphs(
       GRAPH ?g {
         ${escaped.person} ?p ?o.
       }
-      FILTER (?g != ${sparqlEscapeTermValue(TERM_STAGING_GRAPH)}).
     }
   `;
   const result = await querySudo(askIfPersoonExists);

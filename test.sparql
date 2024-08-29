@@ -1,0 +1,23 @@
+  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+  PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+  PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>  
+  PREFIX person: <http://www.w3.org/ns/person#>
+  PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+  PREFIX person: <http://www.w3.org/ns/person#>
+  PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
+  PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+  PREFIX adms: <http://www.w3.org/ns/adms#>
+  PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+   INSERT DATA {
+    GRAPH <http://mu.semte.ch/graphs/besluiten-consumed974816591f269bb7d74aa1720922651529f3d3b2a787f5c60b73e5a0384950a4/LoketLB-mandaatGebruiker> {
+      <http://data.lblod.info/id/personen/1234567689> a person:Person;
+          mu:uuid """1234567689""";
+          persoon:gebruikteVoornaam """Jonas""";
+          foaf:familyName """De tester""";
+          persoon:geslacht <http://publications.europa.eu/resource/authority/human-sex/FEMALE>;
+          foaf:name """JJ""";
+          persoon:heeftGeboorte <http://data.lblod.info/id/geboortes/d9e8f8fa-8f5e-4d97-920e-70cff639de11>.
+    }
+  }
+
