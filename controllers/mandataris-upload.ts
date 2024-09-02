@@ -2,7 +2,7 @@ import fs from 'fs';
 import { HttpError } from '../util/http-error';
 import { createPerson, findPerson } from '../data-access/persoon';
 import { CSVRow, CsvUploadState, MandateHit } from '../types';
-import { parse } from 'csv-parse';
+import { Parser, parse } from 'csv-parse';
 import {
   createMandatarisInstance,
   findGraphAndMandates,
@@ -31,19 +31,11 @@ export const uploadCsv = async (req) => {
     }),
   );
 
-  let lineNumber = 1; // headers are skipped so immediately set line to 1
-  for await (const line of parser) {
-    const row: CSVRow = { data: line, lineNumber };
-    if (lineNumber === 0) {
-      validateHeaders(row);
-    }
-    await processData(row, uploadState).catch((err) => {
-      uploadState.errors.push(
-        `[line ${lineNumber}]: failed to process person: ${err.message}`,
-      );
-    });
-    lineNumber++;
-  }
+  await parseLineByLine(parser, uploadState).catch((err) => {
+    const lineIndex = err.message?.match(/line (\d+)/)?.[1];
+    const lineString = lineIndex ? `[line ${lineIndex}] ` : '';
+    uploadState.errors.push(`${lineString}Failed to parse CSV: ${err.message}`);
+  });
 
   // Delete file after contents are processed.
   await fs.unlink(formData.path, (err) => {
@@ -53,6 +45,22 @@ export const uploadCsv = async (req) => {
   });
 
   return uploadState;
+};
+
+const parseLineByLine = async (parser: Parser, uploadState: CsvUploadState) => {
+  let lineNumber = 1; // headers are skipped so immediately set line to 1
+  for await (const line of parser) {
+    const row: CSVRow = { data: line, lineNumber };
+    if (lineNumber === 0) {
+      validateHeaders(row);
+    }
+    await processData(row, uploadState).catch((err) => {
+      uploadState.errors.push(
+        `[line ${lineNumber}]: Failed to process person: ${err.message}`,
+      );
+    });
+    lineNumber++;
+  }
 };
 
 const validateHeaders = (row: CSVRow): Map<string, number> => {
