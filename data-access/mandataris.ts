@@ -90,6 +90,72 @@ async function findCurrentFractieForPerson(
   return findFirstSparqlResult(sparqlResult);
 }
 
+export async function findOnafhankelijkeFractieForPerson(
+  personUri: string,
+  mandateUris: string[],
+) {
+  const getQuery = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+
+    SELECT DISTINCT ?fractie WHERE {
+      ?fractie a mandaat:Fractie .
+      ?fractie ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk> .
+      ?fractie org:memberOf ?bestuursorgaan.
+
+      ?bestuursorgaan org:hasPost ?mandate.
+
+      VALUES ?mandate {
+        ${mandateUris.map((uri) => sparqlEscapeUri(uri)).join(' ')}
+      }
+
+      ?lidmaatschap org:organisation ?fractie.
+      ?mandataris org:hasMembership ?lidmaatschap.
+
+      ?mandataris mandaat:isBestuurlijkeAliasVan ${sparqlEscapeUri(personUri)}.
+    } LIMIT 1`;
+
+  const result = await query(getQuery);
+  return findFirstSparqlResult(result)?.fractie?.value;
+}
+
+export async function createOnafhankelijkeFractie(mandateUris: string[]) {
+  const uuid = uuidv4();
+  const uri = `http://data.lblod.info/id/fracties/${uuid}`;
+
+  const updateQuery = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX regorg: <https://www.w3.org/ns/regorg#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+
+    INSERT {
+      GRAPH ?g {
+        ${sparqlEscapeUri(uri)} a mandaat:Fractie ;
+          ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk> ;
+          regorg:legalName "Onafhankelijk" ;
+          mu:uuid ${sparqlEscapeString(uuid)} ;
+          org:linkedTo ?bestuurseenheid ;
+          org:memberOf ?bestuursorgaan .
+      }
+    } WHERE {
+      GRAPH ?g {
+        ?bestuursorgaan org:hasPost ?mandate.
+        ?bestuursorgaan mandaat:isTijdspecialisatieVan ?org.
+        VALUES ?mandate {
+          ${mandateUris.map((uri) => sparqlEscapeUri(uri)).join('\n')}
+        }
+      }
+      ?org besluit:bestuurt ?bestuurseenheid.
+    }
+  `;
+  await updateSudo(updateQuery);
+  return uri;
+}
+
 export const findGraphAndMandates = async (row: CSVRow) => {
   const mandates = await findMandatesByName(row);
 
@@ -129,13 +195,20 @@ const findMandatesByName = async (row: CSVRow) => {
     ? sparqlEscapeString(fractieName)
     : 'mu:doesNotExist';
 
+  let fractionFilter = `?fraction regorg:legalName ${safeFractionName} .`;
+  if (!fractieName || fractieName.toLowerCase() === 'onafhankelijk') {
+    // in case of onafhankelijk, don't fetch the fractions, there will be many different matches
+    fractionFilter = '?fraction ext:doesNotExist ext:doesNotExist . ';
+  }
+
   const q = `
   PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
   PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
   PREFIX org: <http://www.w3.org/ns/org#>
   PREFIX regorg: <https://www.w3.org/ns/regorg#>
+  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
-  SELECT ?mandate ?fraction ?start ?end WHERE {
+  SELECT DISTINCT ?mandate ?fraction ?start ?end WHERE {
     ?mandate a mandaat:Mandaat ;
     ^org:hasPost ?orgaanInTijd ;
         org:role / skos:prefLabel ${sparqlEscapeString(mandateName)} .
@@ -145,7 +218,7 @@ const findMandatesByName = async (row: CSVRow) => {
     }
     OPTIONAL {
       ?orgaanInTijd ^org:memberOf ?fraction .
-      ?fraction regorg:legalName ${safeFractionName} .
+      ${fractionFilter}
     }
     BIND(IF(BOUND(?end), ?end,  "3000-01-01T12:00:00.000Z"^^xsd:dateTime) as ?safeEnd)
     FILTER ((?start <= ${from} && ${from} <= ?safeEnd) ||

@@ -5,7 +5,9 @@ import { CSVRow, CsvUploadState, MandateHit } from '../types';
 import { Parser, parse } from 'csv-parse';
 import {
   createMandatarisInstance,
+  createOnafhankelijkeFractie,
   findGraphAndMandates,
+  findOnafhankelijkeFractieForPerson,
   validateNoOverlappingMandate,
 } from '../data-access/mandataris';
 import { ensureBeleidsdomeinen } from '../data-access/beleidsdomein';
@@ -108,11 +110,11 @@ const processData = async (row: CSVRow, uploadState: CsvUploadState) => {
     );
     return;
   }
-  if (invalidFraction(row, mandates, uploadState)) {
-    return;
-  }
   const persoon = await validateOrCreatePerson(row, uploadState);
   if (!persoon) {
+    return;
+  }
+  if (await invalidFraction(row, mandates, uploadState, persoon.uri)) {
     return;
   }
   await createMandatarisInstances(
@@ -201,13 +203,24 @@ const createMandatarisInstances = async (
   await Promise.all(promises);
 };
 
-const invalidFraction = (
+const invalidFraction = async (
   row: CSVRow,
   mandates: MandateHit[],
   uploadState: CsvUploadState,
+  persoonUri: string,
 ) => {
   const targetFraction = row.data.fractieName;
-  if (!targetFraction) {
+  if (
+    !targetFraction ||
+    row.data.fractieName?.toLowerCase() === 'onafhankelijk'
+  ) {
+    const fractieUri = await ensureOnafhankelijkeFractieForPerson(
+      persoonUri,
+      mandates,
+    );
+    mandates.forEach((mandate) => {
+      mandate.fractionUri = fractieUri;
+    });
     return false;
   }
   const hasMissingFraction = mandates.some((mandate) => !mandate.fractionUri);
@@ -217,6 +230,21 @@ const invalidFraction = (
     );
   }
   return hasMissingFraction;
+};
+
+const ensureOnafhankelijkeFractieForPerson = async (
+  persoonUri: string,
+  mandates: MandateHit[],
+) => {
+  const mandateUris = mandates.map((mandate) => mandate.mandateUri);
+  const existingOnafhankelijkeFractie =
+    await findOnafhankelijkeFractieForPerson(persoonUri, mandateUris);
+
+  if (existingOnafhankelijkeFractie) {
+    return existingOnafhankelijkeFractie;
+  }
+
+  return await createOnafhankelijkeFractie(mandateUris);
 };
 
 const parseRrn = (rrn: string) => {
