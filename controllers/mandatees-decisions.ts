@@ -1,8 +1,6 @@
 import { findBestuurseenheidForMandaat } from '../data-access/bestuurseenheid';
-import { findLinkToDocumentOfDecision } from '../data-access/decision';
 
 import {
-  addLinkToDecisionDocumentToMandataris,
   endExistingMandataris,
   findDecisionForMandataris,
   findStartDateOfMandataris as findStartDateOfMandataris,
@@ -45,8 +43,8 @@ export async function processMandatarisForDecisions(
     return;
   }
 
-  // The dicision is actually a besluit:Artikel this
-  // because the besluit doe snot have a direct relation to the mandataris yet
+  // The decision is actually a besluit:Artikel this
+  // because the besluit does not have a direct relation to the mandataris yet
   const decision = await findDecisionForMandataris(mandatarisSubject);
   if (!decision) {
     console.log(
@@ -57,7 +55,10 @@ export async function processMandatarisForDecisions(
   }
 
   await handleTriplesForMandatarisSubject(mandatarisSubject);
-  await linkBesluitToMandataris(mandatarisSubject, decision);
+  await updatePublicationStatusOfMandataris(
+    mandatarisSubject,
+    PUBLICATION_STATUS.BEKRACHTIGD,
+  );
 }
 
 export async function handleTriplesForMandatarisSubject(
@@ -193,24 +194,5 @@ export async function handleTriplesForMandatarisSubject(
     persoon.firstname,
     persoon.lastname,
     mandatarisGraph,
-  );
-}
-
-export async function linkBesluitToMandataris(
-  mandataris: Term,
-  decision: Term,
-): Promise<void> {
-  const linkToDocument = await findLinkToDocumentOfDecision(decision);
-  if (!linkToDocument) {
-    console.log(
-      `|> Could not find the link to the besluit document: ${decision.value}`,
-    );
-    return;
-  }
-
-  await addLinkToDecisionDocumentToMandataris(mandataris, linkToDocument);
-  await updatePublicationStatusOfMandataris(
-    mandataris,
-    PUBLICATION_STATUS.BEKRACHTIGT,
   );
 }
