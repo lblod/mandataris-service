@@ -18,7 +18,7 @@ deltaRouter.post('/decisions', async (req: Request, res: Response) => {
     .flat();
 
   const mandatarisSubjects = Array.from(
-    new Set(insertTriples.map((quad: Quad) => quad.subject)),
+    new Set(insertTriples.map((quad: Quad) => quad.object)), // object because the predicates is bekrachtigtAanstellingVan mandataris
   );
 
   mandatarisQueue.setMethodToExecute(processMandatarisForDecisions);
