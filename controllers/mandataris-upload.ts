@@ -2,10 +2,12 @@ import fs from 'fs';
 import { HttpError } from '../util/http-error';
 import { createPerson, findPerson } from '../data-access/persoon';
 import { CSVRow, CsvUploadState, MandateHit } from '../types';
-import { parse } from 'csv-parse';
+import { Parser, parse } from 'csv-parse';
 import {
   createMandatarisInstance,
+  createOnafhankelijkeFractie,
   findGraphAndMandates,
+  findOnafhankelijkeFractieForPerson,
   validateNoOverlappingMandate,
 } from '../data-access/mandataris';
 import { ensureBeleidsdomeinen } from '../data-access/beleidsdomein';
@@ -31,19 +33,11 @@ export const uploadCsv = async (req) => {
     }),
   );
 
-  let lineNumber = 1; // headers are skipped so immediately set line to 1
-  for await (const line of parser) {
-    const row: CSVRow = { data: line, lineNumber };
-    if (lineNumber === 0) {
-      validateHeaders(row);
-    }
-    await processData(row, uploadState).catch((err) => {
-      uploadState.errors.push(
-        `[line ${lineNumber}]: failed to process person: ${err.message}`,
-      );
-    });
-    lineNumber++;
-  }
+  await parseLineByLine(parser, uploadState).catch((err) => {
+    const lineIndex = err.message?.match(/line (\d+)/)?.[1];
+    const lineString = lineIndex ? `[line ${lineIndex}] ` : '';
+    uploadState.errors.push(`${lineString}Failed to parse CSV: ${err.message}`);
+  });
 
   // Delete file after contents are processed.
   await fs.unlink(formData.path, (err) => {
@@ -53,6 +47,22 @@ export const uploadCsv = async (req) => {
   });
 
   return uploadState;
+};
+
+const parseLineByLine = async (parser: Parser, uploadState: CsvUploadState) => {
+  let lineNumber = 1; // headers are skipped so immediately set line to 1
+  for await (const line of parser) {
+    const row: CSVRow = { data: line, lineNumber };
+    if (lineNumber === 0) {
+      validateHeaders(row);
+    }
+    await processData(row, uploadState).catch((err) => {
+      uploadState.errors.push(
+        `[line ${lineNumber}]: Failed to process person: ${err.message}`,
+      );
+    });
+    lineNumber++;
+  }
 };
 
 const validateHeaders = (row: CSVRow): Map<string, number> => {
@@ -100,11 +110,11 @@ const processData = async (row: CSVRow, uploadState: CsvUploadState) => {
     );
     return;
   }
-  if (invalidFraction(row, mandates, uploadState)) {
-    return;
-  }
   const persoon = await validateOrCreatePerson(row, uploadState);
   if (!persoon) {
+    return;
+  }
+  if (await invalidFraction(row, mandates, uploadState, persoon.uri)) {
     return;
   }
   await createMandatarisInstances(
@@ -193,13 +203,24 @@ const createMandatarisInstances = async (
   await Promise.all(promises);
 };
 
-const invalidFraction = (
+const invalidFraction = async (
   row: CSVRow,
   mandates: MandateHit[],
   uploadState: CsvUploadState,
+  persoonUri: string,
 ) => {
   const targetFraction = row.data.fractieName;
-  if (!targetFraction) {
+  if (
+    !targetFraction ||
+    row.data.fractieName?.toLowerCase() === 'onafhankelijk'
+  ) {
+    const fractieUri = await ensureOnafhankelijkeFractieForPerson(
+      persoonUri,
+      mandates,
+    );
+    mandates.forEach((mandate) => {
+      mandate.fractionUri = fractieUri;
+    });
     return false;
   }
   const hasMissingFraction = mandates.some((mandate) => !mandate.fractionUri);
@@ -209,6 +230,21 @@ const invalidFraction = (
     );
   }
   return hasMissingFraction;
+};
+
+const ensureOnafhankelijkeFractieForPerson = async (
+  persoonUri: string,
+  mandates: MandateHit[],
+) => {
+  const mandateUris = mandates.map((mandate) => mandate.mandateUri);
+  const existingOnafhankelijkeFractie =
+    await findOnafhankelijkeFractieForPerson(persoonUri, mandateUris);
+
+  if (existingOnafhankelijkeFractie) {
+    return existingOnafhankelijkeFractie;
+  }
+
+  return await createOnafhankelijkeFractie(mandateUris);
 };
 
 const parseRrn = (rrn: string) => {
