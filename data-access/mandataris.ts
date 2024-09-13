@@ -543,35 +543,41 @@ export async function findStartDateOfMandataris(
 }
 
 export async function findDecisionForMandataris(
-  mandataris: Term,
-): Promise<Term | null> {
-  const mandatarisSubject = sparqlEscapeTermValue(mandataris);
+  mandataris: string,
+): Promise<{ besluit: string; link: string } | null> {
+  const mandatarisSubject = sparqlEscapeUri(mandataris);
   const besluiteQuery = `
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
 
-   SELECT ?artikel
+   SELECT ?artikel ?link
    WHERE {
-      OPTIONAL { ?artikel mandaat:bekrachtigtAanstellingVan ${mandatarisSubject}. }
-      OPTIONAL { ?artikel mandaat:bekrachtigtOntslagVan ${mandatarisSubject}. }
+      VALUES ?link {
+        mandaat:bekrachtigtAanstellingVan
+        mandaat:bekrachtigtOntslagVan
+      }
+      ?artikel ?link ${mandatarisSubject}.
     }
   `;
 
-  const result = await updateSudo(besluiteQuery);
+  const result = await querySudo(besluiteQuery);
   const sparqlresult = findFirstSparqlResult(result);
 
   if (sparqlresult?.artikel) {
-    return sparqlresult.artikel;
+    return {
+      besluit: sparqlresult.artikel.value,
+      link: sparqlresult.link.value,
+    };
   }
 
   return null;
 }
 
 export async function updatePublicationStatusOfMandataris(
-  mandataris: Term,
+  mandataris: string,
   status: PUBLICATION_STATUS,
 ): Promise<void> {
   const escaped = {
-    mandataris: sparqlEscapeTermValue(mandataris),
+    mandataris: sparqlEscapeUri(mandataris),
     status: sparqlEscapeUri(status),
     mandatarisType: sparqlEscapeTermValue(TERM_MANDATARIS_TYPE),
   };
@@ -601,11 +607,11 @@ export async function updatePublicationStatusOfMandataris(
   try {
     await updateSudo(updateStatusQuery);
     console.log(
-      `|> Updated status to ${status} for mandataris: ${mandataris.value}.`,
+      `|> Updated status to ${status} for mandataris: ${mandataris}.`,
     );
   } catch (error) {
     console.log(
-      `|> Could not update mandataris: ${mandataris.value} status to ${status}`,
+      `|> Could not update mandataris: ${mandataris} status to ${status}`,
     );
   }
 }
