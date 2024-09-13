@@ -140,13 +140,12 @@ export async function checkIfMinimalMandatarisInfoAvailable(
 }
 
 export async function checkIfMandatarisExists(mandatarisUri) {
+  const safeMandatarisUri = sparqlEscapeUri(mandatarisUri);
   const query = `
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     ASK {
       GRAPH ?g {
-        ${sparqlEscapeUri(
-          mandatarisUri,
-        )} a <http://data.vlaanderen.be/ns/mandaat#Mandataris> .
+        ${safeMandatarisUri} a <http://data.vlaanderen.be/ns/mandaat#Mandataris> .
       }
       ?g ext:ownedBy ?bestuurseenheid.
     }
@@ -263,6 +262,13 @@ export async function replacePropertiesOnInstance(
   // That way we don't accidentally delete information that we want to keep if they are
   // not specified in the staging graph like beleidsdomeinen
   const predicates = subjectTriples.map((triple) => triple.predicate);
+  const newData = subjectTriples
+    .map((triple) => {
+      return `${sparqlEscapeUri(subject)} ${sparqlEscapeUri(
+        triple.predicate.value,
+      )} ${sparqlEscapeTermValue(triple.object)} .`;
+    })
+    .join('\n');
   const query = `
     DELETE {
       GRAPH ${sparqlEscapeUri(graph)} {
@@ -270,13 +276,7 @@ export async function replacePropertiesOnInstance(
       }
     } INSERT {
       GRAPH ${sparqlEscapeUri(graph)} {
-        ${subjectTriples
-          .map((triple) => {
-            return `${sparqlEscapeUri(subject)} ${sparqlEscapeUri(
-              triple.predicate.value,
-            )} ${sparqlEscapeTermValue(triple.object)} .`;
-          })
-          .join('\n')}
+        ${newData}
       }
     } WHERE {
       GRAPH ${sparqlEscapeUri(graph)} {

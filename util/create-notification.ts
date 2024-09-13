@@ -32,6 +32,18 @@ export async function createNotification({
   const uri = sparqlEscapeUri(
     `http://data.lblod.info/id/SystemNotification/${id}`,
   );
+  const newData = links
+    .map((link) => {
+      const linkId = uuid();
+      const linkUri = sparqlEscapeUri(
+        `http://data.lblod.info/id/SystemNotificationLink/${linkId}`,
+      );
+      return `${uri} ext:notificationLink ${linkUri} .
+          ${linkUri} a ext:SystemNotificationLink ;
+            ext:linkedType ${sparqlEscapeString(link.type)} ;
+            ext:linkedTo ${sparqlEscapeUri(link.uri)} .`;
+    })
+    .join('\n');
 
   const query = `
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -47,18 +59,7 @@ export async function createNotification({
           schema:description ${sparqlEscapeString(description)} ;
           dct:created ${sparqlEscapeDateTime(new Date())} ;
           dct:type ${sparqlEscapeUri(notificationTypes[type])} .
-        ${links
-          .map((link) => {
-            const linkId = uuid();
-            const linkUri = sparqlEscapeUri(
-              `http://data.lblod.info/id/SystemNotificationLink/${linkId}`,
-            );
-            return `${uri} ext:notificationLink ${linkUri} .
-          ${linkUri} a ext:SystemNotificationLink ;
-            ext:linkedType ${sparqlEscapeString(link.type)} ;
-            ext:linkedTo ${sparqlEscapeUri(link.uri)} .`;
-          })
-          .join('\n')}
+        ${newData}
       }
     }`;
   await updateSudo(query);
