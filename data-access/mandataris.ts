@@ -520,28 +520,6 @@ export async function endExistingMandataris(
   }
 }
 
-export async function findStartDateOfMandataris(
-  mandataris: Term,
-): Promise<Date | null> {
-  const startDateQuery = `
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-
-    SELECT ?startDate
-    WHERE {
-      ${sparqlEscapeTermValue(mandataris)} mandaat:start ?startDate .
-    }
-  `;
-
-  const dateResult = await querySudo(startDateQuery);
-  const result = findFirstSparqlResult(dateResult);
-
-  if (result) {
-    return new Date(result.startDate.value);
-  }
-
-  return null;
-}
-
 export async function findDecisionForMandataris(
   mandataris: string,
 ): Promise<{ besluit: string; link: string } | null> {
