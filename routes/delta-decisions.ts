@@ -28,6 +28,18 @@ deltaRouter.post('/decisions', async (req: Request, res: Response) => {
     new Set(insertTriples.map((quad: Quad) => quad.object.value)),
   );
 
+  const newData = mandatarisSubjects
+    .map((mandataris: string) => {
+      const id = uuid();
+      const instanceUri = sparqlEscapeUri(
+        `http://mu.semte.ch/vocabularies/ext/queueInstance/${id}`,
+      );
+      const mandatarisUri = sparqlEscapeUri(mandataris);
+      return `${instanceUri} ext:queueInstance ${mandatarisUri} ;
+            ext:queueTime ${sparqlEscapeDateTime(new Date())} .`;
+    })
+    .join('\n');
+
   // keep these mandataris instances in the database instead of memory
   // so if we crash we know they should still be processed
   // wait BUFFER_TIME to process the mandataris so we are reasonably sure that we have all the  info
@@ -36,17 +48,7 @@ deltaRouter.post('/decisions', async (req: Request, res: Response) => {
 
   INSERT DATA {
     GRAPH <http://mu.semte.ch/graphs/besluit-mandataris-queue> {
-      ${mandatarisSubjects
-        .map((mandataris: string) => {
-          const id = uuid();
-          const instanceUri = sparqlEscapeUri(
-            `http://mu.semte.ch/vocabularies/ext/queueInstance/${id}`,
-          );
-          const mandatarisUri = sparqlEscapeUri(mandataris);
-          return `${instanceUri} ext:queueInstance ${mandatarisUri} ;
-            ext:queueTime ${sparqlEscapeDateTime(new Date())} .`;
-        })
-        .join('\n')}
+      ${newData}
     }
   }`;
 
