@@ -4,13 +4,11 @@ import { sparqlEscapeUri, sparqlEscapeDateTime } from 'mu';
 import { Request, Response } from 'express';
 
 import { Changeset, Quad } from '../types';
-import { ProcessingQueue } from '../services/processing-queue';
 import { updateSudo } from '@lblod/mu-auth-sudo';
 import { v4 as uuid } from 'uuid';
 import { BESLUIT_STAGING_GRAPH } from '../data-access/mandatees-decisions';
 
 const deltaRouter = Router();
-export const mandatarisQueue = new ProcessingQueue();
 
 deltaRouter.post('/decisions', async (req: Request, res: Response) => {
   console.log('|>Triggered the decisions endpoint!');

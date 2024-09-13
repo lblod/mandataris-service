@@ -115,7 +115,8 @@ const createDecisionForKnownMandatarisNewBeleidsdomein = async () => {
   const beleidsdomeinName = 'foobar';
   const beleidsdomeinUri = `<http://data.lblod.info/id/beleidsdomeinen/${beleidsdomeinId}>`;
 
-  const existingBeleidsdomeinUri = `<http://data.vlaanderen.be/id/concept/BeleidsdomeinCode/5C0E5AD998360D0009000056>`;
+  const existingBeleidsdomeinUri =
+    '<http://data.vlaanderen.be/id/concept/BeleidsdomeinCode/5C0E5AD998360D0009000056>';
 
   const insertQuery = `
   PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
