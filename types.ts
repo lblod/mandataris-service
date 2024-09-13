@@ -60,3 +60,14 @@ export type SparqlResult = {
   results: { bindings: Array<TermProperty> };
   boolean?: boolean;
 };
+
+export type MandatarisBesluitLookup = {
+  mandatarisUri: string;
+  besluitUri: string;
+  type: 'ontslag' | 'aanstelling';
+};
+
+export type MandatarisFullInfo = MandatarisBesluitLookup & {
+  triples: Triple[];
+  graph: string;
+};

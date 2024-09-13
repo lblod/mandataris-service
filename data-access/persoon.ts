@@ -15,7 +15,7 @@ import {
   getBooleanSparqlResult,
   getSparqlResults,
 } from '../util/sparql-result';
-import { getIdentifierFromPersonUri } from '../util/find-uuid-in-uri';
+import { getIdentifierFromPersonUri } from '../util/uuid-for-uri';
 
 // note since we use the regular query, not sudo queries, be sure to log in when using this endpoint. E.g. use the vendor login
 
@@ -156,6 +156,7 @@ export async function createrPersonFromUri(
   lastname: Term,
   graph: Term,
 ): Promise<void> {
+  // TODO danger!
   const personIdentifier = getIdentifierFromPersonUri(personUri.value);
   const createQuery = `
   PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
