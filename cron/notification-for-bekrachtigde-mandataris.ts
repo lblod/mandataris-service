@@ -4,6 +4,7 @@ import { querySudo } from '@lblod/mu-auth-sudo';
 import { getSparqlResults } from '../util/sparql-result';
 import { MANDATARIS_STATUS } from '../util/constants';
 import { sparqlEscapeDateTime } from '../util/mu';
+import { createNotification } from '../util/create-notification';
 
 const NOTIFICATION_CRON_PATTERN = '* * * * *';
 let running = false;
@@ -21,7 +22,25 @@ export const cronjob = CronJob.from({
 });
 
 async function HandleEffectieveMandatarissen() {
-  await fetchMandatarissen();
+  const mandatarissenWithGraph = await fetchMandatarissen();
+  const bufferTime = 1000;
+  for (const mandatarisWithGraph of mandatarissenWithGraph) {
+    setTimeout(async () => {
+      console.log(`Create notification for ${mandatarisWithGraph.mandataris}`);
+      createNotification({
+        title: 'Mandataris zonder besluit',
+        description: `De status van mandataris met uri <${mandatarisWithGraph.mandataris}> staat al 10 dagen of meer of effectief zonder dat er een besluit is toegevoegd.`,
+        type: 'warning',
+        graph: mandatarisWithGraph.graph,
+        links: [
+          {
+            type: 'mandataris',
+            uri: mandatarisWithGraph.mandataris,
+          },
+        ],
+      });
+    }, bufferTime);
+  }
   running = false;
 }
 
