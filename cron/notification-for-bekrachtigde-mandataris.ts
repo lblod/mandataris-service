@@ -6,7 +6,8 @@ import { MANDATARIS_STATUS } from '../util/constants';
 import { sparqlEscapeDateTime } from '../util/mu';
 import { createNotification } from '../util/create-notification';
 
-const NOTIFICATION_CRON_PATTERN = '* * * * *';
+const NOTIFICATION_CRON_PATTERN =
+  process.env.BESLUIT_CRON_PATTERN || '0 0 * * SUN'; // Every week at 00:00 on monday
 let running = false;
 
 export const cronjob = CronJob.from({
