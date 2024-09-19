@@ -68,7 +68,6 @@ async function getContactEmailFromMandataris(mandatarisUri: Term) {
     } LIMIT 1
   `;
   const sparqlResult = await querySudo(query);
-  console.log(sparqlResult);
   const result = findFirstSparqlResult(sparqlResult);
 
   return result?.email;
