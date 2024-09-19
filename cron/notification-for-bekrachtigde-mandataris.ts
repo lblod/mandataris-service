@@ -1,13 +1,21 @@
 import { CronJob } from 'cron';
 
 import { querySudo } from '@lblod/mu-auth-sudo';
-import { getSparqlResults } from '../util/sparql-result';
+import {
+  getBooleanSparqlResult,
+  getSparqlResults,
+} from '../util/sparql-result';
 import { MANDATARIS_STATUS } from '../util/constants';
-import { sparqlEscapeDateTime } from '../util/mu';
+import {
+  sparqlEscapeDateTime,
+  sparqlEscapeString,
+  sparqlEscapeUri,
+} from '../util/mu';
 import { createNotification } from '../util/create-notification';
 
+const SUBJECT = 'Mandataris zonder besluit';
 const NOTIFICATION_CRON_PATTERN =
-  process.env.BESLUIT_CRON_PATTERN || '0 0 * * SUN'; // Every week at 00:00 on monday
+  process.env.BESLUIT_CRON_PATTERN || '* * * * *'; // Every week at 00:00 on monday
 let running = false;
 
 export const cronjob = CronJob.from({
@@ -26,9 +34,17 @@ async function HandleEffectieveMandatarissen() {
   const mandatarissenWithGraph = await fetchMandatarissen();
   const bufferTime = 1000;
   for (const mandatarisWithGraph of mandatarissenWithGraph) {
+    const hasNotification = await hasNotificationForMandataris(
+      mandatarisWithGraph.mandataris,
+      mandatarisWithGraph.graph,
+    );
+    if (hasNotification) {
+      continue;
+    }
+
     setTimeout(async () => {
       await createNotification({
-        title: 'Mandataris zonder besluit',
+        title: SUBJECT,
         description: `De status van mandataris met uri <${mandatarisWithGraph.mandataris}> staat al 10 dagen of meer of effectief zonder dat er een besluit is toegevoegd.`,
         type: 'warning',
         graph: mandatarisWithGraph.graph,
@@ -85,4 +101,28 @@ async function fetchMandatarissen() {
       graph: term.graph.value,
     };
   });
+}
+
+async function hasNotificationForMandataris(
+  mandataris: string,
+  graph: string,
+): Promise<boolean> {
+  const query = `
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX dct: <http://purl.org/dc/terms/>
+    
+    ASK {
+      GRAPH ${sparqlEscapeUri(graph)} {
+        ?notification a ext:SystemNotification;
+          dct:subject ${sparqlEscapeString(SUBJECT)};
+          ext:notificationLink ?notificationLink.
+        
+        ?notificationLink ext:linkedTo ${sparqlEscapeUri(mandataris)}.
+      }
+    }
+  `;
+
+  const sparqlResult = await querySudo(query);
+
+  return getBooleanSparqlResult(sparqlResult);
 }
