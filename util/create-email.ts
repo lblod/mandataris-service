@@ -6,7 +6,7 @@ const EMAIL_FROM_MANDATARIS_EFFECTIEF =
   process.env.EMAIL_FROM_MANDATARIS_EFFECTIEF ??
   'lokaal-mandatenbeheer@vlaanderen.be';
 
-export async function sendMailTo(emailTo: string) {
+export async function sendMailTo(emailTo: string, mandatarisUri: string) {
   const from = sparqlEscapeString(EMAIL_FROM_MANDATARIS_EFFECTIEF);
   const to = sparqlEscapeString(emailTo);
   const insertQuery = `
@@ -20,7 +20,7 @@ export async function sendMailTo(emailTo: string) {
         nmo:messageFrom ${from};
         nmo:emailTo ${to};
         nmo:messageSubject "Besluit voor mandataris";
-        nmo:plainTextMessageContent "";
+        nmo:plainTextMessageContent "Mandataris met uri ${mandatarisUri} staat al 10 of meer dagen op publicatie status effectief zonder dat er een besluit aan hangt.";
         nmo:sentDate ${sparqlEscapeDateTime(new Date())};
         nmo:isPartOf <http://data.lblod.info/id/mail-folders/2>.
     }

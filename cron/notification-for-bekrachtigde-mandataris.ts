@@ -12,6 +12,8 @@ import {
   sparqlEscapeUri,
 } from '../util/mu';
 import { createNotification } from '../util/create-notification';
+import { bestuurseenheid_sudo } from '../data-access/bestuurseenheid';
+import { sendMailTo } from '../util/create-email';
 
 const SUBJECT = 'Mandataris zonder besluit';
 const NOTIFICATION_CRON_PATTERN =
@@ -47,14 +49,20 @@ async function HandleEffectieveMandatarissen() {
         title: SUBJECT,
         description: `De status van mandataris met uri <${mandatarisWithGraph.mandataris}> staat al 10 dagen of meer of effectief zonder dat er een besluit is toegevoegd.`,
         type: 'warning',
-        graph: mandatarisWithGraph.graph,
+        graph: mandatarisWithGraph.graph.value,
         links: [
           {
             type: 'mandataris',
-            uri: mandatarisWithGraph.mandataris,
+            uri: mandatarisWithGraph.mandataris.value,
           },
         ],
       });
+      const email = await bestuurseenheid_sudo.getContactEmailFromMandataris(
+        mandatarisWithGraph.mandataris,
+      );
+      if (email) {
+        await sendMailTo(email.value, mandatarisWithGraph.mandataris.value);
+      }
     }, bufferTime);
   }
   running = false;
@@ -97,8 +105,8 @@ async function fetchMandatarissen() {
 
   return results.map((term) => {
     return {
-      mandataris: term.mandataris.value,
-      graph: term.graph.value,
+      mandataris: term.mandataris,
+      graph: term.graph,
     };
   });
 }
