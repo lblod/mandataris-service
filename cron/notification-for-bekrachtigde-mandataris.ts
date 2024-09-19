@@ -27,8 +27,7 @@ async function HandleEffectieveMandatarissen() {
   const bufferTime = 1000;
   for (const mandatarisWithGraph of mandatarissenWithGraph) {
     setTimeout(async () => {
-      console.log(`Create notification for ${mandatarisWithGraph.mandataris}`);
-      createNotification({
+      await createNotification({
         title: 'Mandataris zonder besluit',
         description: `De status van mandataris met uri <${mandatarisWithGraph.mandataris}> staat al 10 dagen of meer of effectief zonder dat er een besluit is toegevoegd.`,
         type: 'warning',
