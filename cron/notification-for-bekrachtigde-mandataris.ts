@@ -15,7 +15,7 @@ import { createNotification } from '../util/create-notification';
 
 const SUBJECT = 'Mandataris zonder besluit';
 const NOTIFICATION_CRON_PATTERN =
-  process.env.BESLUIT_CRON_PATTERN || '* * * * *'; // Every week at 00:00 on monday
+  process.env.NOTIFICATION_CRON_PATTERN || '0 8 * * 1-5'; // Every weekday at 8am
 let running = false;
 
 export const cronjob = CronJob.from({
