@@ -1,6 +1,10 @@
 import { fractie } from '../data-access/fractie';
-import { mandataris } from '../data-access/mandataris';
+import {
+  findDecisionForMandataris,
+  mandataris,
+} from '../data-access/mandataris';
 import { persoon } from '../data-access/persoon';
+import { Term } from '../types';
 
 import { STATUS_CODE } from '../util/constants';
 import { HttpError } from '../util/http-error';
@@ -8,6 +12,7 @@ import { HttpError } from '../util/http-error';
 export const mandatarisUsecase = {
   updateCurrentFractie,
   copyOverNonResourceDomainPredicates,
+  findDecision,
 };
 
 async function updateCurrentFractie(mandatarisId: string): Promise<void> {
@@ -82,4 +87,20 @@ async function copyOverNonResourceDomainPredicates(
     mandatarisId: newMandatarisId,
     itemsAdded: nonDomainResourceProperties.length,
   };
+}
+
+async function findDecision(mandatarisId: string): Promise<string | null> {
+  const isMandataris = await mandataris.isValidId(mandatarisId);
+  if (!isMandataris) {
+    throw new HttpError(
+      `Mandataris with id ${mandatarisId} not found.`,
+      STATUS_CODE.BAD_REQUEST,
+    );
+  }
+  const decision = await findDecisionForMandataris({
+    type: 'uri',
+    value: mandatarisId,
+  } as Term);
+
+  return decision ? decision.value : null;
 }
