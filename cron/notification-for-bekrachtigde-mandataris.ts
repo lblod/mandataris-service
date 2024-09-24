@@ -6,18 +6,17 @@ import {
   getSparqlResults,
 } from '../util/sparql-result';
 import { MANDATARIS_STATUS } from '../util/constants';
-import {
-  sparqlEscapeDateTime,
-  sparqlEscapeString,
-  sparqlEscapeUri,
-} from '../util/mu';
+import { sparqlEscapeDateTime, sparqlEscapeString } from '../util/mu';
 import { createNotification } from '../util/create-notification';
 import { bestuurseenheid_sudo } from '../data-access/bestuurseenheid';
 import { sendMailTo } from '../util/create-email';
+import { Term } from '../types';
+import { sparqlEscapeTermValue } from '../util/sparql-escape';
 
 const SUBJECT = 'Mandataris zonder besluit';
 const NOTIFICATION_CRON_PATTERN =
   process.env.NOTIFICATION_CRON_PATTERN || '0 8 * * 1-5'; // Every weekday at 8am
+console.log(`NOTIFICATION CRON TIME SET TO: ${NOTIFICATION_CRON_PATTERN}`);
 let running = false;
 
 export const cronjob = CronJob.from({
@@ -112,20 +111,20 @@ async function fetchMandatarissen() {
 }
 
 async function hasNotificationForMandataris(
-  mandataris: string,
-  graph: string,
+  mandataris: Term,
+  graph: Term,
 ): Promise<boolean> {
   const query = `
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX dct: <http://purl.org/dc/terms/>
     
     ASK {
-      GRAPH ${sparqlEscapeUri(graph)} {
+      GRAPH ${sparqlEscapeTermValue(graph)} {
         ?notification a ext:SystemNotification;
           dct:subject ${sparqlEscapeString(SUBJECT)};
           ext:notificationLink ?notificationLink.
         
-        ?notificationLink ext:linkedTo ${sparqlEscapeUri(mandataris)}.
+        ?notificationLink ext:linkedTo ${sparqlEscapeTermValue(mandataris)}.
       }
     }
   `;
