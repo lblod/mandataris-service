@@ -86,4 +86,24 @@ mandatarissenRouter.put(
   },
 );
 
+mandatarissenRouter.get(
+  '/:id/decision',
+  async (req: Request, res: Response) => {
+    try {
+      const mandatarisId = req.params.id;
+      const foundDecision = await mandatarisUsecase.findDecision(mandatarisId);
+
+      return res.status(STATUS_CODE.OK).send({
+        decisionUri: foundDecision,
+      });
+    } catch (error) {
+      const message =
+        error.message ??
+        `Something went wrong while getting the decision of the mandataris with id: ${req.params.id}.`;
+      const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
+      return res.status(statusCode).send({ message });
+    }
+  },
+);
+
 export { mandatarissenRouter };
