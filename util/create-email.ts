@@ -4,10 +4,16 @@ import { updateSudo } from '@lblod/mu-auth-sudo';
 
 const EMAIL_FROM_MANDATARIS_EFFECTIEF =
   process.env.EMAIL_FROM_MANDATARIS_EFFECTIEF;
+export const SEND_EMAILS =
+  process.env.SEND_EMAIL_FOR_MANDATARIS_EFFECTIEF ?? false;
 
-if (!EMAIL_FROM_MANDATARIS_EFFECTIEF) {
+if (SEND_EMAILS && !EMAIL_FROM_MANDATARIS_EFFECTIEF) {
   throw 'Please set the email adres to the value set in the LMB app EMAIL_FROM_MANDATARIS_EFFECTIEF must equal to EMAIL_ADDRESS';
 }
+console.log(
+  `EMAIL_FROM_MANDATARIS_EFFECTIEF SET TO: ${EMAIL_FROM_MANDATARIS_EFFECTIEF}`,
+);
+console.log(`SEND_EMAIL_FOR_MANDATARIS_EFFECTIEF SET TO: ${SEND_EMAILS}`);
 
 export async function sendMailTo(emailTo: string, mandatarisUri: string) {
   const from = sparqlEscapeString(EMAIL_FROM_MANDATARIS_EFFECTIEF as string);

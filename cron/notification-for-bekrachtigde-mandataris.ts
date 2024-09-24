@@ -9,7 +9,7 @@ import { MANDATARIS_STATUS } from '../util/constants';
 import { sparqlEscapeDateTime, sparqlEscapeString } from '../util/mu';
 import { createNotification } from '../util/create-notification';
 import { bestuurseenheid_sudo } from '../data-access/bestuurseenheid';
-import { sendMailTo } from '../util/create-email';
+import { SEND_EMAILS, sendMailTo } from '../util/create-email';
 import { Term } from '../types';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
 
@@ -56,11 +56,14 @@ async function HandleEffectieveMandatarissen() {
           },
         ],
       });
-      const email = await bestuurseenheid_sudo.getContactEmailFromMandataris(
-        mandatarisWithGraph.mandataris,
-      );
-      if (email) {
-        await sendMailTo(email.value, mandatarisWithGraph.mandataris.value);
+
+      if (SEND_EMAILS) {
+        const email = await bestuurseenheid_sudo.getContactEmailFromMandataris(
+          mandatarisWithGraph.mandataris,
+        );
+        if (email) {
+          await sendMailTo(email.value, mandatarisWithGraph.mandataris.value);
+        }
       }
     }, bufferTime);
   }
