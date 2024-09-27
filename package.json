@@ -22,7 +22,7 @@
   "dependencies": {
     "@lblod/mu-auth-sudo": "^0.6.1",
     "body-parser": "^1.19.0",
-    "cron": "^1.8.2",
+    "cron": "^3.1.7",
     "crypto-js": "^4.0.0",
     "csv-parse": "^5.5.6",
     "express-promise-router": "^4.1.1",

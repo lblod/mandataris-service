@@ -11,7 +11,7 @@ PREFIX euro: <http://data.europa.eu/m8g/>
 PREFIX euvoc: <http://publications.europa.eu/ontology/euvoc#>
 PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-PREFIX generiek: <https://data.vlaanderen.be/ns/generiek#>
+PREFIX generiek: <http://data.vlaanderen.be/ns/generiek#>
 PREFIX lblodlg: <https://data.lblod.info/vocabularies/leidinggevenden/>
 PREFIX locn: <http://www.w3.org/ns/locn#>
 PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -19,7 +19,7 @@ PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 PREFIX org: <http://www.w3.org/ns/org#>
 PREFIX organisatie: <https://data.vlaanderen.be/ns/organisatie#>
 PREFIX person: <http://www.w3.org/ns/person#>
-PREFIX persoon: <https://data.vlaanderen.be/ns/persoon#>
+PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
 PREFIX prov: <http://www.w3.org/ns/prov#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX regorg: <https://www.w3.org/ns/regorg#>

@@ -3,13 +3,15 @@ import { app } from 'mu';
 import express, { Request, ErrorRequestHandler } from 'express';
 import bodyParser from 'body-parser';
 
-import { deltaRouter } from './routes/delta';
+import { deltaRouter } from './routes/delta-decisions';
 import { mandatarissenRouter } from './routes/mandatarissen';
 import { fractiesRouter } from './routes/fractie';
 import { personenRouter } from './routes/persoon';
 import { burgemeesterRouter } from './routes/burgemeester-benoeming';
 import { installatievergaderingRouter } from './routes/intallatievergadering';
 import { mandatenRouter } from './routes/mandaten';
+import { mockRouter } from './routes/mock';
+import { cronjob } from './cron/handle-decision-queue';
 
 app.use(
   bodyParser.json({
@@ -33,6 +35,7 @@ app.use('/personen', personenRouter);
 app.use('/mandaten', mandatenRouter);
 app.use('/burgemeester-benoeming', burgemeesterRouter);
 app.use('/installatievergadering-api', installatievergaderingRouter);
+app.use('/mock', mockRouter);
 
 const errorHandler: ErrorRequestHandler = function (err, _req, res, _next) {
   // custom error handler to have a default 500 error code instead of 400 as in the template
@@ -43,3 +46,5 @@ const errorHandler: ErrorRequestHandler = function (err, _req, res, _next) {
 };
 
 app.use(errorHandler);
+
+setTimeout(() => cronjob.start(), 10000);
