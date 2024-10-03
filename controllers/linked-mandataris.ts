@@ -3,7 +3,6 @@ import { sparqlEscapeUri } from 'mu';
 import {
   canAccessMandataris,
   findLinkedMandate,
-  copyFractieOfMandataris,
   copyMandataris,
   copyPersonOfMandataris,
   getFractieOfMandatarisInGraph,
@@ -15,6 +14,7 @@ import {
   copyExtraValues,
   findLinkedInstance,
   linkInstances,
+  copyFractieOfMandataris,
 } from '../data-access/linked-mandataris';
 import { endExistingMandataris, mandataris } from '../data-access/mandataris';
 import {
@@ -164,7 +164,10 @@ export const correctMistakesLinkedMandataris = async (req) => {
           destinationGraph,
         );
       } else {
-        fractie = await copyFractieOfMandataris(mandatarisId, destinationGraph);
+        throw new HttpError(
+          'The given fractie does not exist in the OCMW, it is not possible to create linked mandatarissen in a fractie that exists in the municipality but not in the OCMW.',
+          400,
+        );
       }
     }
 
@@ -274,7 +277,10 @@ export const handleFractie = async (mandatarisId, graph) => {
 
     // Add fractie if it does not exist
     if (!fractie) {
-      fractie = await copyFractieOfMandataris(mandatarisId, graph);
+      throw new HttpError(
+        'The given fractie does not exist in the OCMW, it is not possible to create linked mandatarissen in a fractie that exists in the municipality but not in the OCMW.',
+        400,
+      );
     }
   }
   return fractie;

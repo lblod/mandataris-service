@@ -264,6 +264,8 @@ export async function getFractieOfMandatarisInGraph(mandatarisId, graph) {
   return result.results.bindings[0].doelFractie.value;
 }
 
+// See if this needs to change, since it is only for onafhankelijke fracties
+// Maybe a similar function exists for the fractie handling?
 export async function copyFractieOfMandataris(mandatarisId, graph) {
   const fractieUuid = uuidv4();
   const fractieUri = `http://data.lblod.info/id/fracties/${fractieUuid}`;
@@ -276,8 +278,10 @@ export async function copyFractieOfMandataris(mandatarisId, graph) {
 
     INSERT {
       GRAPH ${sparqlEscapeTermValue(graph)} {
-        ${sparqlEscapeUri(fractieUri)} ?p ?o ;
+        ${sparqlEscapeUri(fractieUri)} a mandaat:Fractie ;
           mu:uuid ${sparqlEscapeString(fractieUuid)} ;
+          ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk> ;
+          regorg:legalName "Onafhankelijk" ;
           org:memberOf ?linkedBestuursorgaanIT ;
           org:linkedTo ?linkedBestuurseenheid .
       }
