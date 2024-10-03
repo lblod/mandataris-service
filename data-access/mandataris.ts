@@ -307,8 +307,6 @@ export const createMandatarisInstance = async (
   const uri = `http://data.lblod.info/id/mandatarissen/${uuid}`;
   const membershipUuid = uuidv4();
   const membershipUri = `http://data.lblod.info/id/lidmaatschappen/${membershipUuid}`;
-  const timeframeUuid = uuidv4();
-  const timeframeUri = `http://data.lblod.info/id/tijdsintervallen/${timeframeUuid}`;
 
   let mandatarisBeleidsDomeinen = '';
   if (beleidsDomeinUris.length > 0) {
@@ -324,20 +322,13 @@ export const createMandatarisInstance = async (
   let membershipTriples = '';
   const safeUri = sparqlEscapeUri(uri);
   const safeMembershipUri = sparqlEscapeUri(membershipUri);
-  const safeTimeframeUri = sparqlEscapeUri(timeframeUri);
   if (mandate.fractionUri) {
     membershipTriples = `
     ${safeMembershipUri} a org:Membership ;
       mu:uuid ${sparqlEscapeString(membershipUuid)} ;
-      org:organisation ${sparqlEscapeUri(mandate.fractionUri)} ;
-      org:memberDuring ${safeTimeframeUri} .
+      org:organisation ${sparqlEscapeUri(mandate.fractionUri)} .
 
     ${safeUri} org:hasMembership ${safeMembershipUri} .
-
-    ${safeTimeframeUri} a dct:PeriodOfTime ;
-      mu:uuid ${sparqlEscapeString(timeframeUuid)} ;
-      generiek:start ${sparqlEscapeDateTime(mandatarisStart)} ;
-      generiek:einde ${sparqlEscapeDateTime(mandatarisEnd)} .
     `;
   }
 
