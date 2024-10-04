@@ -56,7 +56,7 @@ const checkForFractionsThatDontExist = async (
   if (hasUnknownFractions) {
     await createMandatarisBesluitNotification({
       title: 'Onbekende fractie',
-      description: `Mandataris met uri ${mandatarisFullInfo.mandatarisUri} heeft een fractie die niet gekend is in de applicatie. Deze informatie is niet overgezet. Gelieve de Mandataris manueel na te kijken en eventueel aan te passen.`,
+      description: `Mandataris uit een besluit heeft een fractie die niet gekend is in de applicatie. Deze informatie is niet overgezet. Gelieve de Mandataris manueel na te kijken en eventueel aan te passen.`,
       type: 'error',
       info: mandatarisFullInfo,
     });
@@ -118,7 +118,7 @@ const checkForDuplicateMemberships = async (
   if (hasUnknownFractions) {
     await createMandatarisBesluitNotification({
       title: 'Dubbele fractie',
-      description: `Mandataris met uri ${mandatarisFullInfo.mandatarisUri} heeft meerdere fracties op hetzelfde moment in het besluit. Deze informatie is niet overgezet. Gelieve de Mandataris manueel na te kijken en eventueel aan te passen.`,
+      description: `Een mandataris heeft meerdere fracties op hetzelfde moment in het besluit. Deze informatie is niet overgezet. Gelieve de Mandataris manueel na te kijken en eventueel aan te passen.`,
       type: 'error',
       info: mandatarisFullInfo,
     });

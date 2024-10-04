@@ -25,7 +25,7 @@ export async function copyPersonInfo(mandatarisFullInfo: MandatarisFullInfo) {
     await createPerson(persoonUri, graph);
     await createMandatarisBesluitNotification({
       title: 'Persoon aangemaakt',
-      description: `Een nieuwe Persoon met uri ${persoonUri} werd aangemaakt op basis van de informatie in het Besluit. Deze Persoon zal onvolledige informatie bevatten aangezien e.g. rijksregisternummer niet gepubliceerd wordt in het Besluit.`,
+      description: `Een nieuwe Persoon werd aangemaakt op basis van de informatie in het Besluit. Deze Persoon zal onvolledige informatie bevatten aangezien e.g. rijksregisternummer niet gepubliceerd wordt in het Besluit.`,
       type: 'warning',
       info: mandatarisFullInfo,
     });

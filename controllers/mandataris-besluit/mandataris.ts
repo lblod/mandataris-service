@@ -39,7 +39,7 @@ async function copyMandatarisToExisting(
     );
     await createMandatarisBesluitNotification({
       title: 'Mandataris aangepast',
-      description: `Mandataris met uri ${mandatarisSubject} werd aangepast op basis van de informatie in een Besluit.`,
+      description: `Mandataris werd aangepast op basis van de informatie in een Besluit.`,
       type: 'info',
       info: mandatarisFullInfo,
     });
@@ -99,7 +99,7 @@ async function createNewMandataris(mandatarisFullInfo: MandatarisFullInfo) {
   await insertTriplesInGraph(allTriples, graph);
   await createMandatarisBesluitNotification({
     title: 'Mandataris aangemaakt',
-    description: `Een nieuwe Mandataris met uri ${mandatarisSubject} werd aangemaakt op basis van de informatie in een Besluit.${statusWarning}`,
+    description: `Een nieuwe Mandataris werd aangemaakt op basis van de informatie in een Besluit.${statusWarning}`,
     type: 'warning',
     info: mandatarisFullInfo,
   });
