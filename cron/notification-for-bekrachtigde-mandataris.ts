@@ -21,6 +21,9 @@ let running = false;
 export const cronjob = CronJob.from({
   cronTime: NOTIFICATION_CRON_PATTERN,
   onTick: async () => {
+    console.log(
+      'DEBUG: Starting cronjob to send notifications for effective mandatees without besluit.',
+    );
     if (running) {
       return;
     }
