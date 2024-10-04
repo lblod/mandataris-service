@@ -40,6 +40,7 @@ export async function createNotification({
       );
       return `${uri} ext:notificationLink ${linkUri} .
           ${linkUri} a ext:SystemNotificationLink ;
+            mu:uuid ${sparqlEscapeString(linkId)} ;
             ext:linkedType ${sparqlEscapeString(link.type)} ;
             ext:linkedTo ${sparqlEscapeUri(link.uri)} .`;
     })
