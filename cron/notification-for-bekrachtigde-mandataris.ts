@@ -34,7 +34,8 @@ export const cronjob = CronJob.from({
 });
 
 async function HandleEffectieveMandatarissen() {
-  const mandatarissenWithGraph = await fetchMandatarissen();
+  const mandatarissenWithGraph =
+    await fetchEffectiveMandatarissenWithoutBesluit();
   const bufferTime = 1000;
   for (const mandatarisWithGraph of mandatarissenWithGraph) {
     const hasNotification = await hasNotificationForMandataris(
@@ -63,7 +64,7 @@ async function HandleEffectieveMandatarissen() {
   running = false;
 }
 
-async function fetchMandatarissen() {
+async function fetchEffectiveMandatarissenWithoutBesluit() {
   const tenDaysBefore = new Date();
   tenDaysBefore.setDate(tenDaysBefore.getDate() - 10);
   const escapedToday = sparqlEscapeDateTime(new Date());
