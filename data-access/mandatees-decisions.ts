@@ -121,7 +121,7 @@ export async function checkIfMinimalMandatarisInfoAvailable(
     const graph = await getMandatarisNotificationGraph(mandataris);
     await createNotification({
       title: 'Besluit met Mandataris zonder minimale info',
-      description: `Mandataris ${mandataris} uit Besluit ${besluitUri} heeft niet alle minimale informatie. Een Mandataris in een Besluit moet minstens een start datum, een persson en een mandaat bevatten. Het mandaat moet gekend zijn bij ABB.`,
+      description: `Een Mandataris uit het Besluit heeft niet alle minimale informatie. Een Mandataris in een Besluit moet minstens een startdatum, een persson en een mandaat bevatten. Het mandaat moet gekend zijn bij ABB.`,
       type: 'error',
       graph,
       links: [

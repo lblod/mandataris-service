@@ -43,8 +43,8 @@ async function safeProcessMandatarisForDecisions(match) {
       `ERROR processing mandataris decision instance ${match.instance}: ${e.message}`,
     );
     await createNotification({
-      title: 'Error tijdens verwerken van Besluit voor mandataris',
-      description: `Error tijdens verwerken van Besluit voor ${match.instance}. Gelieve de logs na te kijken voor meer informatie.`,
+      title: 'Fout tijdens verwerken van Besluit voor mandataris',
+      description: `Fout tijdens verwerken van Besluit voor ${match.instance}. Gelieve de logs na te kijken voor meer informatie.`,
       type: 'error',
       graph: match.instance,
       links: [

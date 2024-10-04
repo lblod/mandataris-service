@@ -42,7 +42,7 @@ async function copyBeleidsDomein(
     await createBeleidsDomein(beleidsDomein, graph);
     await createMandatarisBesluitNotification({
       title: 'Beleidsdomein aangemaakt',
-      description: `Een nieuw beleidsdomein met uri ${beleidsDomein} werd aangemaakt op basis van de informatie in het Besluit.`,
+      description: `Een nieuw beleidsdomein werd aangemaakt op basis van de informatie in het Besluit.`,
       type: 'info',
       info: mandatarisFullInfo,
     });
