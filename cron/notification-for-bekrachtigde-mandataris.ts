@@ -77,11 +77,10 @@ async function fetchEffectiveMandatarissenWithoutBesluit() {
     SELECT DISTINCT ?mandataris ?graph
       WHERE {
         GRAPH ?graph {
-          ?mandataris a mandaat:Mandataris;
-            lmb:hasPublicationStatus <${PUBLICATION_STATUS.EFECTIEF}>.
-
+          ?mandataris a mandaat:Mandataris ;
+            lmb:hasPublicationStatus <${PUBLICATION_STATUS.EFECTIEF}> .
           OPTIONAL {
-            ?mandaat lmb:effectiefAt ?saveEffectiefAt.
+            ?mandataris lmb:effectiefAt ?saveEffectiefAt .
           }
         }
         FILTER NOT EXISTS {
