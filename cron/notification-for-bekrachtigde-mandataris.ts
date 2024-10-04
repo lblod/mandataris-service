@@ -90,7 +90,7 @@ async function fetchEffectiveMandatarissenWithoutBesluit() {
           ?graph a <http://mu.semte.ch/graphs/public>
         }
 
-        FILTER(${sparqlEscapeDateTime(tenDaysBefore)} <= ?saveEffectiefAt)
+        FILTER(${sparqlEscapeDateTime(tenDaysBefore)} >= ?saveEffectiefAt)
         BIND(IF(BOUND(?effectiefAt), ?effectiefAt, ${escapedToday}) AS ?saveEffectiefAt).
       }
   `;
