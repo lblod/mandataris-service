@@ -34,13 +34,12 @@ export const cronjob = CronJob.from({
 });
 
 async function HandleEffectieveMandatarissen() {
-  const mandatarissenWithGraph =
-    await fetchEffectiveMandatarissenWithoutBesluit();
+  const mandatarissen = await fetchEffectiveMandatarissenWithoutBesluit();
   const bufferTime = 1000;
-  for (const mandatarisWithGraph of mandatarissenWithGraph) {
+  for (const mandataris of mandatarissen) {
     const hasNotification = await hasNotificationForMandataris(
-      mandatarisWithGraph.mandataris,
-      mandatarisWithGraph.graph,
+      mandataris.uri,
+      mandataris.graph,
     );
     if (hasNotification) {
       continue;
@@ -49,13 +48,13 @@ async function HandleEffectieveMandatarissen() {
     setTimeout(async () => {
       await createNotification({
         title: SUBJECT,
-        description: `De status van mandataris met uri <${mandatarisWithGraph.mandataris}> staat al 10 dagen of meer op effectief zonder dat er een besluit is toegevoegd.`,
+        description: `De publicatie status van ${mandataris.name} met mandaat ${mandataris.mandate} staat al 10 dagen of meer op effectief zonder dat er een besluit is toegevoegd. Gelieve deze mandataris manueel te bekrachtigen en een besluit toe te voegen of publiceer het besluit van de installatievergadering via een notuleringspakket.`,
         type: 'warning',
-        graph: mandatarisWithGraph.graph,
+        graph: mandataris.graph,
         links: [
           {
             type: 'mandataris',
-            uri: mandatarisWithGraph.mandataris,
+            uri: mandataris.uri,
           },
         ],
       });
@@ -73,16 +72,25 @@ async function fetchEffectiveMandatarissenWithoutBesluit() {
     PREFIX dct: <http://purl.org/dc/terms/>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+    PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+    PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
   
-    SELECT DISTINCT ?mandataris ?graph
+    SELECT DISTINCT ?mandataris ?fName ?lName ?bestuursfunctieName ?graph
       WHERE {
         GRAPH ?graph {
           ?mandataris a mandaat:Mandataris ;
-            lmb:hasPublicationStatus <${PUBLICATION_STATUS.EFECTIEF}> .
+            lmb:hasPublicationStatus <${PUBLICATION_STATUS.EFECTIEF}> ;
+            mandaat:isBestuurlijkeAliasVan ?person ;
+            org:holds / org:role ?bestuursfunctie .
+          ?person persoon:gebruikteVoornaam ?fName ;
+            foaf:familyName ?lName .
           OPTIONAL {
             ?mandataris lmb:effectiefAt ?effectiefAt .
           }
         }
+        ?bestuursfunctie skos:prefLabel ?bestuursfunctieName .
         FILTER NOT EXISTS {
           ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
         }
@@ -100,7 +108,9 @@ async function fetchEffectiveMandatarissenWithoutBesluit() {
 
   return results.map((term) => {
     return {
-      mandataris: term.mandataris.value,
+      uri: term.mandataris.value,
+      name: `${term.fName.value} ${term.lName.value}`,
+      mandate: term.bestuursfunctieName.value,
       graph: term.graph.value,
     };
   });
