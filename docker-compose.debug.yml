@@ -6,8 +6,9 @@ services:
     labels:
       - 'logging=true'
     environment:
-      - NODE_ENV=development
-      - NO_BABEL_NODE=true
+      NODE_ENV: development
+      NO_BABEL_NODE: true
+      NOTIFICATION_CRON_PATTERN: "* * * * *" # Every minute
     ports:
       - '8082:80'
       - '9225:9229'
@@ -45,7 +46,6 @@ services:
       PARALLEL_CALLS: 20
       DCR_WAIT_FOR_INITIAL_SYNC: false
       DIRECT_DATABASE_ENDPOINT: http://database:8890
-      NOTIFICATION_CRON_PATTERN: "* * * * *" # Every minute
     networks:
       - debug
       - deltas-sync
