@@ -45,7 +45,7 @@ async function HandleEffectieveMandatarissen() {
     setTimeout(async () => {
       await createNotification({
         title: SUBJECT,
-        description: `De status van mandataris met uri <${mandatarisWithGraph.mandataris}> staat al 10 dagen of meer of effectief zonder dat er een besluit is toegevoegd.`,
+        description: `De status van mandataris met uri <${mandatarisWithGraph.mandataris}> staat al 10 dagen of meer op effectief zonder dat er een besluit is toegevoegd.`,
         type: 'warning',
         graph: mandatarisWithGraph.graph,
         links: [
