@@ -80,7 +80,7 @@ async function fetchEffectiveMandatarissenWithoutBesluit() {
           ?mandataris a mandaat:Mandataris ;
             lmb:hasPublicationStatus <${PUBLICATION_STATUS.EFECTIEF}> .
           OPTIONAL {
-            ?mandataris lmb:effectiefAt ?saveEffectiefAt .
+            ?mandataris lmb:effectiefAt ?effectiefAt .
           }
         }
         FILTER NOT EXISTS {
