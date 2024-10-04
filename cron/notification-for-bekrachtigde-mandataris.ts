@@ -67,7 +67,7 @@ async function HandleEffectieveMandatarissen() {
 async function fetchEffectiveMandatarissenWithoutBesluit() {
   const tenDaysBefore = new Date();
   tenDaysBefore.setDate(tenDaysBefore.getDate() - 10);
-  const escapedToday = sparqlEscapeDateTime(new Date());
+  const escapedTenDaysBefore = sparqlEscapeDateTime(tenDaysBefore);
   const query = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX dct: <http://purl.org/dc/terms/>
@@ -90,8 +90,8 @@ async function fetchEffectiveMandatarissenWithoutBesluit() {
           ?graph a <http://mu.semte.ch/graphs/public>
         }
 
-        FILTER(${sparqlEscapeDateTime(tenDaysBefore)} >= ?saveEffectiefAt)
-        BIND(IF(BOUND(?effectiefAt), ?effectiefAt, ${escapedToday}) AS ?saveEffectiefAt).
+        FILTER(${escapedTenDaysBefore} >= ?saveEffectiefAt)
+        BIND(IF(BOUND(?effectiefAt), ?effectiefAt, ${escapedTenDaysBefore}) AS ?saveEffectiefAt).
       }
   `;
 
