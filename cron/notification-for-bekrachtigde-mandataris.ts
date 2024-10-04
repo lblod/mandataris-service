@@ -5,7 +5,7 @@ import {
   getBooleanSparqlResult,
   getSparqlResults,
 } from '../util/sparql-result';
-import { MANDATARIS_STATUS } from '../util/constants';
+import { PUBLICATION_STATUS } from '../util/constants';
 import {
   sparqlEscapeDateTime,
   sparqlEscapeString,
@@ -77,7 +77,7 @@ async function fetchMandatarissen() {
       WHERE {
         GRAPH ?graph {
           ?mandataris a mandaat:Mandataris;
-            mandaat:status <${MANDATARIS_STATUS.EFFECTIEF}>.
+            lmb:hasPublicationStatus <${PUBLICATION_STATUS.EFECTIEF}>.
 
           OPTIONAL {
             ?mandaat lmb:effectiefAt ?saveEffectiefAt.
