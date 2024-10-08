@@ -2,6 +2,7 @@ import { TERM_TYPE, sparqlEscapeTermValue } from '../util/sparql-escape';
 import { findFirstSparqlResult } from '../util/sparql-result';
 import { Term } from '../types';
 import { querySudo } from '@lblod/mu-auth-sudo';
+import { sparqlEscapeUri } from '../util/mu';
 
 export const bestuurseenheid_sudo = {
   getContactEmailFromMandataris,
@@ -43,7 +44,7 @@ export async function findBestuurseenheidForMandaat(
   } as Term;
 }
 
-async function getContactEmailFromMandataris(mandatarisUri: Term) {
+async function getContactEmailFromMandataris(mandatarisUri: string) {
   const query = `
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
@@ -54,7 +55,7 @@ async function getContactEmailFromMandataris(mandatarisUri: Term) {
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     SELECT ?email WHERE {
-      ${sparqlEscapeTermValue(mandatarisUri)} a mandaat:Mandataris;
+      ${sparqlEscapeUri(mandatarisUri)} a mandaat:Mandataris;
         org:holds ?mandaat.
 
       ?bestuurseenheid a besluit:Bestuurseenheid.
@@ -70,5 +71,5 @@ async function getContactEmailFromMandataris(mandatarisUri: Term) {
   const sparqlResult = await querySudo(query);
   const result = findFirstSparqlResult(sparqlResult);
 
-  return result?.email;
+  return result?.email.value;
 }

@@ -5,8 +5,12 @@ import {
   getBooleanSparqlResult,
   getSparqlResults,
 } from '../util/sparql-result';
-import { MANDATARIS_STATUS } from '../util/constants';
-import { sparqlEscapeDateTime, sparqlEscapeString } from '../util/mu';
+import { PUBLICATION_STATUS } from '../util/constants';
+import {
+  sparqlEscapeDateTime,
+  sparqlEscapeString,
+  sparqlEscapeUri,
+} from '../util/mu';
 import { createNotification } from '../util/create-notification';
 import { bestuurseenheid_sudo } from '../data-access/bestuurseenheid';
 import { SEND_EMAILS, sendMailTo } from '../util/create-email';
@@ -22,6 +26,9 @@ let running = false;
 export const cronjob = CronJob.from({
   cronTime: NOTIFICATION_CRON_PATTERN,
   onTick: async () => {
+    console.log(
+      'DEBUG: Starting cronjob to send notifications for effective mandatees without besluit.',
+    );
     if (running) {
       return;
     }
@@ -32,12 +39,12 @@ export const cronjob = CronJob.from({
 });
 
 async function HandleEffectieveMandatarissen() {
-  const mandatarissenWithGraph = await fetchMandatarissen();
+  const mandatarissen = await fetchEffectiveMandatarissenWithoutBesluit();
   const bufferTime = 1000;
-  for (const mandatarisWithGraph of mandatarissenWithGraph) {
+  for (const mandataris of mandatarissen) {
     const hasNotification = await hasNotificationForMandataris(
-      mandatarisWithGraph.mandataris,
-      mandatarisWithGraph.graph,
+      mandataris.uri,
+      mandataris.graph,
     );
     if (hasNotification) {
       continue;
@@ -46,23 +53,23 @@ async function HandleEffectieveMandatarissen() {
     setTimeout(async () => {
       await createNotification({
         title: SUBJECT,
-        description: `De status van mandataris met uri <${mandatarisWithGraph.mandataris}> staat al 10 dagen of meer of effectief zonder dat er een besluit is toegevoegd.`,
+        description: `De publicatie status van ${mandataris.name} met mandaat ${mandataris.mandate} staat al 10 dagen of meer op effectief zonder dat er een besluit is toegevoegd. Gelieve deze mandataris manueel te bekrachtigen en een besluit toe te voegen of publiceer het besluit van de installatievergadering via een notuleringspakket.`,
         type: 'warning',
-        graph: mandatarisWithGraph.graph.value,
+        graph: mandataris.graph,
         links: [
           {
             type: 'mandataris',
-            uri: mandatarisWithGraph.mandataris.value,
+            uri: mandataris.uri,
           },
         ],
       });
 
       if (SEND_EMAILS) {
         const email = await bestuurseenheid_sudo.getContactEmailFromMandataris(
-          mandatarisWithGraph.mandataris,
+          mandataris.uri,
         );
         if (email) {
-          await sendMailTo(email.value, mandatarisWithGraph.mandataris.value);
+          await sendMailTo(email, mandataris.uri);
         }
       }
     }, bufferTime);
@@ -70,26 +77,34 @@ async function HandleEffectieveMandatarissen() {
   running = false;
 }
 
-async function fetchMandatarissen() {
+async function fetchEffectiveMandatarissenWithoutBesluit() {
   const tenDaysBefore = new Date();
   tenDaysBefore.setDate(tenDaysBefore.getDate() - 10);
-  const escapedToday = sparqlEscapeDateTime(new Date());
+  const escapedTenDaysBefore = sparqlEscapeDateTime(tenDaysBefore);
   const query = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX dct: <http://purl.org/dc/terms/>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+    PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+    PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
   
-    SELECT DISTINCT ?mandataris ?graph
+    SELECT DISTINCT ?mandataris ?fName ?lName ?bestuursfunctieName ?graph
       WHERE {
         GRAPH ?graph {
-          ?mandataris a mandaat:Mandataris;
-            mandaat:status <${MANDATARIS_STATUS.EFFECTIEF}>.
-
+          ?mandataris a mandaat:Mandataris ;
+            lmb:hasPublicationStatus <${PUBLICATION_STATUS.EFECTIEF}> ;
+            mandaat:isBestuurlijkeAliasVan ?person ;
+            org:holds / org:role ?bestuursfunctie .
+          ?person persoon:gebruikteVoornaam ?fName ;
+            foaf:familyName ?lName .
           OPTIONAL {
-            ?mandaat lmb:effectiefAt ?saveEffectiefAt.
+            ?mandataris lmb:effectiefAt ?effectiefAt .
           }
         }
+        ?bestuursfunctie skos:prefLabel ?bestuursfunctieName .
         FILTER NOT EXISTS {
           ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
         }
@@ -97,8 +112,8 @@ async function fetchMandatarissen() {
           ?graph a <http://mu.semte.ch/graphs/public>
         }
 
-        FILTER(${sparqlEscapeDateTime(tenDaysBefore)} <= ?saveEffectiefAt)
-        BIND(IF(BOUND(?effectiefAt), ?effectiefAt, ${escapedToday}) AS ?saveEffectiefAt).
+        FILTER(${escapedTenDaysBefore} >= ?saveEffectiefAt)
+        BIND(IF(BOUND(?effectiefAt), ?effectiefAt, ${escapedTenDaysBefore}) AS ?saveEffectiefAt).
       }
   `;
 
@@ -107,27 +122,29 @@ async function fetchMandatarissen() {
 
   return results.map((term) => {
     return {
-      mandataris: term.mandataris,
-      graph: term.graph,
+      uri: term.mandataris.value,
+      name: `${term.fName.value} ${term.lName.value}`,
+      mandate: term.bestuursfunctieName.value,
+      graph: term.graph.value,
     };
   });
 }
 
 async function hasNotificationForMandataris(
-  mandataris: Term,
-  graph: Term,
+  mandataris: string,
+  graph: string,
 ): Promise<boolean> {
   const query = `
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX dct: <http://purl.org/dc/terms/>
     
     ASK {
-      GRAPH ${sparqlEscapeTermValue(graph)} {
+      GRAPH ${sparqlEscapeUri(graph)} {
         ?notification a ext:SystemNotification;
           dct:subject ${sparqlEscapeString(SUBJECT)};
           ext:notificationLink ?notificationLink.
         
-        ?notificationLink ext:linkedTo ${sparqlEscapeTermValue(mandataris)}.
+        ?notificationLink ext:linkedTo ${sparqlEscapeUri(mandataris)}.
       }
     }
   `;

@@ -46,4 +46,4 @@ const errorHandler: ErrorRequestHandler = function (err, _req, res, _next) {
 
 app.use(errorHandler);
 
-setTimeout(() => notificationBekrachtigdMandataris.start(), 10000);
+notificationBekrachtigdMandataris.start();
