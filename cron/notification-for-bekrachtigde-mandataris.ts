@@ -67,7 +67,7 @@ async function HandleEffectieveMandatarissen() {
           mandataris.uri,
         );
         if (email) {
-          await sendMailTo(email, mandataris.uri);
+          await sendMailTo(email, mandataris);
         }
       }
     }, bufferTime);

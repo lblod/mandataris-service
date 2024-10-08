@@ -15,9 +15,10 @@ console.log(
 );
 console.log(`SEND_EMAIL_FOR_MANDATARIS_EFFECTIEF SET TO: ${SEND_EMAILS}`);
 
-export async function sendMailTo(emailTo: string, mandatarisUri: string) {
+export async function sendMailTo(emailTo: string, mandataris) {
   const from = sparqlEscapeString(EMAIL_FROM_MANDATARIS_EFFECTIEF as string);
   const to = sparqlEscapeString(emailTo);
+  const description = `De publicatie status van ${mandataris.name} met mandaat ${mandataris.mandate} en uri ${mandataris.uri} staat al 10 dagen of meer op effectief zonder dat er een besluit is toegevoegd. Gelieve deze mandataris manueel te bekrachtigen en een besluit toe te voegen of publiceer het besluit van de installatievergadering via een notuleringspakket.`;
   const insertQuery = `
   PREFIX nmo: <http://www.semanticdesktop.org/ontologies/2007/03/22/nmo#>
   PREFIX nie: <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#>
@@ -29,7 +30,7 @@ export async function sendMailTo(emailTo: string, mandatarisUri: string) {
         nmo:messageFrom ${from};
         nmo:emailTo ${to};
         nmo:messageSubject "Besluit voor mandataris";
-        nmo:plainTextMessageContent "Mandataris met uri ${mandatarisUri} staat al 10 of meer dagen op publicatie status effectief zonder dat er een besluit aan hangt.";
+        nmo:plainTextMessageContent ${sparqlEscapeString(description)};
         nmo:sentDate ${sparqlEscapeDateTime(new Date())};
         nmo:isPartOf <http://data.lblod.info/id/mail-folders/2>.
     }
