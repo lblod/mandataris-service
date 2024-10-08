@@ -53,6 +53,7 @@ async function getContactEmailFromMandataris(mandatarisUri: string) {
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX schema: <http://schema.org/> 
 
     SELECT ?email WHERE {
       ${sparqlEscapeUri(mandatarisUri)} a mandaat:Mandataris;
@@ -64,7 +65,9 @@ async function getContactEmailFromMandataris(mandatarisUri: string) {
       ?bestuursorgaanInTijd org:hasPost ?mandaat .
 
       OPTIONAL {
-        ?bestuurseenheid ext:mailAdresVoorNotificaties ?email.
+        ?contact a ext:BestuurseenheidContact ;
+          ext:contactVoor ?bestuurseenheid ;
+          schema:email ?email .
       }
     } LIMIT 1
   `;
