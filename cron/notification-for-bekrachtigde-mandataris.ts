@@ -14,8 +14,6 @@ import {
 import { createNotification } from '../util/create-notification';
 import { bestuurseenheid_sudo } from '../data-access/bestuurseenheid';
 import { SEND_EMAILS, sendMailTo } from '../util/create-email';
-import { Term } from '../types';
-import { sparqlEscapeTermValue } from '../util/sparql-escape';
 
 const SUBJECT = 'Mandataris zonder besluit';
 const NOTIFICATION_CRON_PATTERN =
