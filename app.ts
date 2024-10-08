@@ -11,6 +11,8 @@ import { burgemeesterRouter } from './routes/burgemeester-benoeming';
 import { installatievergaderingRouter } from './routes/intallatievergadering';
 import { mandatenRouter } from './routes/mandaten';
 
+import { cronjob as notificationBekrachtigdMandataris } from './cron/notification-for-bekrachtigde-mandataris';
+
 app.use(
   bodyParser.json({
     limit: '500mb',
@@ -43,3 +45,5 @@ const errorHandler: ErrorRequestHandler = function (err, _req, res, _next) {
 };
 
 app.use(errorHandler);
+
+notificationBekrachtigdMandataris.start();
