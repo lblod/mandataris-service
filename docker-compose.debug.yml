@@ -6,8 +6,9 @@ services:
     labels:
       - 'logging=true'
     environment:
-      - NODE_ENV=development
-      - NO_BABEL_NODE=true
+      NODE_ENV: development
+      NO_BABEL_NODE: true
+      NOTIFICATION_CRON_PATTERN: "* * * * *" # Every minute
     ports:
       - '8082:80'
       - '9225:9229'
