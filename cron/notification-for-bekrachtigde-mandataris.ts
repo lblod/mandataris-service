@@ -12,10 +12,13 @@ import {
   sparqlEscapeUri,
 } from '../util/mu';
 import { createNotification } from '../util/create-notification';
+import { bestuurseenheid_sudo } from '../data-access/bestuurseenheid';
+import { SEND_EMAILS, sendMailTo } from '../util/create-email';
 
 const SUBJECT = 'Mandataris zonder besluit';
 const NOTIFICATION_CRON_PATTERN =
   process.env.NOTIFICATION_CRON_PATTERN || '0 8 * * 1-5'; // Every weekday at 8am
+console.log(`NOTIFICATION CRON TIME SET TO: ${NOTIFICATION_CRON_PATTERN}`);
 let running = false;
 
 export const cronjob = CronJob.from({
@@ -58,6 +61,15 @@ async function HandleEffectieveMandatarissen() {
           },
         ],
       });
+
+      if (SEND_EMAILS) {
+        const email = await bestuurseenheid_sudo.getContactEmailFromMandataris(
+          mandataris.uri,
+        );
+        if (email) {
+          await sendMailTo(email, mandataris);
+        }
+      }
     }, bufferTime);
   }
   running = false;
