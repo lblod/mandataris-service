@@ -4,6 +4,7 @@ import { updateSudo, querySudo } from '@lblod/mu-auth-sudo';
 import { getBooleanSparqlResult } from '../util/sparql-result';
 import { v4 as uuidv4 } from 'uuid';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
+import { Term } from '../types';
 
 export async function canAccessMandataris(id: string) {
   const sparql = `
@@ -58,7 +59,7 @@ export async function findLinkedMandate(mandatarisId, valueBindings) {
 export async function getDestinationGraphLinkedMandataris(
   mandatarisId,
   valueBindings,
-) {
+): Promise<Term | null> {
   const q = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
