@@ -83,7 +83,7 @@ export const removeLinkLinkedMandataris = async (req) => {
 export const createLinkedMandataris = async (req) => {
   const mandatarisId = req.params.id;
 
-  await preliminaryChecksLinkedMandataris(req);
+  const userId = await preliminaryChecksLinkedMandataris(req);
 
   // Get destination graph
   const destinationGraph = await getDestinationGraphLinkedMandataris(
@@ -137,8 +137,8 @@ export const createLinkedMandataris = async (req) => {
 
   await saveHistoryItem(
     newMandataris.uri,
+    userId,
     'created by gemeente - ocmw mirror',
-    `Created as linked mandate for ${mandatarisId}`,
   );
 
   await linkInstances(mandatarisId, newMandataris.id);
@@ -149,7 +149,7 @@ export const createLinkedMandataris = async (req) => {
 export const correctMistakesLinkedMandataris = async (req) => {
   const mandatarisId = req.params.id;
 
-  await preliminaryChecksLinkedMandataris(req);
+  const userId = await preliminaryChecksLinkedMandataris(req);
 
   const destinationGraph = await getDestinationGraphLinkedMandataris(
     mandatarisId,
@@ -212,8 +212,8 @@ export const correctMistakesLinkedMandataris = async (req) => {
 
   await saveHistoryItem(
     linkedMandataris.uri.value,
-    'updated by gemeente - ocmw mirror',
-    `Corrected in linked mandate: ${mandatarisId}`,
+    userId,
+    'Corrected by gemeente - ocmw mirror',
   );
 };
 
@@ -274,8 +274,8 @@ export const changeStateLinkedMandataris = async (req) => {
 
   await saveHistoryItem(
     newLinkedMandataris.uri,
-    'updated by gemeente - ocmw mirror',
-    `Created as update state for linked mandate: ${newMandatarisId}`,
+    userId,
+    'created as update state by gemeente - ocmw mirror',
   );
 
   await linkInstances(newMandatarisId, newLinkedMandataris.id);
@@ -300,6 +300,8 @@ const preliminaryChecksLinkedMandataris = async (req) => {
   if (!hasAccess) {
     throw new HttpError('No mandataris with given id found', 404);
   }
+
+  return userId;
 };
 
 export const handleFractie = async (mandatarisId, graph) => {
