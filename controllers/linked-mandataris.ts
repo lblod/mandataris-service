@@ -16,6 +16,7 @@ import {
   linkInstances,
   copyFractieOfMandataris,
   unlinkInstance,
+  linkedMandateAlreadyExists,
 } from '../data-access/linked-mandataris';
 import { endExistingMandataris, mandataris } from '../data-access/mandataris';
 import {
@@ -121,6 +122,20 @@ export const createLinkedMandataris = async (req) => {
   );
   if (!destinationGraph) {
     throw new HttpError('No destination graph found', 500);
+  }
+
+  // Check if person already has the corresponding mandate
+  const mandateAlreadyExists = await linkedMandateAlreadyExists(
+    mandatarisId,
+    destinationGraph,
+    getValueBindings(linkedMandaten),
+  );
+
+  if (mandateAlreadyExists) {
+    throw new HttpError(
+      'Er bestaat al een mandaat voor deze persoon in het OCMW',
+      400,
+    );
   }
 
   // Check if person exists
