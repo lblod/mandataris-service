@@ -2,9 +2,10 @@ import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
 import { sparqlEscapeUri } from 'mu';
 import { sparqlEscapeDateTime, sparqlEscapeString } from '../util/mu';
 import { v4 as uuid } from 'uuid';
+import { findFirstSparqlResult } from '../util/sparql-result';
 
 export const fetchUserIdFromSession = async (sessionUri: string) => {
-  const result = await querySudo(`
+  const queryResult = await querySudo(`
     PREFIX session: <http://mu.semte.ch/vocabularies/session/>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX foaf: <http://xmlns.com/foaf/0.1/>
@@ -16,12 +17,8 @@ export const fetchUserIdFromSession = async (sessionUri: string) => {
     } LIMIT 1
   `);
 
-  if (result.results.bindings.length) {
-    const binding = result.results.bindings[0];
-    return binding.user.value;
-  } else {
-    return null;
-  }
+  const result = findFirstSparqlResult(queryResult);
+  return result?.user.value;
 };
 
 export const saveHistoryItem = async (
@@ -32,7 +29,7 @@ export const saveHistoryItem = async (
   const historyGraph = `<http://mu.semte.ch/graphs/formHistory/${uuid()}>`;
 
   let descriptionInsert = '';
-  if (description && description.length > 0) {
+  if (description && description.trim().length > 0) {
     descriptionInsert = `; dct:description ${sparqlEscapeString(description)} `;
   }
 

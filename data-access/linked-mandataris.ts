@@ -196,7 +196,7 @@ export async function copyPersonOfMandataris(mandatarisId, graph) {
   }
 }
 
-export async function sameFractieName(ogMandatarisId, linkedMandataris) {
+export async function isFractieNameEqual(ogMandatarisId, linkedMandataris) {
   const q = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>

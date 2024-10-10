@@ -256,7 +256,7 @@ export async function copyPerson(subject: Term, graph: Term) {
 async function getFractie(
   id: string,
   bestuursperiodeId: string,
-  unsafe: boolean = false,
+  sudo: boolean = false,
 ): Promise<TermProperty | null> {
   const getQuery = `
     PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
@@ -278,9 +278,7 @@ async function getFractie(
     }
   `;
 
-  const sparqlResult = unsafe
-    ? await querySudo(getQuery)
-    : await query(getQuery);
+  const sparqlResult = sudo ? await querySudo(getQuery) : await query(getQuery);
 
   return findFirstSparqlResult(sparqlResult);
 }
@@ -289,7 +287,7 @@ export async function isOnafhankelijkInPeriod(
   id: string,
   bestuursperiodeId: string,
   graph: Term,
-): Promise<string | null> {
+): Promise<string | undefined> {
   const q = `
     PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -313,11 +311,10 @@ export async function isOnafhankelijkInPeriod(
     LIMIT 1
   `;
 
-  const result = await querySudo(q);
-  if (result.results.bindings.length == 0) {
-    return null;
-  }
-  return result.results.bindings[0].fractie.value;
+  const queryResult = await querySudo(q);
+
+  const result = findFirstSparqlResult(queryResult);
+  return result?.fractie.value;
 }
 
 async function getMandatarisFracties(

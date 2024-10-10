@@ -10,7 +10,7 @@ import {
   personOfMandatarisExistsInGraph,
   correctLinkedMandataris,
   replaceFractieOfMandataris,
-  sameFractieName,
+  isFractieNameEqual,
   copyExtraValues,
   findLinkedInstance,
   linkInstances,
@@ -145,12 +145,11 @@ export const createLinkedMandataris = async (req) => {
   );
 
   // Update current fractie on person
-  await mandatarisUsecase.updateCurrentFractieUnsafe(
+  await mandatarisUsecase.updateCurrentFractieSudo(
     newMandataris.id,
     destinationGraph,
   );
 
-  // Add history item
   await saveHistoryItem(
     newMandataris.uri,
     userId,
@@ -195,7 +194,10 @@ export const correctMistakesLinkedMandataris = async (req) => {
   }
 
   // Fractie needs to be handled differently because of the complex relation
-  const sameFractie = await sameFractieName(mandatarisId, linkedMandataris.uri);
+  const sameFractie = await isFractieNameEqual(
+    mandatarisId,
+    linkedMandataris.uri,
+  );
   if (!sameFractie) {
     let fractie = await getFractieOfMandatarisInGraph(
       mandatarisId,
@@ -218,7 +220,7 @@ export const correctMistakesLinkedMandataris = async (req) => {
       }
     }
 
-    replaceFractieOfMandataris(
+    await replaceFractieOfMandataris(
       mandatarisId,
       linkedMandataris.uri,
       fractie,
@@ -226,7 +228,7 @@ export const correctMistakesLinkedMandataris = async (req) => {
     );
 
     // Update current fractie on person
-    await mandatarisUsecase.updateCurrentFractieUnsafe(
+    await mandatarisUsecase.updateCurrentFractieSudo(
       linkedMandataris.id.value,
       destinationGraph,
     );
@@ -234,7 +236,6 @@ export const correctMistakesLinkedMandataris = async (req) => {
 
   correctLinkedMandataris(mandatarisId, linkedMandataris.uri);
 
-  // Add history item
   await saveHistoryItem(
     linkedMandataris.uri.value,
     userId,
@@ -292,12 +293,11 @@ export const changeStateLinkedMandataris = async (req) => {
   await copyExtraValues(linkedMandataris.uri, newLinkedMandataris.uri);
 
   // Update current fractie on person
-  await mandatarisUsecase.updateCurrentFractieUnsafe(
+  await mandatarisUsecase.updateCurrentFractieSudo(
     newLinkedMandataris.id,
     destinationGraph,
   );
 
-  // Add history item
   await saveHistoryItem(
     newLinkedMandataris.uri,
     userId,

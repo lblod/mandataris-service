@@ -33,10 +33,7 @@ export const mandataris = {
   addPredicatesToMandataris,
 };
 
-async function isValidId(
-  id: string,
-  unsafe: boolean = false,
-): Promise<boolean> {
+async function isValidId(id: string, sudo: boolean = false): Promise<boolean> {
   const askQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -46,7 +43,7 @@ async function isValidId(
         mu:uuid ${sparqlEscapeString(id)}.
     }
   `;
-  const result = unsafe ? await querySudo(askQuery) : await query(askQuery);
+  const result = sudo ? await querySudo(askQuery) : await query(askQuery);
 
   return getBooleanSparqlResult(result);
 }
@@ -74,7 +71,7 @@ async function isOnafhankelijk(mandatarisId: string): Promise<boolean> {
 
 async function findCurrentFractieForPerson(
   mandatarisId: string,
-  unsafe: boolean = false,
+  sudo: boolean = false,
 ): Promise<TermProperty | null> {
   const getQuery = `
     PREFIX person: <http://www.w3.org/ns/person#>
@@ -110,9 +107,7 @@ async function findCurrentFractieForPerson(
 
     } ORDER BY DESC ( ?mandatarisStart ) LIMIT 1
   `;
-  const sparqlResult = unsafe
-    ? await querySudo(getQuery)
-    : await query(getQuery);
+  const sparqlResult = sudo ? await querySudo(getQuery) : await query(getQuery);
 
   return findFirstSparqlResult(sparqlResult);
 }
@@ -600,7 +595,7 @@ export async function updatePublicationStatusOfMandataris(
 
 async function getPersonWithBestuursperiode(
   mandatarisId: string,
-  unsafe: boolean = false,
+  sudo: boolean = false,
 ): Promise<{ persoonId: string; bestuursperiodeId: string }> {
   const getQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -622,9 +617,7 @@ async function getPersonWithBestuursperiode(
     }
   `;
 
-  const sparqlResult = unsafe
-    ? await querySudo(getQuery)
-    : await query(getQuery);
+  const sparqlResult = sudo ? await querySudo(getQuery) : await query(getQuery);
   const first = findFirstSparqlResult(sparqlResult);
 
   return {

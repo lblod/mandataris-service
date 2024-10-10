@@ -11,7 +11,7 @@ import { HttpError } from '../util/http-error';
 
 export const mandatarisUsecase = {
   updateCurrentFractie,
-  updateCurrentFractieUnsafe,
+  updateCurrentFractieSudo,
   copyOverNonResourceDomainPredicates,
   findDecision,
 };
@@ -50,7 +50,7 @@ async function updateCurrentFractie(mandatarisId: string): Promise<void> {
   );
 }
 
-async function updateCurrentFractieUnsafe(
+async function updateCurrentFractieSudo(
   mandatarisId: string,
   graph: Term,
 ): Promise<void> {
