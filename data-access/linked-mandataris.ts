@@ -246,7 +246,7 @@ export async function getFractieOfMandatarisInGraph(mandatarisId, graph) {
           org:hasMembership ?lidmaatschap .
         ?lidmaatschap org:organisation ?fractie .
         ?fractie regorg:legalName ?fractieNaam ;
-          ext:isFractieType <http://data.vlaanderen.be/id/concept/Fractietype/Samenwerkingsverband>
+          ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Samenwerkingsverband>
       }
 
       GRAPH ${sparqlEscapeTermValue(graph)} {
