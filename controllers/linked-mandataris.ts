@@ -28,14 +28,8 @@ import { isOnafhankelijkInPeriod } from '../data-access/persoon';
 
 export const checkLinkedMandataris = async (req) => {
   const mandatarisId = req.params.id;
-  if (!mandatarisId) {
-    throw new HttpError('No mandataris id provided', 400);
-  }
 
-  const hasAccess = await canAccessMandataris(mandatarisId);
-  if (!hasAccess) {
-    throw new HttpError('No mandataris with given id found', 404);
-  }
+  await preliminaryChecksLinkedMandataris(req);
 
   const valueBindings = getValueBindings(linkedMandaten);
 
@@ -82,38 +76,14 @@ export const addLinkLinkedMandataris = async (req) => {
 
 export const removeLinkLinkedMandataris = async (req) => {
   const mandatarisId = req.params.id;
-  if (!mandatarisId) {
-    throw new HttpError('No mandataris id provided', 400);
-  }
-
-  const userId = await fetchUserIdFromSession(req.get('mu-session-id'));
-  if (!userId) {
-    throw new HttpError('Not authenticated', 401);
-  }
-
-  const hasAccess = await canAccessMandataris(mandatarisId);
-  if (!hasAccess) {
-    throw new HttpError('No mandataris with given id found', 404);
-  }
-
+  await preliminaryChecksLinkedMandataris(req);
   await unlinkInstance(mandatarisId);
 };
 
 export const createLinkedMandataris = async (req) => {
   const mandatarisId = req.params.id;
-  if (!mandatarisId) {
-    throw new HttpError('No mandataris id provided', 400);
-  }
 
-  const userId = await fetchUserIdFromSession(req.get('mu-session-id'));
-  if (!userId) {
-    throw new HttpError('Not authenticated', 401);
-  }
-
-  const hasAccess = await canAccessMandataris(mandatarisId);
-  if (!hasAccess) {
-    throw new HttpError('No mandataris with given id found', 404);
-  }
+  await preliminaryChecksLinkedMandataris(req);
 
   // Get destination graph
   const destinationGraph = await getDestinationGraphLinkedMandataris(
@@ -178,19 +148,8 @@ export const createLinkedMandataris = async (req) => {
 
 export const correctMistakesLinkedMandataris = async (req) => {
   const mandatarisId = req.params.id;
-  if (!mandatarisId) {
-    throw new HttpError('No mandataris id provided', 400);
-  }
 
-  const userId = await fetchUserIdFromSession(req.get('mu-session-id'));
-  if (!userId) {
-    throw new HttpError('Not authenticated', 401);
-  }
-
-  const hasAccess = await canAccessMandataris(mandatarisId);
-  if (!hasAccess) {
-    throw new HttpError('No mandataris with given id found', 404);
-  }
+  await preliminaryChecksLinkedMandataris(req);
 
   const destinationGraph = await getDestinationGraphLinkedMandataris(
     mandatarisId,
@@ -253,7 +212,7 @@ export const correctMistakesLinkedMandataris = async (req) => {
 
   await saveHistoryItem(
     linkedMandataris.uri.value,
-    userId,
+    'updated by gemeente - ocmw mirror',
     `Corrected in linked mandate: ${mandatarisId}`,
   );
 };
@@ -324,6 +283,23 @@ export const changeStateLinkedMandataris = async (req) => {
   // End original linked mandatee
   const endDate = new Date();
   endExistingMandataris(destinationGraph, linkedMandataris.uri, endDate);
+};
+
+const preliminaryChecksLinkedMandataris = async (req) => {
+  const mandatarisId = req.params.id;
+  if (!mandatarisId) {
+    throw new HttpError('No mandataris id provided', 400);
+  }
+
+  const userId = await fetchUserIdFromSession(req.get('mu-session-id'));
+  if (!userId) {
+    throw new HttpError('Not authenticated', 401);
+  }
+
+  const hasAccess = await canAccessMandataris(mandatarisId);
+  if (!hasAccess) {
+    throw new HttpError('No mandataris with given id found', 404);
+  }
 };
 
 export const handleFractie = async (mandatarisId, graph) => {
