@@ -51,6 +51,33 @@ export const checkLinkedMandataris = async (req) => {
   };
 };
 
+export const addLinkLinkedMandataris = async (req) => {
+  const from = req.params.from;
+  const to = req.params.to;
+  if (!from || !to) {
+    throw new HttpError(
+      'Missing at least one mandataris id, you should provide two',
+      400,
+    );
+  }
+
+  const userId = await fetchUserIdFromSession(req.get('mu-session-id'));
+  if (!userId) {
+    throw new HttpError('Not authenticated', 401);
+  }
+
+  const hasAccess =
+    (await canAccessMandataris(from)) || (await canAccessMandataris(to));
+  if (!hasAccess) {
+    throw new HttpError(
+      'You do not have access to any of the provided mandatees',
+      404,
+    );
+  }
+
+  await linkInstances(from, to);
+};
+
 export const createLinkedMandataris = async (req) => {
   const mandatarisId = req.params.id;
   if (!mandatarisId) {

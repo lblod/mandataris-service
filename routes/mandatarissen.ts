@@ -5,6 +5,7 @@ import { deleteMandataris } from '../data-access/delete';
 import { uploadCsv } from '../controllers/mandataris-upload';
 import { CsvUploadState } from '../types';
 import {
+  addLinkLinkedMandataris,
   changeStateLinkedMandataris,
   checkLinkedMandataris,
   correctMistakesLinkedMandataris,
@@ -90,6 +91,22 @@ mandatarissenRouter.put(
       const message =
         error.message ??
         `Something went wrong while changing state of duplicate mandate of: ${req.params.id}. Please try again later.`;
+      const statusCode = error.status ?? 500;
+      return res.status(statusCode).send({ message });
+    }
+  },
+);
+
+mandatarissenRouter.put(
+  '/:from/:to/add-link-linked-mandataris',
+  async (req: Request, res: Response) => {
+    try {
+      await addLinkLinkedMandataris(req);
+      return res.status(200).send({ status: 'ok' });
+    } catch (error) {
+      const message =
+        error.message ??
+        `Something went wrong while adding link between mandates ${req.params.from} and ${req.params.to}. Please try again later.`;
       const statusCode = error.status ?? 500;
       return res.status(statusCode).send({ message });
     }
