@@ -98,7 +98,7 @@ mandatarissenRouter.put(
   },
 );
 
-mandatarissenRouter.put(
+mandatarissenRouter.post(
   '/:from/:to/add-link-linked-mandataris',
   async (req: Request, res: Response) => {
     try {
@@ -114,7 +114,7 @@ mandatarissenRouter.put(
   },
 );
 
-mandatarissenRouter.put(
+mandatarissenRouter.delete(
   '/:id/remove-link-linked-mandataris',
   async (req: Request, res: Response) => {
     try {
