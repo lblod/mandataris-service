@@ -318,8 +318,10 @@ export async function copyFractieOfMandataris(mandatarisId, graph) {
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX regorg: <https://www.w3.org/ns/regorg#>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     INSERT {
       GRAPH ${sparqlEscapeTermValue(graph)} {
@@ -359,7 +361,7 @@ export async function copyFractieOfMandataris(mandatarisId, graph) {
     await updateSudo(q);
   } catch (error) {
     throw new HttpError(
-      `Error occurred while trying to copy fractie of mandataris ${mandatarisId} to graph ${graph}`,
+      `Error occurred while trying to copy fractie of mandataris ${mandatarisId} to graph ${graph.value}`,
       500,
     );
   }
