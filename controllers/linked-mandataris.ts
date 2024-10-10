@@ -137,7 +137,7 @@ export const createLinkedMandataris = async (req) => {
 
   await saveHistoryItem(
     newMandataris.uri,
-    userId,
+    'created by gemeente - ocmw mirror',
     `Created as linked mandate for ${mandatarisId}`,
   );
 
@@ -274,7 +274,7 @@ export const changeStateLinkedMandataris = async (req) => {
 
   await saveHistoryItem(
     newLinkedMandataris.uri,
-    userId,
+    'updated by gemeente - ocmw mirror',
     `Created as update state for linked mandate: ${newMandatarisId}`,
   );
 
