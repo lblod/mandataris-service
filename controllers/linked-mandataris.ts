@@ -15,6 +15,7 @@ import {
   findLinkedInstance,
   linkInstances,
   copyFractieOfMandataris,
+  unlinkInstance,
 } from '../data-access/linked-mandataris';
 import { endExistingMandataris, mandataris } from '../data-access/mandataris';
 import {
@@ -76,6 +77,25 @@ export const addLinkLinkedMandataris = async (req) => {
   }
 
   await linkInstances(from, to);
+};
+
+export const removeLinkLinkedMandataris = async (req) => {
+  const mandatarisId = req.params.id;
+  if (!mandatarisId) {
+    throw new HttpError('No mandataris id provided', 400);
+  }
+
+  const userId = await fetchUserIdFromSession(req.get('mu-session-id'));
+  if (!userId) {
+    throw new HttpError('Not authenticated', 401);
+  }
+
+  const hasAccess = await canAccessMandataris(mandatarisId);
+  if (!hasAccess) {
+    throw new HttpError('No mandataris with given id found', 404);
+  }
+
+  await unlinkInstance(mandatarisId);
 };
 
 export const createLinkedMandataris = async (req) => {

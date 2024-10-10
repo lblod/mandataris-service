@@ -573,6 +573,36 @@ export async function linkInstances(instance1: string, instance2: string) {
   await updateSudo(insertQuery);
 }
 
+export async function unlinkInstance(instance: string) {
+  const query = `
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+    DELETE {
+      GRAPH <http://mu.semte.ch/graphs/linkedInstances> {
+        ?i1 ext:linked ?i2 .
+        ?i2 ext:linked ?i1 .
+      }
+    }
+    WHERE {
+      GRAPH ?g {
+        ?i1 mu:uuid ${sparqlEscapeString(instance)} .
+      }
+      GRAPH <http://mu.semte.ch/graphs/linkedInstances> {
+        {
+          ?i1 ext:linked ?i2 .
+        }
+        UNION
+        {
+          ?i2 ext:linked ?i1 .
+        }
+      }
+    }
+  `;
+
+  await updateSudo(query);
+}
+
 export async function findLinkedInstance(instance1: string) {
   const query = `
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
