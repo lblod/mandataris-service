@@ -85,7 +85,6 @@ export const createLinkedMandataris = async (req) => {
 
   const userId = await preliminaryChecksLinkedMandataris(req);
 
-  // Get destination graph
   const destinationGraph = await getDestinationGraphLinkedMandataris(
     mandatarisId,
     getValueBindings(linkedBestuurseenheden),
@@ -173,26 +172,7 @@ export const correctMistakesLinkedMandataris = async (req) => {
     linkedMandataris.uri,
   );
   if (!sameFractie) {
-    let fractie = await getFractieOfMandatarisInGraph(
-      mandatarisId,
-      destinationGraph,
-    );
-
-    if (!fractie) {
-      // Check if fractie is onafhankelijk
-      const isOnafhankelijk = await mandataris.isOnafhankelijk(mandatarisId);
-      if (isOnafhankelijk) {
-        fractie = await getOrCreateOnafhankelijkeFractie(
-          mandatarisId,
-          destinationGraph,
-        );
-      } else {
-        throw new HttpError(
-          'The given fractie does not exist in the OCMW, it is not possible to create linked mandatarissen in a fractie that exists in the municipality but not in the OCMW.',
-          400,
-        );
-      }
-    }
+    const fractie = handleFractie(mandatarisId, destinationGraph);
 
     await replaceFractieOfMandataris(
       mandatarisId,
@@ -315,7 +295,6 @@ export const handleFractie = async (mandatarisId, graph) => {
     // Check if fractie exists
     fractie = await getFractieOfMandatarisInGraph(mandatarisId, graph);
 
-    // Add fractie if it does not exist
     if (!fractie) {
       throw new HttpError(
         'The given fractie does not exist in the OCMW, it is not possible to create linked mandatarissen in a fractie that exists in the municipality but not in the OCMW.',
