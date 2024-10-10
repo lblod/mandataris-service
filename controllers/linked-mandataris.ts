@@ -3,7 +3,7 @@ import { sparqlEscapeUri } from 'mu';
 import {
   canAccessMandataris,
   findLinkedMandate,
-  copyMandataris,
+  createNewLinkedMandataris,
   copyPersonOfMandataris,
   getFractieOfMandatarisInGraph,
   getDestinationGraphLinkedMandataris,
@@ -93,7 +93,6 @@ export const createLinkedMandataris = async (req) => {
     throw new HttpError('No destination graph found', 500);
   }
 
-  // Check if person already has the corresponding mandate
   const mandateAlreadyExists = await linkedMandateAlreadyExists(
     mandatarisId,
     destinationGraph,
@@ -107,21 +106,18 @@ export const createLinkedMandataris = async (req) => {
     );
   }
 
-  // Check if person exists
   const personExists = await personOfMandatarisExistsInGraph(
     mandatarisId,
     destinationGraph,
   );
 
-  // Add person if it does not exist
   if (!personExists) {
     await copyPersonOfMandataris(mandatarisId, destinationGraph);
   }
 
   const fractie = await handleFractie(mandatarisId, destinationGraph);
 
-  // Add duplicate mandatee
-  const newMandataris = await copyMandataris(
+  const newMandataris = await createNewLinkedMandataris(
     mandatarisId,
     fractie,
     destinationGraph,
@@ -235,8 +231,7 @@ export const changeStateLinkedMandataris = async (req) => {
 
   const fractie = await handleFractie(newMandatarisId, destinationGraph);
 
-  // Add duplicate mandatee
-  const newLinkedMandataris = await copyMandataris(
+  const newLinkedMandataris = await createNewLinkedMandataris(
     newMandatarisId,
     fractie,
     destinationGraph,
@@ -285,14 +280,12 @@ const preliminaryChecksLinkedMandataris = async (req) => {
 };
 
 export const handleFractie = async (mandatarisId, graph) => {
-  // Check if fractie is onafhankelijk
   const isOnafhankelijk = await mandataris.isOnafhankelijk(mandatarisId);
 
   let fractie;
   if (isOnafhankelijk) {
     fractie = await getOrCreateOnafhankelijkeFractie(mandatarisId, graph);
   } else {
-    // Check if fractie exists
     fractie = await getFractieOfMandatarisInGraph(mandatarisId, graph);
 
     if (!fractie) {

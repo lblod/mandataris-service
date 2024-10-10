@@ -408,7 +408,7 @@ export async function replaceFractieOfMandataris(
     WHERE {
       GRAPH ?origin {
         ?currentMandataris a mandaat:Mandataris ;
-          mu:uuid ${sparqlEscapeString(mandatarisId)} ;
+          mu:uuid ${escaped.current} ;
           org:hasMembership ?ogMembership .
         ?ogMembership ?ogMemberP ?ogMemberO .
       }
@@ -431,7 +431,7 @@ export async function replaceFractieOfMandataris(
   }
 }
 
-export async function copyMandataris(
+export async function createNewLinkedMandataris(
   mandatarisId,
   fractie,
   graph,
