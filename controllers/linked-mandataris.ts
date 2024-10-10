@@ -14,7 +14,7 @@ import {
   copyExtraValues,
   findLinkedInstance,
   linkInstances,
-  copyFractieOfMandataris,
+  copyOnafhankelijkeFractieOfMandataris,
   unlinkInstance,
   linkedMandateAlreadyExists,
 } from '../data-access/linked-mandataris';
@@ -309,7 +309,7 @@ export const getOrCreateOnafhankelijkeFractie = async (mandatarisId, graph) => {
   if (onafhankelijk) {
     return onafhankelijk;
   }
-  return await copyFractieOfMandataris(mandatarisId, graph);
+  return await copyOnafhankelijkeFractieOfMandataris(mandatarisId, graph);
 };
 
 function getValueBindings(mapping) {

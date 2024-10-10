@@ -309,9 +309,10 @@ export async function getFractieOfMandatarisInGraph(mandatarisId, graph) {
   return result.results.bindings[0].doelFractie.value;
 }
 
-// See if this needs to change, since it is only for onafhankelijke fracties
-// Maybe a similar function exists for the fractie handling?
-export async function copyFractieOfMandataris(mandatarisId, graph) {
+export async function copyOnafhankelijkeFractieOfMandataris(
+  mandatarisId,
+  graph,
+) {
   const fractieUuid = uuidv4();
   const fractieUri = `http://data.lblod.info/id/fracties/${fractieUuid}`;
   const q = `
@@ -337,20 +338,13 @@ export async function copyFractieOfMandataris(mandatarisId, graph) {
       GRAPH ?origin {
         ?currentMandataris a mandaat:Mandataris ;
           mu:uuid ${sparqlEscapeString(mandatarisId)} ;
-          org:hasMembership ?lidmaatschap .
-        ?lidmaatschap org:organisation ?fractie .
-        ?fractie ?p ?o ;
-          org:memberOf ?currentBestuursorgaanIT .
-        ?currentBestuursorgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
+          org:hasMembership / org:organisation / org:memberOf / lmb:heeftBestuursperiode ?bestuursperiode .
       }
 
       GRAPH ${sparqlEscapeTermValue(graph)} {
         ?linkedBestuursorgaanIT lmb:heeftBestuursperiode ?bestuursperiode ;
-          mandaat:isTijdspecialisatieVan ?linkedBestuursorgaan .
-        ?linkedBestuursorgaan besluit:bestuurt ?linkedBestuurseenheid .
+          mandaat:isTijdspecialisatieVan / besluit:bestuurt ?linkedBestuurseenheid .
       }
-
-      FILTER (?p NOT IN (mu:uuid, org:memberOf, org:linkedTo))
 
       FILTER NOT EXISTS {
         ?origin a <http://mu.semte.ch/vocabularies/ext/FormHistory>
