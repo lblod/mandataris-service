@@ -8,6 +8,7 @@ import {
 
 import { getSparqlResults } from '../util/sparql-result';
 import { TermProperty } from '../types';
+import { FRACTIE_TYPE } from '../util/constants';
 
 export const fractie = {
   forBestuursperiode,
@@ -17,7 +18,11 @@ export const fractie = {
 
 async function forBestuursperiode(
   bestuursperiodeId: string,
+  onafhankelijk: boolean = false,
 ): Promise<Array<TermProperty>> {
+  const type = onafhankelijk
+    ? FRACTIE_TYPE.ONAFHANKELIJK
+    : FRACTIE_TYPE.SAMENWERKING;
   const getQuery = `
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -34,7 +39,8 @@ async function forBestuursperiode(
         lmb:heeftBestuursperiode ?bestuursperiode.
       ?fractie a mandaat:Fractie;
         mu:uuid ?fractieId;
-        org:memberOf ?bestuursorgaan.
+        org:memberOf ?bestuursorgaan ;
+        ext:isFractietype ${sparqlEscapeUri(type)} .
     }
   `;
 

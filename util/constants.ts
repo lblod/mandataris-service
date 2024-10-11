@@ -8,6 +8,11 @@ export enum PUBLICATION_STATUS {
   BEKRACHTIGD = 'http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/9d8fd14d-95d0-4f5e-b3a5-a56a126227b6',
 }
 
+export enum FRACTIE_TYPE {
+  SAMENWERKING = 'http://data.vlaanderen.be/id/concept/Fractietype/Samenwerkingsverband',
+  ONAFHANKELIJK = 'http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk',
+}
+
 export enum STATUS_CODE {
   OK = 200,
   CREATED = 201,
