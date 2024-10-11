@@ -1,10 +1,19 @@
 import { Request, Response } from 'express';
 import Router from 'express-promise-router';
-import { query, sparqlEscapeString, sparqlEscapeUri } from 'mu';
+import { query, update, sparqlEscapeString, sparqlEscapeUri } from 'mu';
 import { updateSudo, querySudo } from '@lblod/mu-auth-sudo';
 import { v4 as uuidv4 } from 'uuid';
 
 const installatievergaderingRouter = Router();
+
+installatievergaderingRouter.post(
+  `/copy-gemeente-to-ocmw-draft`,
+  async (req: Request, res: Response) => {
+    const { gemeenteUri, ocmwUri } = req.body;
+    await constructNewMandatarisInstances(gemeenteUri, ocmwUri);
+    return res.status(200).send({ status: 'ok' });
+  },
+);
 
 installatievergaderingRouter.post(
   '/:id/move-ocmw-organs/',
@@ -331,6 +340,111 @@ async function movePersons(installatievergaderingId: string) {
     }
   }`;
   await updateSudo(sparql);
+}
+
+async function copyMandatarisInstances(
+  orgaanItFrom: string,
+  orgaanItTo: string,
+) {
+  await clearMandatarisInstancesFromOrgaan(orgaanItTo);
+  // TODO untested, should just insert instead of construct
+  const newInstances = await constructNewMandatarisInstances(
+    orgaanItFrom,
+    orgaanItTo,
+  );
+}
+
+async function constructNewMandatarisInstances(
+  orgaanItFrom: string,
+  orgaanItTo: string,
+) {
+  // TODO test this
+  const bestuursfunctieCodeMapping = {
+    // gemeenteraadslid -> lid raad voor maatschappelijk welzijn
+    'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000011':
+      'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000015',
+    // voorzitter gemeenteraad -> voorzitter raad voor maatschappelijk welzijn
+    'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000012':
+      'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000016',
+    // schepen -> lid vast bureau
+    'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000014':
+      'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000017',
+    // aangewezen burgemeester -> voorzitter vast bureau
+    'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/7b038cc40bba10bec833ecfe6f15bc7a':
+      'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000018',
+  };
+
+  const sparql = `
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core>
+
+    CONSTRUCT {
+      ?newMandataris ?p ?o.
+      ?newMandataris mu:uuid ?mandatarisUuid.
+      ?newMandataris org:holds ?mandaatTo.
+      ?newMandataris org:hasMembership ?newMembership.
+      ?newMembership ?mp ?mo.
+      ?newMembership mu:uuid ?membershipUuid.
+    } WHERE {
+      VALUES ?orgaan {
+        ${sparqlEscapeUri(orgaanItFrom)}
+      }
+      VALUES ?bestuursorgaanTo {
+        ${sparqlEscapeUri(orgaanItTo)}
+      }
+      VALUES (?mandaatCodeFrom ?mandaatCodeTo) {
+        ${Object.keys(bestuursfunctieCodeMapping).map((from) => {
+          return `(${sparqlEscapeUri(from)} ${sparqlEscapeUri(
+            bestuursfunctieCodeMapping[from],
+          )})`;
+        })}
+      }
+
+      BIND(STRUUID() as ?mandatarisUuid)
+      BIND(IRI(CONCAT("http://data.lblod.info/id/mandatarissen/", ?mandatarisUuid)) as ?newMandataris)
+      ?orgaan org:hasPost ?mandaat.
+      ?mandataris org:holds ?mandaat.
+
+      ?mandaat org:role ?mandaatCodeFrom.
+
+      ?bestuursorgaanTo org:hasPost ?mandaatTo.
+      ?mandaatTo org:role ?mandaatCodeTo.
+
+      ?mandataris ?p ?o.
+      FILTER(?p NOT IN (org:hasMembership, org:holds, mu:uuid))
+
+      OPTIONAL {
+        ?mandataris org:hasMembership ?membership.
+        ?membership ?mp ?mo
+        FILTER(?mp NOT IN (mu:uuid))
+        BIND(IF(BOUND(?membership), STRUUID(), "") as ?membershipUuid)
+        BIND(IRI(CONCAT("http://data.lblod.info/id/lidmaatschappen/", ?membershipUuid)) as ?newMembership)
+      }
+    }
+  `;
+  const result = await query(sparql);
+}
+
+async function clearMandatarisInstancesFromOrgaan(orgaanIt: string) {
+  const sparql = `
+    DELETE {
+        ?mandataris ?p ?o.
+        ?membership ?mp ?mo.
+    } WHERE {
+        VALUES ?orgaan {
+          ${sparqlEscapeUri(orgaanIt)}
+        }
+        ?orgaan org:hasPost ?mandaat.
+        ?mandataris org:holds ?mandaat;
+          ?p ?o.
+        OPTIONAL {
+          ?mandataris org:hasMembership ?membership.
+          ?membership ?mp ?mo.
+        }
+    }
+  `;
+  await update(sparql);
 }
 
 export { installatievergaderingRouter };
