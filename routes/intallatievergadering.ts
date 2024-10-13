@@ -434,7 +434,8 @@ async function constructNewMandatarisInstances(
       object: binding.o,
     };
   });
-  const transformedTriples = generateNewMandatarisAndMembershipUris(triples);
+  const { newTriples: transformedTriples, mandatarisLinks } =
+    generateNewMandatarisAndMembershipUris(triples);
   const formattedTriples = transformedTriples
     .map((triple) => {
       return `${sparqlEscapeUri(triple.subject)} ${sparqlEscapeUri(
@@ -448,6 +449,21 @@ async function constructNewMandatarisInstances(
     }
   `;
   await update(insertSparql);
+
+  const linkTriples = Object.keys(mandatarisLinks)
+    .map((from) => {
+      const to = mandatarisLinks[from];
+      return `${sparqlEscapeUri(from)} ext:linked ${sparqlEscapeUri(to)}.`;
+    })
+    .join('\n');
+
+  await updateSudo(`
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    INSERT DATA {
+      GRAPH <http://mu.semte.ch/graphs/linkedInstances> {
+        ${linkTriples}
+      }
+    }`);
 }
 
 function generateNewMandatarisAndMembershipUris(
@@ -460,6 +476,7 @@ function generateNewMandatarisAndMembershipUris(
   // this is necessary because apparently generating nested uuids in a sparql query is not possible
   const newUuids = {};
   const types = {};
+  const mandatarisLinks = {};
 
   triples.forEach((triple) => {
     if (
@@ -467,10 +484,18 @@ function generateNewMandatarisAndMembershipUris(
     ) {
       newUuids[triple.subject] = uuidv4();
       types[triple.subject] = triple.object.value;
+
+      if (
+        triple.object.value ===
+        'http://data.vlaanderen.be/ns/mandaat#Mandataris'
+      ) {
+        mandatarisLinks[triple.subject] =
+          `http://data.lblod.info/id/mandatarissen/${newUuids[triple.subject]}`;
+      }
     }
   });
 
-  return triples.map((triple) => {
+  const newTriples = triples.map((triple) => {
     const isMandataris =
       types[triple.subject] ===
       'http://data.vlaanderen.be/ns/mandaat#Mandataris';
@@ -515,6 +540,7 @@ function generateNewMandatarisAndMembershipUris(
       };
     }
   });
+  return { newTriples, mandatarisLinks };
 }
 
 async function clearMandatarisInstancesFromOrgaan(orgaanIt: string) {
