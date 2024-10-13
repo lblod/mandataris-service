@@ -1,8 +1,15 @@
 import { Request, Response } from 'express';
 import Router from 'express-promise-router';
-import { query, update, sparqlEscapeString, sparqlEscapeUri } from 'mu';
+import {
+  query,
+  update,
+  sparqlEscapeString,
+  sparqlEscapeUri,
+  sparqlEscapeDateTime,
+} from 'mu';
 import { updateSudo, querySudo } from '@lblod/mu-auth-sudo';
 import { v4 as uuidv4 } from 'uuid';
+import { sparqlEscapeQueryBinding } from '../util/sparql-escape';
 
 const installatievergaderingRouter = Router();
 
@@ -10,7 +17,7 @@ installatievergaderingRouter.post(
   `/copy-gemeente-to-ocmw-draft`,
   async (req: Request, res: Response) => {
     const { gemeenteUri, ocmwUri } = req.body;
-    await constructNewMandatarisInstances(gemeenteUri, ocmwUri);
+    await copyMandatarisInstances(gemeenteUri, ocmwUri);
     return res.status(200).send({ status: 'ok' });
   },
 );
@@ -347,11 +354,7 @@ async function copyMandatarisInstances(
   orgaanItTo: string,
 ) {
   await clearMandatarisInstancesFromOrgaan(orgaanItTo);
-  // TODO untested, should just insert instead of construct
-  const newInstances = await constructNewMandatarisInstances(
-    orgaanItFrom,
-    orgaanItTo,
-  );
+  await constructNewMandatarisInstances(orgaanItFrom, orgaanItTo);
 }
 
 async function constructNewMandatarisInstances(
@@ -377,64 +380,166 @@ async function constructNewMandatarisInstances(
   const sparql = `
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
     CONSTRUCT {
-      ?newMandataris ?p ?o.
-      ?newMandataris mu:uuid ?mandatarisUuid.
-      ?newMandataris org:holds ?mandaatTo.
-      ?newMandataris org:hasMembership ?newMembership.
-      ?newMembership ?mp ?mo.
-      ?newMembership mu:uuid ?membershipUuid.
+      ?mandataris ?p ?o.
+      ?mandataris org:holds ?mandaatTo.
+      ?mandataris org:hasMembership ?newMembership.
+      ?membership ?mp ?mo.
     } WHERE {
-      VALUES ?orgaan {
-        ${sparqlEscapeUri(orgaanItFrom)}
+      VALUES ?orgaanFromId {
+        ${sparqlEscapeString(orgaanItFrom)}
       }
-      VALUES ?bestuursorgaanTo {
-        ${sparqlEscapeUri(orgaanItTo)}
+      VALUES ?bestuursorgaanToId {
+        ${sparqlEscapeString(orgaanItTo)}
       }
+      ?orgaanFrom mu:uuid ?orgaanFromId.
+      ?orgaanTo mu:uuid ?bestuursorgaanToId.
+
       VALUES (?mandaatCodeFrom ?mandaatCodeTo) {
-        ${Object.keys(bestuursfunctieCodeMapping).map((from) => {
-          return `(${sparqlEscapeUri(from)} ${sparqlEscapeUri(
-            bestuursfunctieCodeMapping[from],
-          )})`;
-        })}
+        ${Object.keys(bestuursfunctieCodeMapping)
+          .map((from) => {
+            return `(${sparqlEscapeUri(from)} ${sparqlEscapeUri(
+              bestuursfunctieCodeMapping[from],
+            )})`;
+          })
+          .join('\n')}
       }
 
-      BIND(STRUUID() as ?mandatarisUuid)
-      BIND(IRI(CONCAT("http://data.lblod.info/id/mandatarissen/", ?mandatarisUuid)) as ?newMandataris)
-      ?orgaan org:hasPost ?mandaat.
+      ?orgaanFrom org:hasPost ?mandaat.
       ?mandataris org:holds ?mandaat.
 
       ?mandaat org:role ?mandaatCodeFrom.
 
-      ?bestuursorgaanTo org:hasPost ?mandaatTo.
+      ?orgaanTo org:hasPost ?mandaatTo.
       ?mandaatTo org:role ?mandaatCodeTo.
 
       ?mandataris ?p ?o.
-      FILTER(?p NOT IN (org:hasMembership, org:holds, mu:uuid))
+      FILTER(?p NOT IN (org:holds, mandaat:rangorde, mandaat:beleidsdomein))
 
       OPTIONAL {
         ?mandataris org:hasMembership ?membership.
         ?membership ?mp ?mo
-        FILTER(?mp NOT IN (mu:uuid))
-        BIND(IF(BOUND(?membership), STRUUID(), "") as ?membershipUuid)
-        BIND(IRI(CONCAT("http://data.lblod.info/id/lidmaatschappen/", ?membershipUuid)) as ?newMembership)
       }
     }
   `;
   const result = await query(sparql);
+  const triples = result.results.bindings.map((binding) => {
+    return {
+      subject: binding.s.value,
+      predicate: binding.p.value,
+      object: binding.o,
+    };
+  });
+  const transformedTriples = generateNewMandatarisAndMembershipUris(triples);
+  const insertSparql = `
+    INSERT DATA {
+      ${transformedTriples
+        .map((triple) => {
+          return `${sparqlEscapeUri(triple.subject)} ${sparqlEscapeUri(
+            triple.predicate,
+          )} ${sparqlEscapeQueryBinding(triple.object)} .`;
+        })
+        .join('\n')}
+    }
+  `;
+  await update(insertSparql);
+}
+
+function generateNewMandatarisAndMembershipUris(
+  triples: {
+    subject: string;
+    predicate: string;
+    object: { value: string; type: string; datatype: string };
+  }[],
+) {
+  // this is necessary because apparently generating nested uuids in a sparql query is not possible
+  const newUuids = {};
+  const types = {};
+
+  triples.forEach((triple) => {
+    if (
+      triple.predicate === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
+    ) {
+      newUuids[triple.subject] = uuidv4();
+      types[triple.subject] = triple.object.value;
+    }
+  });
+
+  return triples.map((triple) => {
+    const isMandataris =
+      types[triple.subject] ===
+      'http://data.vlaanderen.be/ns/mandaat#Mandataris';
+    const newUri = isMandataris
+      ? `http://data.lblod.info/id/mandatarissen/${newUuids[triple.subject]}`
+      : `http://data.lblod.info/id/lidmaatschappen/${newUuids[triple.subject]}`;
+
+    if (triple.predicate === 'http://mu.semte.ch/vocabularies/core/uuid') {
+      return {
+        subject: newUri,
+        predicate: triple.predicate,
+        object: {
+          value: newUuids[triple.subject],
+          type: 'string',
+          datatype: 'string',
+        },
+      };
+    } else if (newUuids[triple.object.value]) {
+      const objectIsMandataris =
+        types[triple.object.value] ===
+        'http://data.vlaanderen.be/ns/mandaat#Mandataris';
+      const objectUri = objectIsMandataris
+        ? `http://data.lblod.info/id/mandatarissen/${
+            newUuids[triple.object.value]
+          }`
+        : `http://data.lblod.info/id/lidmaatschappen/${
+            newUuids[triple.object.value]
+          }`;
+
+      return {
+        subject: newUri,
+        predicate: triple.predicate,
+        object: {
+          value: objectUri,
+          type: 'uri',
+          datatype: 'uri',
+        },
+      };
+    } else {
+      return {
+        subject: newUri,
+        predicate: triple.predicate,
+        object: triple.object,
+      };
+    }
+  });
 }
 
 async function clearMandatarisInstancesFromOrgaan(orgaanIt: string) {
+  const now = new Date();
   const sparql = `
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX astreams: <http://www.w3.org/ns/activitystreams#>
     DELETE {
         ?mandataris ?p ?o.
         ?membership ?mp ?mo.
-    } WHERE {
-        VALUES ?orgaan {
-          ${sparqlEscapeUri(orgaanIt)}
+    }
+    INSERT {
+      ?mandataris a astreams:Tombstone;
+        astreams:deleted ${sparqlEscapeDateTime(now)} ;
+        astreams:formerType mandaat:Mandataris .
+      ?membership a astreams:Tombstone;
+        astreams:deleted ${sparqlEscapeDateTime(now)} ;
+        astreams:formerType org:Membership .
+    }
+     WHERE {
+        VALUES ?orgaanId {
+          ${sparqlEscapeString(orgaanIt)}
         }
+        ?orgaan mu:uuid ?orgaanId.
         ?orgaan org:hasPost ?mandaat.
         ?mandataris org:holds ?mandaat;
           ?p ?o.
