@@ -14,7 +14,7 @@ import { sparqlEscapeQueryBinding } from '../util/sparql-escape';
 const installatievergaderingRouter = Router();
 
 installatievergaderingRouter.post(
-  `/copy-gemeente-to-ocmw-draft`,
+  '/copy-gemeente-to-ocmw-draft',
   async (req: Request, res: Response) => {
     const { gemeenteUri, ocmwUri } = req.body;
     await copyMandatarisInstances(gemeenteUri, ocmwUri);
@@ -377,6 +377,14 @@ async function constructNewMandatarisInstances(
       'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000018',
   };
 
+  const mappingUris = Object.keys(bestuursfunctieCodeMapping)
+    .map((from) => {
+      return `(${sparqlEscapeUri(from)} ${sparqlEscapeUri(
+        bestuursfunctieCodeMapping[from],
+      )})`;
+    })
+    .join('\n');
+
   const sparql = `
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -398,13 +406,7 @@ async function constructNewMandatarisInstances(
       ?orgaanTo mu:uuid ?bestuursorgaanToId.
 
       VALUES (?mandaatCodeFrom ?mandaatCodeTo) {
-        ${Object.keys(bestuursfunctieCodeMapping)
-          .map((from) => {
-            return `(${sparqlEscapeUri(from)} ${sparqlEscapeUri(
-              bestuursfunctieCodeMapping[from],
-            )})`;
-          })
-          .join('\n')}
+        ${mappingUris}
       }
 
       ?orgaanFrom org:hasPost ?mandaat.
@@ -433,15 +435,16 @@ async function constructNewMandatarisInstances(
     };
   });
   const transformedTriples = generateNewMandatarisAndMembershipUris(triples);
+  const formattedTriples = transformedTriples
+    .map((triple) => {
+      return `${sparqlEscapeUri(triple.subject)} ${sparqlEscapeUri(
+        triple.predicate,
+      )} ${sparqlEscapeQueryBinding(triple.object)} .`;
+    })
+    .join('\n');
   const insertSparql = `
     INSERT DATA {
-      ${transformedTriples
-        .map((triple) => {
-          return `${sparqlEscapeUri(triple.subject)} ${sparqlEscapeUri(
-            triple.predicate,
-          )} ${sparqlEscapeQueryBinding(triple.object)} .`;
-        })
-        .join('\n')}
+      ${formattedTriples}
     }
   `;
   await update(insertSparql);
@@ -489,13 +492,11 @@ function generateNewMandatarisAndMembershipUris(
       const objectIsMandataris =
         types[triple.object.value] ===
         'http://data.vlaanderen.be/ns/mandaat#Mandataris';
+      const mandatarisPrefix = 'http://data.lblod.info/id/mandatarissen/';
+      const membershipPrefix = 'http://data.lblod.info/id/lidmaatschappen/';
       const objectUri = objectIsMandataris
-        ? `http://data.lblod.info/id/mandatarissen/${
-            newUuids[triple.object.value]
-          }`
-        : `http://data.lblod.info/id/lidmaatschappen/${
-            newUuids[triple.object.value]
-          }`;
+        ? `${mandatarisPrefix}${newUuids[triple.object.value]}`
+        : `${membershipPrefix}${newUuids[triple.object.value]}`;
 
       return {
         subject: newUri,
