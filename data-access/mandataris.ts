@@ -74,6 +74,7 @@ async function findCurrentFractieForPerson(
   graph?: string,
   sudo: boolean = false,
 ): Promise<TermProperty | null> {
+  const graphInsert = graph ? `GRAPH ${sparqlEscapeUri(graph)} {` : '';
   const getQuery = `
     PREFIX person: <http://www.w3.org/ns/person#>
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -86,7 +87,7 @@ async function findCurrentFractieForPerson(
 
     SELECT DISTINCT ?fractie
     WHERE {
-      ${graph ? `GRAPH ${sparqlEscapeUri(graph)} {\n` : ''}
+      ${graphInsert}
         ?mandataris a mandaat:Mandataris;
           mu:uuid ${sparqlEscapeString(mandatarisId)};
           mandaat:isBestuurlijkeAliasVan ?persoon;
@@ -106,8 +107,7 @@ async function findCurrentFractieForPerson(
 
         ?mandatarisOfPerson org:hasMembership ?member.
         ?member org:organisation ?fractie.
-      }
-      ${graph ? '}\n' : ''}
+      ${graph ? '}' : ''}
     } ORDER BY DESC ( ?mandatarisStart ) LIMIT 1
   `;
   const sparqlResult = sudo ? await querySudo(getQuery) : await query(getQuery);
