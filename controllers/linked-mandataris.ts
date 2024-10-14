@@ -184,7 +184,7 @@ export const correctMistakesLinkedMandataris = async (req) => {
     );
   }
 
-  correctLinkedMandataris(mandatarisId, linkedMandataris.uri);
+  await correctLinkedMandataris(mandatarisId, linkedMandataris.uri);
 
   await saveHistoryItem(
     linkedMandataris.uri.value,
