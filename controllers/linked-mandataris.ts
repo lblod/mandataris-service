@@ -231,6 +231,7 @@ export const changeStateLinkedMandataris = async (req) => {
 
   const fractie = await handleFractie(newMandatarisId, destinationGraph);
 
+  // We are updating state, the linked mandatee needs a new instance for the updated state.
   const newLinkedMandataris = await createNewLinkedMandataris(
     newMandatarisId,
     fractie,
@@ -238,7 +239,7 @@ export const changeStateLinkedMandataris = async (req) => {
     getValueBindings(linkedMandaten),
   );
 
-  // Copy over values that were in the original linked mandatee but are not set in the new mandatee
+  // Copy over values that were in the original linked mandatee but are not set in the new linked mandatee
   await copyExtraValues(linkedMandataris.uri, newLinkedMandataris.uri);
 
   // Update current fractie on person
