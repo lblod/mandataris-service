@@ -115,7 +115,7 @@ export const createLinkedMandataris = async (req) => {
     await copyPersonOfMandataris(mandatarisId, destinationGraph);
   }
 
-  const fractie = await handleFractie(mandatarisId, destinationGraph);
+  const fractie = await getOrCreateOCMWFractie(mandatarisId, destinationGraph);
 
   const newMandataris = await createNewLinkedMandataris(
     mandatarisId,
@@ -168,7 +168,7 @@ export const correctMistakesLinkedMandataris = async (req) => {
     linkedMandataris.uri,
   );
   if (!sameFractie) {
-    const fractie = handleFractie(mandatarisId, destinationGraph);
+    const fractie = getOrCreateOCMWFractie(mandatarisId, destinationGraph);
 
     await replaceFractieOfMandataris(
       mandatarisId,
@@ -229,7 +229,10 @@ export const changeStateLinkedMandataris = async (req) => {
     );
   }
 
-  const fractie = await handleFractie(newMandatarisId, destinationGraph);
+  const fractie = await getOrCreateOCMWFractie(
+    newMandatarisId,
+    destinationGraph,
+  );
 
   // We are updating state, the linked mandatee needs a new instance for the updated state.
   const newLinkedMandataris = await createNewLinkedMandataris(
@@ -280,7 +283,7 @@ const preliminaryChecksLinkedMandataris = async (req) => {
   return userId;
 };
 
-export const handleFractie = async (mandatarisId, graph) => {
+export const getOrCreateOCMWFractie = async (mandatarisId, graph) => {
   const isOnafhankelijk = await mandataris.isOnafhankelijk(mandatarisId);
 
   let fractie;
