@@ -64,6 +64,7 @@ async function updateCurrentFractieSudo(
 
   const currentFractie = await mandataris.findCurrentFractieForPerson(
     mandatarisId,
+    graph.value,
     true,
   );
   if (!currentFractie) {

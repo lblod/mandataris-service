@@ -71,6 +71,7 @@ async function isOnafhankelijk(mandatarisId: string): Promise<boolean> {
 
 async function findCurrentFractieForPerson(
   mandatarisId: string,
+  graph?: string,
   sudo: boolean = false,
 ): Promise<TermProperty | null> {
   const getQuery = `
@@ -85,6 +86,7 @@ async function findCurrentFractieForPerson(
 
     SELECT DISTINCT ?fractie
     WHERE {
+      ${graph ? `GRAPH ${sparqlEscapeUri(graph)} {\n` : ''}
         ?mandataris a mandaat:Mandataris;
           mu:uuid ${sparqlEscapeString(mandatarisId)};
           mandaat:isBestuurlijkeAliasVan ?persoon;
@@ -104,7 +106,8 @@ async function findCurrentFractieForPerson(
 
         ?mandatarisOfPerson org:hasMembership ?member.
         ?member org:organisation ?fractie.
-
+      }
+      ${graph ? '}\n' : ''}
     } ORDER BY DESC ( ?mandatarisStart ) LIMIT 1
   `;
   const sparqlResult = sudo ? await querySudo(getQuery) : await query(getQuery);
