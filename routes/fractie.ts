@@ -9,7 +9,7 @@ import { mandatarisUsecase } from '../controllers/mandataris';
 export const fractiesRouter = Router();
 
 fractiesRouter.get(
-  'onafhankelijk/:bestuursperiodeId/bestuursperiode',
+  '/onafhankelijk/:bestuursperiodeId/bestuursperiode',
   async (req: Request, res: Response) => {
     const id = req.params.bestuursperiodeId;
 
@@ -27,7 +27,7 @@ fractiesRouter.get(
 );
 
 fractiesRouter.get(
-  'samenwerking/:bestuursperiodeId/bestuursperiode',
+  '/samenwerking/:bestuursperiodeId/bestuursperiode',
   async (req: Request, res: Response) => {
     const id = req.params.bestuursperiodeId;
 
