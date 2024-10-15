@@ -1,10 +1,36 @@
 import { Request, Response } from 'express';
 import Router from 'express-promise-router';
-import { query, sparqlEscapeString, sparqlEscapeUri } from 'mu';
+import {
+  query,
+  update,
+  sparqlEscapeString,
+  sparqlEscapeUri,
+  sparqlEscapeDateTime,
+} from 'mu';
 import { updateSudo, querySudo } from '@lblod/mu-auth-sudo';
 import { v4 as uuidv4 } from 'uuid';
+import { sparqlEscapeQueryBinding } from '../util/sparql-escape';
+import {
+  AANGEWEZEN_BURGEMEESTER_FUNCTIE_CODE,
+  GEMEENTERAADSLID_FUNCTIE_CODE,
+  LID_OCMW_FUNCTIE_CODE,
+  LID_VB_FUNCTIE_CODE,
+  SCHEPEN_FUNCTIE_CODE,
+  VOORZITTER_GEMEENTERAAD_FUNCTIE_CODE,
+  VOORZITTER_RMW_CODE,
+  VOORZITTER_VB_FUNCTIE_CODE,
+} from '../util/constants';
 
 const installatievergaderingRouter = Router();
+
+installatievergaderingRouter.post(
+  '/copy-gemeente-to-ocmw-draft',
+  async (req: Request, res: Response) => {
+    const { gemeenteUri, ocmwUri } = req.body;
+    await copyMunicipalityMandatarisInstancesToOCMW(gemeenteUri, ocmwUri);
+    return res.status(200).send({ status: 'ok' });
+  },
+);
 
 installatievergaderingRouter.post(
   '/:id/move-ocmw-organs/',
@@ -331,6 +357,266 @@ async function movePersons(installatievergaderingId: string) {
     }
   }`;
   await updateSudo(sparql);
+}
+
+async function copyMunicipalityMandatarisInstancesToOCMW(
+  orgaanItFrom: string,
+  orgaanItTo: string,
+) {
+  await clearMandatarisInstancesFromOrgaan(orgaanItTo);
+  await constructNewMandatarisInstances(orgaanItFrom, orgaanItTo);
+}
+
+type SimpleTriple = {
+  subject: string;
+  predicate: string;
+  object: { value: string; type: string; datatype: string };
+};
+
+async function constructNewMandatarisInstances(
+  orgaanItFrom: string,
+  orgaanItTo: string,
+) {
+  const triples = await constructNewMandatarisInstancesWithOldUris(
+    orgaanItFrom,
+    orgaanItTo,
+  );
+  const { newTriples: transformedTriples, mandatarisLinks } =
+    transformToNewMandatarisAndMembershipTriples(triples);
+
+  await insertTransformedTriples(transformedTriples);
+  await insertMandatarisLinks(mandatarisLinks);
+}
+
+async function constructNewMandatarisInstancesWithOldUris(
+  orgaanItFrom: string,
+  orgaanItTo: string,
+): Promise<SimpleTriple[]> {
+  const bestuursfunctieCodeMapping: { [key: string]: string } = {
+    [GEMEENTERAADSLID_FUNCTIE_CODE]: LID_OCMW_FUNCTIE_CODE,
+    [VOORZITTER_GEMEENTERAAD_FUNCTIE_CODE]: VOORZITTER_RMW_CODE,
+    [SCHEPEN_FUNCTIE_CODE]: LID_VB_FUNCTIE_CODE,
+    [AANGEWEZEN_BURGEMEESTER_FUNCTIE_CODE]: VOORZITTER_VB_FUNCTIE_CODE,
+  };
+
+  const mappingUris = Object.keys(bestuursfunctieCodeMapping)
+    .map((from) => {
+      return `(${sparqlEscapeUri(from)} ${sparqlEscapeUri(
+        bestuursfunctieCodeMapping[from],
+      )})`;
+    })
+    .join('\n');
+
+  const sparql = `
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+    CONSTRUCT {
+      ?mandataris ?p ?o.
+      ?mandataris org:holds ?mandaatTo.
+      ?mandataris org:hasMembership ?newMembership.
+      ?membership ?mp ?mo.
+    } WHERE {
+      VALUES ?orgaanFromId {
+        ${sparqlEscapeString(orgaanItFrom)}
+      }
+      VALUES ?bestuursorgaanToId {
+        ${sparqlEscapeString(orgaanItTo)}
+      }
+      ?orgaanFrom mu:uuid ?orgaanFromId.
+      ?orgaanTo mu:uuid ?bestuursorgaanToId.
+
+      VALUES (?mandaatCodeFrom ?mandaatCodeTo) {
+        ${mappingUris}
+      }
+
+      ?orgaanFrom org:hasPost ?mandaat.
+      ?mandataris org:holds ?mandaat.
+
+      ?mandaat org:role ?mandaatCodeFrom.
+
+      ?orgaanTo org:hasPost ?mandaatTo.
+      ?mandaatTo org:role ?mandaatCodeTo.
+
+      ?mandataris ?p ?o.
+      FILTER(?p NOT IN (org:holds, mandaat:rangorde, mandaat:beleidsdomein))
+
+      OPTIONAL {
+        ?mandataris org:hasMembership ?membership.
+        ?membership ?mp ?mo
+      }
+    }
+  `;
+  const result = await query(sparql);
+  const triples = result.results.bindings.map((binding) => {
+    return {
+      subject: binding.s.value,
+      predicate: binding.p.value,
+      object: binding.o,
+    };
+  });
+  return triples;
+}
+
+async function insertTransformedTriples(transformedTriples: SimpleTriple[]) {
+  const formattedTriples = transformedTriples
+    .map((triple) => {
+      return `${sparqlEscapeUri(triple.subject)} ${sparqlEscapeUri(
+        triple.predicate,
+      )} ${sparqlEscapeQueryBinding(triple.object)} .`;
+    })
+    .join('\n');
+  const insertSparql = `
+    INSERT DATA {
+      ${formattedTriples}
+    }
+  `;
+  await update(insertSparql);
+}
+
+async function insertMandatarisLinks(mandatarisLinks) {
+  const linkTriples = Object.keys(mandatarisLinks)
+    .map((from) => {
+      const to = mandatarisLinks[from];
+      return `${sparqlEscapeUri(from)} ext:linked ${sparqlEscapeUri(to)}.`;
+    })
+    .join('\n');
+
+  await updateSudo(`
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    INSERT DATA {
+      GRAPH <http://mu.semte.ch/graphs/linkedInstances> {
+        ${linkTriples}
+      }
+    }`);
+}
+
+function transformToNewMandatarisAndMembershipTriples(triples: SimpleTriple[]) {
+  // this is necessary because apparently generating nested uuids in a sparql query is not possible
+  const { newUuids, mandatarisLinks } = generateNewInstanceIdsAndLinks(triples);
+
+  const newTriples = triples.map((triple) => {
+    const newUri = generateNewInstanceUri(
+      triple.subject,
+      newUuids,
+      mandatarisLinks,
+    );
+    const objectUriIsTransformed = newUuids[triple.object.value];
+
+    if (triple.predicate === 'http://mu.semte.ch/vocabularies/core/uuid') {
+      // if the triple points to the uuid, replace the old one with the new one, using the new uri for the instance
+      return {
+        subject: newUri,
+        predicate: triple.predicate,
+        object: {
+          value: newUuids[triple.subject],
+          type: 'string',
+          datatype: 'string',
+        },
+      };
+    } else if (objectUriIsTransformed) {
+      // if the object is also a uri of a transformed instance, change both the subject and the object to the new uri
+      const newObjectUri = generateNewInstanceUri(
+        triple.object.value,
+        newUuids,
+        mandatarisLinks,
+      );
+
+      return {
+        subject: newUri,
+        predicate: triple.predicate,
+        object: {
+          value: newObjectUri,
+          type: 'uri',
+          datatype: 'uri',
+        },
+      };
+    } else {
+      // by default, keep the existing value, but change the subject to the new uri
+      return {
+        subject: newUri,
+        predicate: triple.predicate,
+        object: triple.object,
+      };
+    }
+  });
+  return { newTriples, mandatarisLinks };
+}
+
+function generateNewInstanceUri(
+  oldUri: string,
+  newUuids: { [key: string]: string },
+  mandatarisLinks: { [key: string]: string },
+) {
+  const isMandataris =
+    mandatarisLinks[oldUri] ===
+    'http://data.vlaanderen.be/ns/mandaat#Mandataris';
+  const newUri = isMandataris
+    ? `http://data.lblod.info/id/mandatarissen/${newUuids[oldUri]}`
+    : `http://data.lblod.info/id/lidmaatschappen/${newUuids[oldUri]}`;
+  return newUri;
+}
+
+function generateNewInstanceIdsAndLinks(triples: SimpleTriple[]) {
+  const newUuids = {};
+  const mandatarisLinks = {};
+
+  triples.forEach((triple) => {
+    if (
+      triple.predicate === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
+    ) {
+      newUuids[triple.subject] = uuidv4();
+
+      if (
+        triple.object.value ===
+        'http://data.vlaanderen.be/ns/mandaat#Mandataris'
+      ) {
+        mandatarisLinks[triple.subject] =
+          `http://data.lblod.info/id/mandatarissen/${newUuids[triple.subject]}`;
+      }
+    }
+  });
+  return {
+    newUuids,
+    mandatarisLinks,
+  };
+}
+
+async function clearMandatarisInstancesFromOrgaan(orgaanIt: string) {
+  const now = new Date();
+  const sparql = `
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX astreams: <http://www.w3.org/ns/activitystreams#>
+    DELETE {
+        ?mandataris ?p ?o.
+        ?membership ?mp ?mo.
+    }
+    INSERT {
+      ?mandataris a astreams:Tombstone;
+        astreams:deleted ${sparqlEscapeDateTime(now)} ;
+        astreams:formerType mandaat:Mandataris .
+      ?membership a astreams:Tombstone;
+        astreams:deleted ${sparqlEscapeDateTime(now)} ;
+        astreams:formerType org:Membership .
+    }
+     WHERE {
+        VALUES ?orgaanId {
+          ${sparqlEscapeString(orgaanIt)}
+        }
+        ?orgaan mu:uuid ?orgaanId.
+        ?orgaan org:hasPost ?mandaat.
+        ?mandataris org:holds ?mandaat;
+          ?p ?o.
+        OPTIONAL {
+          ?mandataris org:hasMembership ?membership.
+          ?membership ?mp ?mo.
+        }
+    }
+  `;
+  await update(sparql);
 }
 
 export { installatievergaderingRouter };
