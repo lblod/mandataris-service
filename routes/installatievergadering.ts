@@ -113,7 +113,7 @@ async function moveFracties(installatievergaderingId: string) {
     GRAPH ?target {
       ?fractie a mandaat:Fractie.
       ?fractie mu:uuid ?uuid.
-      ?fractie ext:fractieType ?type.
+      ?fractie ext:isFractietype ?type.
       ?fractie regorg:legalName ?name.
       ?fractie org:memberOf ?realOrgT.
       ?fractie org:linkedTo ?realEenheid.
@@ -195,7 +195,7 @@ async function getExistingGemeenteFractions(installatieVergaderingId: string) {
       ?fractie org:memberOf ?bestuursorgaan.
       ?fractie regorg:legalName ?name.
       OPTIONAL {
-        ?fractie ext:fractieType ?type.
+        ?fractie ext:isFractietype ?type.
       }
       ?bestuursorgaan lmb:heeftBestuursperiode ?period.
     }
