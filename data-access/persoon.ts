@@ -13,7 +13,6 @@ import { TERM_STAGING_GRAPH } from './mandatees-decisions';
 import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
-  getSparqlResults,
 } from '../util/sparql-result';
 import { getIdentifierFromPersonUri } from '../util/find-uuid-in-uri';
 
@@ -22,7 +21,6 @@ import { getIdentifierFromPersonUri } from '../util/find-uuid-in-uri';
 export const persoon = {
   isValidId,
   getFractie,
-  getMandatarisFracties,
   removeFractieFromCurrent,
   removeFractieFromCurrentWithGraph,
   setEndDateOfActiveMandatarissen,
@@ -315,40 +313,6 @@ export async function isOnafhankelijkInPeriod(
 
   const result = findFirstSparqlResult(queryResult);
   return result?.fractie.value;
-}
-
-async function getMandatarisFracties(
-  id: string,
-  bestuursperiodeId: string,
-): Promise<Array<TermProperty>> {
-  const getAllQuery = `
-    PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
-    PREFIX org: <http://www.w3.org/ns/org#>
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
-
-    SELECT DISTINCT ?fractieId
-    WHERE {
-      ?mandataris a mandaat:Mandataris;
-        mandaat:isBestuurlijkeAliasVan ?person;
-        org:hasMembership ?member.
-
-      ?person mu:uuid ${sparqlEscapeString(id)}.
-      ?member org:organisation ?fractie.
-
-      ?bestuursorgaan a besluit:Bestuursorgaan;
-        lmb:heeftBestuursperiode ?bestuursperiode.
-
-      ?fractie org:memberOf ?bestuursorgaan;
-        mu:uuid ?fractieId.
-
-      ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
-    }
-  `;
-  const results = await query(getAllQuery);
-
-  return getSparqlResults(results);
 }
 
 async function removeFractieFromCurrent(

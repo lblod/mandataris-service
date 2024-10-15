@@ -1,3 +1,4 @@
+import { bestuursperiode } from '../data-access/bestuursperiode';
 import { fractie } from '../data-access/fractie';
 import {
   findDecisionForMandataris,
@@ -10,11 +11,28 @@ import { STATUS_CODE } from '../util/constants';
 import { HttpError } from '../util/http-error';
 
 export const mandatarisUsecase = {
+  getMandatarisFracties,
   updateCurrentFractie,
   updateCurrentFractieSudo,
   copyOverNonResourceDomainPredicates,
   findDecision,
 };
+
+async function getMandatarisFracties(
+  mandatarisId: string,
+): Promise<Array<string>> {
+  const isMandataris = await mandataris.isValidId(mandatarisId);
+  if (!isMandataris) {
+    throw new HttpError(
+      `Mandataris with id ${mandatarisId} not found.`,
+      STATUS_CODE.BAD_REQUEST,
+    );
+  }
+
+  const results = await mandataris.getMandatarisFracties(mandatarisId);
+
+  return results.map((result) => result.fractieId.value);
+}
 
 async function updateCurrentFractie(mandatarisId: string): Promise<void> {
   const isMandataris = await mandataris.isValidId(mandatarisId);
