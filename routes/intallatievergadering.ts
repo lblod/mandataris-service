@@ -17,7 +17,7 @@ installatievergaderingRouter.post(
   '/copy-gemeente-to-ocmw-draft',
   async (req: Request, res: Response) => {
     const { gemeenteUri, ocmwUri } = req.body;
-    await copyMandatarisInstances(gemeenteUri, ocmwUri);
+    await copyCommuneMandatarisInstancesToOCMW(gemeenteUri, ocmwUri);
     return res.status(200).send({ status: 'ok' });
   },
 );
@@ -349,7 +349,7 @@ async function movePersons(installatievergaderingId: string) {
   await updateSudo(sparql);
 }
 
-async function copyMandatarisInstances(
+async function copyCommuneMandatarisInstancesToOCMW(
   orgaanItFrom: string,
   orgaanItTo: string,
 ) {
@@ -357,11 +357,31 @@ async function copyMandatarisInstances(
   await constructNewMandatarisInstances(orgaanItFrom, orgaanItTo);
 }
 
+type SimpleTriple = {
+  subject: string;
+  predicate: string;
+  object: { value: string; type: string; datatype: string };
+};
+
 async function constructNewMandatarisInstances(
   orgaanItFrom: string,
   orgaanItTo: string,
 ) {
-  // TODO test this
+  const triples = await constructNewMandatarisInstancesWithOldUris(
+    orgaanItFrom,
+    orgaanItTo,
+  );
+  const { newTriples: transformedTriples, mandatarisLinks } =
+    transformToNewMandatarisAndMembershipTriples(triples);
+
+  await insertTransformedTriples(transformedTriples);
+  await insertMandatarisLinks(mandatarisLinks);
+}
+
+async function constructNewMandatarisInstancesWithOldUris(
+  orgaanItFrom: string,
+  orgaanItTo: string,
+): Promise<SimpleTriple[]> {
   const bestuursfunctieCodeMapping = {
     // gemeenteraadslid -> lid raad voor maatschappelijk welzijn
     'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000011':
@@ -434,8 +454,10 @@ async function constructNewMandatarisInstances(
       object: binding.o,
     };
   });
-  const { newTriples: transformedTriples, mandatarisLinks } =
-    generateNewMandatarisAndMembershipUris(triples);
+  return triples;
+}
+
+async function insertTransformedTriples(transformedTriples: SimpleTriple[]) {
   const formattedTriples = transformedTriples
     .map((triple) => {
       return `${sparqlEscapeUri(triple.subject)} ${sparqlEscapeUri(
@@ -449,7 +471,9 @@ async function constructNewMandatarisInstances(
     }
   `;
   await update(insertSparql);
+}
 
+async function insertMandatarisLinks(mandatarisLinks) {
   const linkTriples = Object.keys(mandatarisLinks)
     .map((from) => {
       const to = mandatarisLinks[from];
@@ -466,16 +490,74 @@ async function constructNewMandatarisInstances(
     }`);
 }
 
-function generateNewMandatarisAndMembershipUris(
-  triples: {
-    subject: string;
-    predicate: string;
-    object: { value: string; type: string; datatype: string };
-  }[],
-) {
+function transformToNewMandatarisAndMembershipTriples(triples: SimpleTriple[]) {
   // this is necessary because apparently generating nested uuids in a sparql query is not possible
+  const { newUuids, mandatarisLinks } = generateNewInstanceIdsAnLinks(triples);
+
+  const newTriples = triples.map((triple) => {
+    const newUri = generateNewInstanceUri(
+      triple.subject,
+      newUuids,
+      mandatarisLinks,
+    );
+    const objectUriIsTransformed = newUuids[triple.object.value];
+
+    if (triple.predicate === 'http://mu.semte.ch/vocabularies/core/uuid') {
+      // if the triple points to the uuid, replace the old one with the new one, using the new uri for the instance
+      return {
+        subject: newUri,
+        predicate: triple.predicate,
+        object: {
+          value: newUuids[triple.subject],
+          type: 'string',
+          datatype: 'string',
+        },
+      };
+    } else if (objectUriIsTransformed) {
+      // if the object is also a uri of a transformed instance, change both the subject and the object to the new uri
+      const newObjectUri = generateNewInstanceUri(
+        triple.object.value,
+        newUuids,
+        mandatarisLinks,
+      );
+
+      return {
+        subject: newUri,
+        predicate: triple.predicate,
+        object: {
+          value: newObjectUri,
+          type: 'uri',
+          datatype: 'uri',
+        },
+      };
+    } else {
+      // by default, keep the existing value, but change the subject to the new uri
+      return {
+        subject: newUri,
+        predicate: triple.predicate,
+        object: triple.object,
+      };
+    }
+  });
+  return { newTriples, mandatarisLinks };
+}
+
+function generateNewInstanceUri(
+  oldUri: string,
+  newUuids: { [key: string]: string },
+  mandatarisLinks: { [key: string]: string },
+) {
+  const isMandataris =
+    mandatarisLinks[oldUri] ===
+    'http://data.vlaanderen.be/ns/mandaat#Mandataris';
+  const newUri = isMandataris
+    ? `http://data.lblod.info/id/mandatarissen/${newUuids[oldUri]}`
+    : `http://data.lblod.info/id/lidmaatschappen/${newUuids[oldUri]}`;
+  return newUri;
+}
+
+function generateNewInstanceIdsAnLinks(triples: SimpleTriple[]) {
   const newUuids = {};
-  const types = {};
   const mandatarisLinks = {};
 
   triples.forEach((triple) => {
@@ -483,7 +565,6 @@ function generateNewMandatarisAndMembershipUris(
       triple.predicate === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
     ) {
       newUuids[triple.subject] = uuidv4();
-      types[triple.subject] = triple.object.value;
 
       if (
         triple.object.value ===
@@ -494,53 +575,10 @@ function generateNewMandatarisAndMembershipUris(
       }
     }
   });
-
-  const newTriples = triples.map((triple) => {
-    const isMandataris =
-      types[triple.subject] ===
-      'http://data.vlaanderen.be/ns/mandaat#Mandataris';
-    const newUri = isMandataris
-      ? `http://data.lblod.info/id/mandatarissen/${newUuids[triple.subject]}`
-      : `http://data.lblod.info/id/lidmaatschappen/${newUuids[triple.subject]}`;
-
-    if (triple.predicate === 'http://mu.semte.ch/vocabularies/core/uuid') {
-      return {
-        subject: newUri,
-        predicate: triple.predicate,
-        object: {
-          value: newUuids[triple.subject],
-          type: 'string',
-          datatype: 'string',
-        },
-      };
-    } else if (newUuids[triple.object.value]) {
-      const objectIsMandataris =
-        types[triple.object.value] ===
-        'http://data.vlaanderen.be/ns/mandaat#Mandataris';
-      const mandatarisPrefix = 'http://data.lblod.info/id/mandatarissen/';
-      const membershipPrefix = 'http://data.lblod.info/id/lidmaatschappen/';
-      const objectUri = objectIsMandataris
-        ? `${mandatarisPrefix}${newUuids[triple.object.value]}`
-        : `${membershipPrefix}${newUuids[triple.object.value]}`;
-
-      return {
-        subject: newUri,
-        predicate: triple.predicate,
-        object: {
-          value: objectUri,
-          type: 'uri',
-          datatype: 'uri',
-        },
-      };
-    } else {
-      return {
-        subject: newUri,
-        predicate: triple.predicate,
-        object: triple.object,
-      };
-    }
-  });
-  return { newTriples, mandatarisLinks };
+  return {
+    newUuids,
+    mandatarisLinks,
+  };
 }
 
 async function clearMandatarisInstancesFromOrgaan(orgaanIt: string) {
