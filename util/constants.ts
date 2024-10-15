@@ -18,3 +18,22 @@ export enum BENOEMING_STATUS {
   BENOEMD = 'benoemd',
   AFGEWEZEN = 'afgewezen',
 }
+
+export const GEMEENTERAADSLID_FUNCTIE_CODE =
+  'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000011';
+export const LID_OCMW_FUNCTIE_CODE =
+  'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000015';
+export const VOORZITTER_GEMEENTERAAD_FUNCTIE_CODE =
+  'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000012';
+export const VOORZITTER_RMW_CODE =
+  'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000016';
+export const SCHEPEN_FUNCTIE_CODE =
+  'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000014';
+export const LID_VB_FUNCTIE_CODE =
+  'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000017';
+export const BURGEMEESTER_FUNCTIE_CODE =
+  'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000013';
+export const VOORZITTER_VB_FUNCTIE_CODE =
+  'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000018';
+export const AANGEWEZEN_BURGEMEESTER_FUNCTIE_CODE =
+  'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/7b038cc40bba10bec833ecfe6f15bc7a';

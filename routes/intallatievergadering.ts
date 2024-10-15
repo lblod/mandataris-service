@@ -10,6 +10,16 @@ import {
 import { updateSudo, querySudo } from '@lblod/mu-auth-sudo';
 import { v4 as uuidv4 } from 'uuid';
 import { sparqlEscapeQueryBinding } from '../util/sparql-escape';
+import {
+  AANGEWEZEN_BURGEMEESTER_FUNCTIE_CODE,
+  GEMEENTERAADSLID_FUNCTIE_CODE,
+  LID_OCMW_FUNCTIE_CODE,
+  LID_VB_FUNCTIE_CODE,
+  SCHEPEN_FUNCTIE_CODE,
+  VOORZITTER_GEMEENTERAAD_FUNCTIE_CODE,
+  VOORZITTER_RMW_CODE,
+  VOORZITTER_VB_FUNCTIE_CODE,
+} from '../util/constants';
 
 const installatievergaderingRouter = Router();
 
@@ -17,7 +27,7 @@ installatievergaderingRouter.post(
   '/copy-gemeente-to-ocmw-draft',
   async (req: Request, res: Response) => {
     const { gemeenteUri, ocmwUri } = req.body;
-    await copyCommuneMandatarisInstancesToOCMW(gemeenteUri, ocmwUri);
+    await copyMunicipalityMandatarisInstancesToOCMW(gemeenteUri, ocmwUri);
     return res.status(200).send({ status: 'ok' });
   },
 );
@@ -349,7 +359,7 @@ async function movePersons(installatievergaderingId: string) {
   await updateSudo(sparql);
 }
 
-async function copyCommuneMandatarisInstancesToOCMW(
+async function copyMunicipalityMandatarisInstancesToOCMW(
   orgaanItFrom: string,
   orgaanItTo: string,
 ) {
@@ -382,19 +392,11 @@ async function constructNewMandatarisInstancesWithOldUris(
   orgaanItFrom: string,
   orgaanItTo: string,
 ): Promise<SimpleTriple[]> {
-  const bestuursfunctieCodeMapping = {
-    // gemeenteraadslid -> lid raad voor maatschappelijk welzijn
-    'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000011':
-      'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000015',
-    // voorzitter gemeenteraad -> voorzitter raad voor maatschappelijk welzijn
-    'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000012':
-      'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000016',
-    // schepen -> lid vast bureau
-    'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000014':
-      'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000017',
-    // aangewezen burgemeester -> voorzitter vast bureau
-    'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/7b038cc40bba10bec833ecfe6f15bc7a':
-      'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000018',
+  const bestuursfunctieCodeMapping: { [key: string]: string } = {
+    [GEMEENTERAADSLID_FUNCTIE_CODE]: LID_OCMW_FUNCTIE_CODE,
+    [VOORZITTER_GEMEENTERAAD_FUNCTIE_CODE]: VOORZITTER_RMW_CODE,
+    [SCHEPEN_FUNCTIE_CODE]: LID_VB_FUNCTIE_CODE,
+    [AANGEWEZEN_BURGEMEESTER_FUNCTIE_CODE]: VOORZITTER_VB_FUNCTIE_CODE,
   };
 
   const mappingUris = Object.keys(bestuursfunctieCodeMapping)
@@ -492,7 +494,7 @@ async function insertMandatarisLinks(mandatarisLinks) {
 
 function transformToNewMandatarisAndMembershipTriples(triples: SimpleTriple[]) {
   // this is necessary because apparently generating nested uuids in a sparql query is not possible
-  const { newUuids, mandatarisLinks } = generateNewInstanceIdsAnLinks(triples);
+  const { newUuids, mandatarisLinks } = generateNewInstanceIdsAndLinks(triples);
 
   const newTriples = triples.map((triple) => {
     const newUri = generateNewInstanceUri(
@@ -556,7 +558,7 @@ function generateNewInstanceUri(
   return newUri;
 }
 
-function generateNewInstanceIdsAnLinks(triples: SimpleTriple[]) {
+function generateNewInstanceIdsAndLinks(triples: SimpleTriple[]) {
   const newUuids = {};
   const mandatarisLinks = {};
 
