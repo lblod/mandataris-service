@@ -11,6 +11,7 @@ import { HttpError } from '../util/http-error';
 
 export const mandatarisUsecase = {
   updateCurrentFractie,
+  updateCurrentFractieSudo,
   copyOverNonResourceDomainPredicates,
   findDecision,
 };
@@ -46,6 +47,50 @@ async function updateCurrentFractie(mandatarisId: string): Promise<void> {
   await fractie.addFractieOnPerson(
     personAndperiodIds.persoonId,
     currentFractie.fractie.value,
+  );
+}
+
+async function updateCurrentFractieSudo(
+  mandatarisId: string,
+  graph: Term,
+): Promise<void> {
+  const isMandataris = await mandataris.isValidId(mandatarisId, true);
+  if (!isMandataris) {
+    throw new HttpError(
+      `Mandataris with id ${mandatarisId} not found.`,
+      STATUS_CODE.BAD_REQUEST,
+    );
+  }
+
+  const currentFractie = await mandataris.findCurrentFractieForPerson(
+    mandatarisId,
+    graph.value,
+    true,
+  );
+  if (!currentFractie) {
+    return;
+  }
+
+  const personAndperiodIds = await mandataris.getPersonWithBestuursperiode(
+    mandatarisId,
+    true,
+  );
+  const existingFractieInBestuursperiode = await persoon.getFractie(
+    personAndperiodIds.persoonId,
+    personAndperiodIds.bestuursperiodeId,
+    true,
+  );
+  if (existingFractieInBestuursperiode?.fractie) {
+    await persoon.removeFractieFromCurrentWithGraph(
+      personAndperiodIds.persoonId,
+      existingFractieInBestuursperiode.fractie.value,
+      graph,
+    );
+  }
+  await fractie.addFractieOnPersonWithGraph(
+    personAndperiodIds.persoonId,
+    currentFractie.fractie.value,
+    graph,
   );
 }
 
