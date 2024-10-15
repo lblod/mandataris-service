@@ -32,6 +32,7 @@ async function forBestuursperiode(
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     SELECT DISTINCT ?fractieId
     WHERE {
