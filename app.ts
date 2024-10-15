@@ -8,7 +8,7 @@ import { mandatarissenRouter } from './routes/mandatarissen';
 import { fractiesRouter } from './routes/fractie';
 import { personenRouter } from './routes/persoon';
 import { burgemeesterRouter } from './routes/burgemeester-benoeming';
-import { installatievergaderingRouter } from './routes/intallatievergadering';
+import { installatievergaderingRouter } from './routes/installatievergadering';
 import { mandatenRouter } from './routes/mandaten';
 
 import { cronjob as notificationBekrachtigdMandataris } from './cron/notification-for-bekrachtigde-mandataris';
