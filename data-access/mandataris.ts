@@ -26,13 +26,14 @@ import { TERM_MANDATARIS_TYPE } from './mandatees-decisions';
 
 export const mandataris = {
   isValidId,
+  isOnafhankelijk,
   findCurrentFractieForPerson,
   getPersonWithBestuursperiode,
   getNonResourceDomainProperties,
   addPredicatesToMandataris,
 };
 
-async function isValidId(id: string): Promise<boolean> {
+async function isValidId(id: string, sudo: boolean = false): Promise<boolean> {
   const askQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -42,17 +43,40 @@ async function isValidId(id: string): Promise<boolean> {
         mu:uuid ${sparqlEscapeString(id)}.
     }
   `;
-  const sparqlResult = await query(askQuery);
+  const result = sudo ? await querySudo(askQuery) : await query(askQuery);
+
+  return getBooleanSparqlResult(result);
+}
+
+async function isOnafhankelijk(mandatarisId: string): Promise<boolean> {
+  const getQuery = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+
+    ASK {
+      ?currentMandataris a mandaat:Mandataris ;
+        mu:uuid ${sparqlEscapeString(mandatarisId)} ;
+        org:hasMembership ?lidmaatschap .
+        ?lidmaatschap org:organisation ?fractie .
+        ?fractie ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk> .
+    }
+  `;
+
+  const sparqlResult = await query(getQuery);
 
   return getBooleanSparqlResult(sparqlResult);
 }
 
 async function findCurrentFractieForPerson(
   mandatarisId: string,
+  graph?: string,
+  sudo: boolean = false,
 ): Promise<TermProperty | null> {
+  const graphInsert = graph ? `GRAPH ${sparqlEscapeUri(graph)} {` : '';
   const getQuery = `
     PREFIX person: <http://www.w3.org/ns/person#>
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX dct: <http://purl.org/dc/terms/>
@@ -63,6 +87,7 @@ async function findCurrentFractieForPerson(
 
     SELECT DISTINCT ?fractie
     WHERE {
+      ${graphInsert}
         ?mandataris a mandaat:Mandataris;
           mu:uuid ${sparqlEscapeString(mandatarisId)};
           mandaat:isBestuurlijkeAliasVan ?persoon;
@@ -82,10 +107,10 @@ async function findCurrentFractieForPerson(
 
         ?mandatarisOfPerson org:hasMembership ?member.
         ?member org:organisation ?fractie.
-
+      ${graph ? '}' : ''}
     } ORDER BY DESC ( ?mandatarisStart ) LIMIT 1
   `;
-  const sparqlResult = await query(getQuery);
+  const sparqlResult = sudo ? await querySudo(getQuery) : await query(getQuery);
 
   return findFirstSparqlResult(sparqlResult);
 }
@@ -280,8 +305,6 @@ export const createMandatarisInstance = async (
   const uri = `http://data.lblod.info/id/mandatarissen/${uuid}`;
   const membershipUuid = uuidv4();
   const membershipUri = `http://data.lblod.info/id/lidmaatschappen/${membershipUuid}`;
-  const timeframeUuid = uuidv4();
-  const timeframeUri = `http://data.lblod.info/id/tijdsintervallen/${timeframeUuid}`;
 
   let mandatarisBeleidsDomeinen = '';
   if (beleidsDomeinUris.length > 0) {
@@ -297,20 +320,13 @@ export const createMandatarisInstance = async (
   let membershipTriples = '';
   const safeUri = sparqlEscapeUri(uri);
   const safeMembershipUri = sparqlEscapeUri(membershipUri);
-  const safeTimeframeUri = sparqlEscapeUri(timeframeUri);
   if (mandate.fractionUri) {
     membershipTriples = `
     ${safeMembershipUri} a org:Membership ;
       mu:uuid ${sparqlEscapeString(membershipUuid)} ;
-      org:organisation ${sparqlEscapeUri(mandate.fractionUri)} ;
-      org:memberDuring ${safeTimeframeUri} .
+      org:organisation ${sparqlEscapeUri(mandate.fractionUri)} .
 
     ${safeUri} org:hasMembership ${safeMembershipUri} .
-
-    ${safeTimeframeUri} a dct:PeriodOfTime ;
-      mu:uuid ${sparqlEscapeString(timeframeUuid)} ;
-      generiek:start ${sparqlEscapeDateTime(mandatarisStart)} ;
-      generiek:einde ${sparqlEscapeDateTime(mandatarisEnd)} .
     `;
   }
 
@@ -415,7 +431,6 @@ export const copyFromPreviousMandataris = async (
 
   await updateSudo(`
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX mps: <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -583,12 +598,12 @@ export async function updatePublicationStatusOfMandataris(
 
 async function getPersonWithBestuursperiode(
   mandatarisId: string,
+  sudo: boolean = false,
 ): Promise<{ persoonId: string; bestuursperiodeId: string }> {
   const getQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX org: <http://www.w3.org/ns/org#>
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
     SELECT DISTINCT ?persoonId ?bestuursperiodeId
@@ -605,7 +620,7 @@ async function getPersonWithBestuursperiode(
     }
   `;
 
-  const sparqlResult = await query(getQuery);
+  const sparqlResult = sudo ? await querySudo(getQuery) : await query(getQuery);
   const first = findFirstSparqlResult(sparqlResult);
 
   return {

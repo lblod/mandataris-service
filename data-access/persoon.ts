@@ -24,6 +24,7 @@ export const persoon = {
   getFractie,
   getMandatarisFracties,
   removeFractieFromCurrent,
+  removeFractieFromCurrentWithGraph,
   setEndDateOfActiveMandatarissen,
 };
 
@@ -255,6 +256,7 @@ export async function copyPerson(subject: Term, graph: Term) {
 async function getFractie(
   id: string,
   bestuursperiodeId: string,
+  sudo: boolean = false,
 ): Promise<TermProperty | null> {
   const getQuery = `
     PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
@@ -262,7 +264,6 @@ async function getFractie(
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX person: <http://www.w3.org/ns/person#>
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
     SELECT DISTINCT ?fractie
@@ -277,9 +278,43 @@ async function getFractie(
     }
   `;
 
-  const sparqlResult = await query(getQuery);
+  const sparqlResult = sudo ? await querySudo(getQuery) : await query(getQuery);
 
   return findFirstSparqlResult(sparqlResult);
+}
+
+export async function isOnafhankelijkInPeriod(
+  id: string,
+  bestuursperiodeId: string,
+  graph: Term,
+): Promise<string | undefined> {
+  const q = `
+    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX person: <http://www.w3.org/ns/person#>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+
+    SELECT DISTINCT ?fractie {
+      GRAPH ${sparqlEscapeTermValue(graph)}{
+        ?persoon a person:Person ;
+          mu:uuid ${sparqlEscapeString(id)} ;
+          extlmb:currentFracties ?fractie .
+        ?bestuursorgaan lmb:heeftBestuursperiode ?bestuursperiode .
+        ?fractie org:memberOf ?bestuursorgaan ;
+          ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk> .
+      }
+      ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)} .
+    }
+    LIMIT 1
+  `;
+
+  const queryResult = await querySudo(q);
+
+  const result = findFirstSparqlResult(queryResult);
+  return result?.fractie.value;
 }
 
 async function getMandatarisFracties(
@@ -287,7 +322,6 @@ async function getMandatarisFracties(
   bestuursperiodeId: string,
 ): Promise<Array<TermProperty>> {
   const getAllQuery = `
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -336,6 +370,32 @@ async function removeFractieFromCurrent(
   `;
 
   await update(deleteQuery);
+}
+
+async function removeFractieFromCurrentWithGraph(
+  persoonId: string,
+  fractieUris: string,
+  graph: Term,
+): Promise<void> {
+  const deleteQuery = `
+    PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
+    PREFIX person: <http://www.w3.org/ns/person#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+    DELETE {
+      GRAPH ${sparqlEscapeTermValue(graph)} {
+        ?persoon extlmb:currentFracties ${sparqlEscapeUri(fractieUris)}.
+      }
+    }
+    WHERE {
+      GRAPH ${sparqlEscapeTermValue(graph)} {
+        ?persoon a person:Person;
+          mu:uuid ${sparqlEscapeString(persoonId)}.
+      }
+    }
+  `;
+
+  await updateSudo(deleteQuery);
 }
 
 async function setEndDateOfActiveMandatarissen(
