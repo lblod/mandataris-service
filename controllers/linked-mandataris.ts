@@ -25,6 +25,17 @@ import {
 } from '../data-access/form-queries';
 import { mandatarisUsecase } from './mandataris';
 import { isOnafhankelijkInPeriod } from '../data-access/persoon';
+import {
+  AANGEWEZEN_BURGEMEESTER_FUNCTIE_CODE,
+  BURGEMEESTER_FUNCTIE_CODE,
+  GEMEENTERAADSLID_FUNCTIE_CODE,
+  LID_OCMW_FUNCTIE_CODE,
+  LID_VB_FUNCTIE_CODE,
+  SCHEPEN_FUNCTIE_CODE,
+  VOORZITTER_GEMEENTERAAD_FUNCTIE_CODE,
+  VOORZITTER_RMW_CODE,
+  VOORZITTER_VB_FUNCTIE_CODE,
+} from '../util/constants';
 
 export const checkLinkedMandataris = async (req) => {
   const mandatarisId = req.params.id;
@@ -326,26 +337,11 @@ function getValueBindings(mapping) {
 }
 
 const linkedMandaten = new Map([
-  [
-    // Gemeenteraadslid - Lid RMW
-    'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000011',
-    'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000015',
-  ],
-  [
-    // Voorzitter Gemeenteraad - Voorzitter RMW
-    'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000012',
-    'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000016',
-  ],
-  [
-    // Schepen - Lid VB
-    'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000014',
-    'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000017',
-  ],
-  [
-    // Burgemeester - Voorzitter VB
-    'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000013',
-    'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000018',
-  ],
+  [GEMEENTERAADSLID_FUNCTIE_CODE, LID_OCMW_FUNCTIE_CODE],
+  [VOORZITTER_GEMEENTERAAD_FUNCTIE_CODE, VOORZITTER_RMW_CODE],
+  [SCHEPEN_FUNCTIE_CODE, LID_VB_FUNCTIE_CODE],
+  [BURGEMEESTER_FUNCTIE_CODE, VOORZITTER_VB_FUNCTIE_CODE],
+  [AANGEWEZEN_BURGEMEESTER_FUNCTIE_CODE, VOORZITTER_VB_FUNCTIE_CODE],
 ]);
 
 const linkedBestuurseenheden = new Map([
