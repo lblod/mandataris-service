@@ -1,4 +1,3 @@
-import { bestuursperiode } from '../data-access/bestuursperiode';
 import { fractie } from '../data-access/fractie';
 import {
   findDecisionForMandataris,
