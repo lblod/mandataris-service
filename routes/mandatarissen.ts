@@ -174,4 +174,23 @@ mandatarissenRouter.get(
   },
 );
 
+mandatarissenRouter.get(
+  '/:id/fracties',
+  async (req: Request, res: Response) => {
+    const mandatarisId = req.params.id;
+
+    try {
+      const fractieIds =
+        await mandatarisUsecase.getMandatarisFracties(mandatarisId);
+      return res.status(STATUS_CODE.OK).send({ fracties: fractieIds });
+    } catch (error) {
+      const message =
+        error.message ??
+        `Something went wrong while getting all fracties for the different states of mandataris with id: ${mandatarisId}`;
+      const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
+      return res.status(statusCode).send({ message });
+    }
+  },
+);
+
 export { mandatarissenRouter };

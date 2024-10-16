@@ -28,27 +28,7 @@ personenRouter.get(
     }
   },
 );
-personenRouter.get(
-  '/:id/bestuursperiode/:bestuursperiodeId/fracties',
-  async (req: Request, res: Response) => {
-    const personId = req.params.id;
-    const bestuursperiodeId = req.params.bestuursperiodeId;
 
-    try {
-      const fractieIds = await persoonUsecase.getMandatarisFracties(
-        personId,
-        bestuursperiodeId,
-      );
-      return res.status(STATUS_CODE.OK).send({ fracties: fractieIds });
-    } catch (error) {
-      const message =
-        error.message ??
-        `Something went wrong while getting all fracties in bestuursperiode: ${bestuursperiodeId} for person with id: ${personId}`;
-      const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
-      return res.status(statusCode).send({ message });
-    }
-  },
-);
 personenRouter.put(
   '/:id/end-active-mandates',
   async (req: Request, res: Response) => {

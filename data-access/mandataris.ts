@@ -31,6 +31,7 @@ export const mandataris = {
   getPersonWithBestuursperiode,
   getNonResourceDomainProperties,
   addPredicatesToMandataris,
+  getMandatarisFracties,
 };
 
 async function isValidId(id: string, sudo: boolean = false): Promise<boolean> {
@@ -710,4 +711,32 @@ async function addPredicatesToMandataris(
   `;
 
   await update(updateQuery);
+}
+
+async function getMandatarisFracties(
+  mandatarisId: string,
+): Promise<Array<TermProperty>> {
+  const q = `
+    PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+
+    SELECT DISTINCT ?fractieId
+    WHERE {
+      ?mandatarisOG a mandaat:Mandataris ;
+        mu:uuid ${sparqlEscapeString(mandatarisId)} ;
+        mandaat:isBestuurlijkeAliasVan ?person ;
+        org:holds ?mandaat .
+
+      ?mandataris a mandaat:Mandataris ;
+        mandaat:isBestuurlijkeAliasVan ?person ;
+        org:holds ?mandaat ;
+        org:hasMembership / org:organisation / mu:uuid ?fractieId .
+    }
+  `;
+  const results = await query(q);
+
+  return getSparqlResults(results);
 }
