@@ -549,9 +549,7 @@ function generateNewInstanceUri(
   newUuids: { [key: string]: string },
   mandatarisLinks: { [key: string]: string },
 ) {
-  const isMandataris =
-    mandatarisLinks[oldUri] ===
-    'http://data.vlaanderen.be/ns/mandaat#Mandataris';
+  const isMandataris = mandatarisLinks[oldUri];
   const newUri = isMandataris
     ? `http://data.lblod.info/id/mandatarissen/${newUuids[oldUri]}`
     : `http://data.lblod.info/id/lidmaatschappen/${newUuids[oldUri]}`;
