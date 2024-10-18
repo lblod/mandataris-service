@@ -8,6 +8,7 @@ import {
 import { updateSudo } from '@lblod/mu-auth-sudo';
 
 import { getSparqlResults } from '../util/sparql-result';
+import { FRACTIE_TYPE } from '../util/constants';
 import { Term, TermProperty } from '../types';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
 
@@ -20,13 +21,18 @@ export const fractie = {
 
 async function forBestuursperiode(
   bestuursperiodeId: string,
+  onafhankelijk,
 ): Promise<Array<TermProperty>> {
+  const type = onafhankelijk
+    ? FRACTIE_TYPE.ONAFHANKELIJK
+    : FRACTIE_TYPE.SAMENWERKING;
   const getQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     SELECT DISTINCT ?fractieId
     WHERE {
@@ -36,7 +42,8 @@ async function forBestuursperiode(
         lmb:heeftBestuursperiode ?bestuursperiode.
       ?fractie a mandaat:Fractie;
         mu:uuid ?fractieId;
-        org:memberOf ?bestuursorgaan.
+        org:memberOf ?bestuursorgaan ;
+        ext:isFractietype ${sparqlEscapeUri(type)} .
     }
   `;
 
