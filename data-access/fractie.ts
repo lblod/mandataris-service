@@ -21,7 +21,7 @@ export const fractie = {
 
 async function forBestuursperiode(
   bestuursperiodeId: string,
-  onafhankelijk: boolean = false,
+  onafhankelijk,
 ): Promise<Array<TermProperty>> {
   const type = onafhankelijk
     ? FRACTIE_TYPE.ONAFHANKELIJK
