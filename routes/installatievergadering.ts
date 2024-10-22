@@ -47,6 +47,7 @@ installatievergaderingRouter.post(
     await moveFracties(installatievergaderingId);
     await moveOcmwOrgans(installatievergaderingId);
     await movePersons(installatievergaderingId);
+    await setLinkedIVToBehandeld(installatievergaderingId);
     return res.status(200).send({ status: 'ok' });
   },
 );
@@ -615,6 +616,44 @@ async function clearMandatarisInstancesFromOrgaan(orgaanIt: string) {
     }
   `;
   await update(sparql);
+}
+
+async function setLinkedIVToBehandeld(installatievergaderingId: string) {
+  const escapedId = sparqlEscapeString(installatievergaderingId);
+  const sparql = `
+
+  PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+  PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+  PREFIX ivs: <http://data.lblod.info/id/concept/InstallatievergaderingStatus/>
+
+  DELETE {
+    GRAPH ?target {
+      ?ivOCMW lmb:hasStatus ?status .
+    }
+  }
+  INSERT {
+    GRAPH ?target {
+      ?ivOCMW lmb:hasStatus ivs:c9fc3292-1576-4a82-8dcd-60795e22131f .
+    }
+  } WHERE {
+    GRAPH ?origin {
+      ?iv mu:uuid ${escapedId} .
+      ?iv lmb:heeftBestuursperiode ?period .
+      ?bestuursorgaanIT lmb:heeftBestuursperiode ?period .
+      ?bestuursorgaanIT ext:origineleBestuursorgaan ?realOrg .
+    }
+    GRAPH ?target {
+      ?realOrg a ?type .
+      ?ivOCMW lmb:heeftBestuursperiode ?period .
+      ?ivOCMW lmb:hasStatus ?status .
+    }
+    FILTER(?target != ?origin)
+    FILTER NOT EXISTS {
+      ?origin a <http://mu.semte.ch/vocabularies/ext/FormHistory>
+    }
+  }`;
+  await updateSudo(sparql);
 }
 
 export { installatievergaderingRouter };
