@@ -218,7 +218,11 @@ mandatarissenRouter.get(
 mandatarissenRouter.post('/download', async (req: Request, res: Response) => {
   try {
     const requestParameters = downloadMandatarissenUsecase.requestToJson(req);
-    await downloadMandatarissenUsecase.fetchMandatarissen(requestParameters);
+    const mandatarisData =
+      await downloadMandatarissenUsecase.fetchMandatarissen(requestParameters);
+    const csvString =
+      await downloadMandatarissenUsecase.transformToCsv(mandatarisData);
+
     return res.status(STATUS_CODE.OK).send({ fileId: '<fileID>' });
   } catch (error) {
     const message =
