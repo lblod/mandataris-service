@@ -13,6 +13,7 @@ import {
   removeLinkLinkedMandataris,
 } from '../controllers/linked-mandataris';
 import { mandatarisUsecase } from '../controllers/mandataris';
+import { downloadMandatarissenUsecase } from '../controllers/mandataris-download';
 import { STATUS_CODE } from '../util/constants';
 
 const upload = multer({ dest: 'mandataris-uploads/' });
@@ -192,5 +193,19 @@ mandatarissenRouter.get(
     }
   },
 );
+
+mandatarissenRouter.post('/download', async (req: Request, res: Response) => {
+  try {
+    const requestParameters = downloadMandatarissenUsecase.requestToJson(req);
+    await downloadMandatarissenUsecase.fetchMandatarissen(requestParameters);
+    return res.status(STATUS_CODE.OK).send({ fileId: '<fileID>' });
+  } catch (error) {
+    const message =
+      error.message ??
+      'Something went wrong export mandatarissen to a CSV file.';
+    const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
+    return res.status(statusCode).send({ message });
+  }
+});
 
 export { mandatarissenRouter };
