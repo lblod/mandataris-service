@@ -8,6 +8,7 @@ import { downloadMandatarissen } from '../data-access/mandataris-download';
 export const downloadMandatarissenUsecase = {
   requestToJson,
   fetchMandatarissen,
+  transformToCsv,
 };
 
 function requestToJson(request: Request) {
@@ -51,5 +52,27 @@ async function fetchMandatarissen(requestParameters) {
     }
   }
 
-  await downloadMandatarissen.withFilters({ bestuursperiodeId });
+  const mandatarisUris = await downloadMandatarissen.getWithFilters({
+    bestuursperiodeId,
+  });
+
+  return await downloadMandatarissen.getPropertiesOfMandatarissen(
+    mandatarisUris,
+  );
+}
+
+async function transformToCsv(mandatarisData) {
+  if (!mandatarisData || mandatarisData.length === 0) {
+    return '';
+  }
+  const titles = Object.keys(mandatarisData[0]);
+  const separator = ';';
+
+  const columnValues = mandatarisData
+    .map((it) => {
+      return Object.values(it).join(separator);
+    })
+    .join('\n');
+
+  return `${titles.join(separator)}\n${columnValues}`;
 }
