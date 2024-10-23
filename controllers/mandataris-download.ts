@@ -20,15 +20,17 @@ function requestToJson(request: Request) {
     }
   });
 
-  const { bestuursperiodeId, bestuursorgaanId } = request.body;
+  const { bestuursperiodeId, bestuursorgaanId, onlyShowActive } = request.body;
   return {
     bestuursperiodeId,
     bestuursorgaanId,
+    onlyShowActive,
   };
 }
 
 async function fetchMandatarissen(requestParameters) {
-  const { bestuursperiodeId, bestuursorgaanId } = requestParameters;
+  const { bestuursperiodeId, bestuursorgaanId, onlyShowActive } =
+    requestParameters;
 
   const isBestuursperiode = await bestuursperiode.isValidId(bestuursperiodeId);
   if (!isBestuursperiode) {
@@ -50,6 +52,7 @@ async function fetchMandatarissen(requestParameters) {
   const mandatarisUris = await downloadMandatarissen.getWithFilters({
     bestuursperiodeId,
     bestuursorgaanId,
+    onlyShowActive,
   });
 
   return await downloadMandatarissen.getPropertiesOfMandatarissen(
