@@ -5,6 +5,7 @@ import { BESTUURSFUNCTIE_CODES, STATUS_CODE } from '../util/constants';
 import { bestuursorgaan } from '../data-access/bestuursorgaan';
 import { downloadMandatarissen } from '../data-access/mandataris-download';
 import { fractie } from '../data-access/fractie';
+import { persoon } from '../data-access/persoon';
 
 export const downloadMandatarissenUsecase = {
   requestToJson,
@@ -30,6 +31,7 @@ async function fetchMandatarissen(requestParameters) {
     bestuursorgaanId,
     bestuursfunctieCodeUri,
     fractieId,
+    persoonId,
   } = requestParameters;
 
   const isBestuursperiode = await bestuursperiode.isValidId(bestuursperiodeId);
@@ -61,6 +63,15 @@ async function fetchMandatarissen(requestParameters) {
     if (!isFractie) {
       throw new HttpError(
         `Fractie with id ${bestuursorgaanId} not found.`,
+        STATUS_CODE.BAD_REQUEST,
+      );
+    }
+  }
+  if (persoonId) {
+    const isPersoon = await persoon.isValidId(persoonId);
+    if (!isPersoon) {
+      throw new HttpError(
+        `Persoon with id ${bestuursorgaanId} not found.`,
         STATUS_CODE.BAD_REQUEST,
       );
     }

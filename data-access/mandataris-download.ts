@@ -15,11 +15,13 @@ async function getWithFilters(filters) {
     bestuursorgaanId,
     bestuursfunctieCodeUri,
     fractieId,
+    persoonId,
   } = filters;
   let bestuursorgaanFilter: string | null = null;
   let onlyActiveFilter: string | null = null;
   let mandaatTypeFilter: string | null = null;
   let fractieFilter: string | null = null;
+  let persoonFilter: string | null = null;
 
   if (bestuursorgaanId) {
     bestuursorgaanFilter = `
@@ -51,6 +53,12 @@ async function getWithFilters(filters) {
       ?fractie mu:uuid ${sparqlEscapeString(fractieId)}.
     `;
   }
+  if (persoonId) {
+    persoonFilter = `
+      ?mandataris mandaat:isBestuurlijkeAliasVan ?persoon.
+      ?persoon mu:uuid ${sparqlEscapeString(persoonId)}.
+    `;
+  }
 
   // TODO: remove limit/
   const queryString = `
@@ -73,6 +81,7 @@ async function getWithFilters(filters) {
       ${onlyActiveFilter ?? ''}
       ${mandaatTypeFilter ?? ''}
       ${fractieFilter ?? ''}
+      ${persoonFilter ?? ''}
     }
   `;
 
