@@ -1,7 +1,7 @@
 import { Request } from 'express';
 import { HttpError } from '../util/http-error';
 import { bestuursperiode } from '../data-access/bestuursperiode';
-import { STATUS_CODE } from '../util/constants';
+import { BESTUURSFUNCTIE_CODES, STATUS_CODE } from '../util/constants';
 import { bestuursorgaan } from '../data-access/bestuursorgaan';
 import { downloadMandatarissen } from '../data-access/mandataris-download';
 
@@ -20,17 +20,27 @@ function requestToJson(request: Request) {
     }
   });
 
-  const { bestuursperiodeId, bestuursorgaanId, onlyShowActive } = request.body;
+  const {
+    bestuursperiodeId,
+    bestuursorgaanId,
+    bestuursfunctieCodeUri,
+    onlyShowActive,
+  } = request.body;
   return {
     bestuursperiodeId,
     bestuursorgaanId,
+    bestuursfunctieCodeUri,
     onlyShowActive,
   };
 }
 
 async function fetchMandatarissen(requestParameters) {
-  const { bestuursperiodeId, bestuursorgaanId, onlyShowActive } =
-    requestParameters;
+  const {
+    bestuursperiodeId,
+    bestuursorgaanId,
+    bestuursfunctieCodeUri,
+    onlyShowActive,
+  } = requestParameters;
 
   const isBestuursperiode = await bestuursperiode.isValidId(bestuursperiodeId);
   if (!isBestuursperiode) {
@@ -48,10 +58,19 @@ async function fetchMandatarissen(requestParameters) {
       );
     }
   }
+  if (bestuursfunctieCodeUri) {
+    if (!BESTUURSFUNCTIE_CODES.includes(bestuursfunctieCodeUri)) {
+      throw new HttpError(
+        `Bestuursfunctiecode uri ${bestuursfunctieCodeUri} not found.`,
+        STATUS_CODE.BAD_REQUEST,
+      );
+    }
+  }
 
   const mandatarisUris = await downloadMandatarissen.getWithFilters({
     bestuursperiodeId,
     bestuursorgaanId,
+    bestuursfunctieCodeUri,
     onlyShowActive,
   });
 

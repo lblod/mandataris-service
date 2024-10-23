@@ -10,9 +10,15 @@ export const downloadMandatarissen = {
 };
 
 async function getWithFilters(filters) {
-  const { bestuursperiodeId, bestuursorgaanId, onlyShowActive } = filters;
+  const {
+    bestuursperiodeId,
+    bestuursorgaanId,
+    bestuursfunctieCodeUri,
+    onlyShowActive,
+  } = filters;
   let bestuursorgaanFilter: string | null = null;
   let onlyActiveFilter: string | null = null;
+  let mandaatTypeFilter: string | null = null;
 
   if (bestuursorgaanId) {
     bestuursorgaanFilter = `
@@ -30,6 +36,11 @@ async function getWithFilters(filters) {
         ${escapedTodaysDate} <= ?safeEnd
       )
       BIND(IF(BOUND(?einde), ?einde,  ${escapedTodaysDate}) as ?safeEnd )
+    `;
+  }
+  if (bestuursfunctieCodeUri) {
+    mandaatTypeFilter = `
+      ?mandaat org:role ${sparqlEscapeUri(bestuursfunctieCodeUri)}.
     `;
   }
 
@@ -52,6 +63,7 @@ async function getWithFilters(filters) {
 
       ${bestuursorgaanFilter ?? ''}
       ${onlyActiveFilter ?? ''}
+      ${mandaatTypeFilter ?? ''}
     }
   `;
 
