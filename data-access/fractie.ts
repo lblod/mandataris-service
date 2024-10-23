@@ -7,17 +7,40 @@ import {
 } from 'mu';
 import { updateSudo } from '@lblod/mu-auth-sudo';
 
-import { getSparqlResults } from '../util/sparql-result';
+import {
+  getBooleanSparqlResult,
+  getSparqlResults,
+} from '../util/sparql-result';
 import { FRACTIE_TYPE } from '../util/constants';
 import { Term, TermProperty } from '../types';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
 
 export const fractie = {
+  isValidId,
   forBestuursperiode,
   addFractieOnPerson,
   addFractieOnPersonWithGraph,
   removeFractieWhenNoLidmaatschap,
 };
+
+async function isValidId(id: string | null): Promise<boolean> {
+  if (!id) {
+    return false;
+  }
+
+  const askQuery = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+    ASK {
+      ?fractie a mandaat:Fractie;
+        mu:uuid ${sparqlEscapeString(id)}.
+    }
+  `;
+  const sparqlResult = await query(askQuery);
+
+  return getBooleanSparqlResult(sparqlResult);
+}
 
 async function forBestuursperiode(
   bestuursperiodeId: string,
