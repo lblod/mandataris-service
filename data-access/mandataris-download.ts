@@ -115,7 +115,7 @@ async function getPropertiesOfMandatarissen(
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     PREFIX regorg: <https://www.w3.org/ns/regorg#>
 
-    SELECT DISTINCT ?mandataris ?mandaatLabel ?statusLabel ?fName ?saveLName ?start ?saveEinde ?saveFractieLabel ?bestuursorgaanLabel
+    SELECT DISTINCT ?mandataris ?mandaatLabel ?saveRangorde ?statusLabel ?fName ?saveLName ?start ?saveEinde ?saveFractieLabel ?bestuursorgaanLabel
     WHERE {
       VALUES ?mandataris { ${escapedUriValues} }
       ?mandataris a mandaat:Mandataris.
@@ -136,6 +136,10 @@ async function getPropertiesOfMandatarissen(
       ?persoon persoon:gebruikteVoornaam ?fName.
 
       OPTIONAL {
+        ?mandataris mandaat:rangorde ?rangorde.
+      }
+
+      OPTIONAL {
         ?persoon foaf:familyName ?lName.
       }
 
@@ -148,6 +152,7 @@ async function getPropertiesOfMandatarissen(
         ?mandataris mandaat:einde ?einde.
       }
 
+      BIND(IF(BOUND(?rangorde), ?rangorde, """Ongekend""") AS ?saveRangorde).
       BIND(IF(BOUND(?lName), ?lName, """Ongekend""") AS ?saveLName).
       BIND(IF(BOUND(?fractieLabel), ?fractieLabel, """Ongekend""") AS ?saveFractieLabel).
       BIND(IF(BOUND(?einde), ?einde, """Ongekend""") AS ?saveEinde).
@@ -172,6 +177,7 @@ async function getPropertiesOfMandatarissen(
         result.saveEinde.value === 'Ongekend'
           ? result.saveEinde.value
           : moment(result.saveEinde.value).format('DD-MM-YYYY'),
+      rangorde: result.saveRangorde.value,
     };
   });
 }
