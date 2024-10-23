@@ -92,7 +92,16 @@ async function getWithFilters(filters) {
 
 async function getPropertiesOfMandatarissen(
   mandatarisUris: Array<string>,
+  sort: { ascOrDesc: 'ASC' | 'DESC'; filterProperty: string } | null,
 ): Promise<Array<any>> {
+  let sortFilter: string | null = null;
+
+  if (sort) {
+    sortFilter = `
+      ORDER BY ${sort.ascOrDesc}(${sort.filterProperty})
+    `;
+  }
+
   const escapedUriValues = mandatarisUris
     .map((uri) => sparqlEscapeUri(uri))
     .join(' ');
@@ -143,6 +152,7 @@ async function getPropertiesOfMandatarissen(
       BIND(IF(BOUND(?fractieLabel), ?fractieLabel, """Ongekend""") AS ?saveFractieLabel).
       BIND(IF(BOUND(?einde), ?einde, """Ongekend""") AS ?saveEinde).
     }
+    ${sortFilter ?? ''}
   `;
 
   const sparqlResult = await query(queryString);
