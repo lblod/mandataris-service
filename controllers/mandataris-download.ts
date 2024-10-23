@@ -15,23 +15,20 @@ function requestToJson(request: Request) {
   const requiredParameters = ['bestuursperiodeId'];
 
   requiredParameters.map((param) => {
-    if (!Object.keys(request.body).includes(param) || !request.body[param]) {
-      throw new HttpError(
-        `${param} is missing in the json body or it's value is undefined`,
-        400,
-      );
+    if (!Object.keys(request.body).includes(param)) {
+      throw new HttpError(`${param} is missing in the json body.`, 400);
     }
   });
 
-  const { bestuursperiodeId, bestuursorgaanIds } = request.body;
+  const { bestuursperiodeId, bestuursorgaanId } = request.body;
   return {
     bestuursperiodeId,
-    bestuursorgaanIds,
+    bestuursorgaanId,
   };
 }
 
 async function fetchMandatarissen(requestParameters) {
-  const { bestuursperiodeId, bestuursorgaanIds = [] } = requestParameters;
+  const { bestuursperiodeId, bestuursorgaanId } = requestParameters;
 
   const isBestuursperiode = await bestuursperiode.isValidId(bestuursperiodeId);
   if (!isBestuursperiode) {
@@ -40,20 +37,19 @@ async function fetchMandatarissen(requestParameters) {
       STATUS_CODE.BAD_REQUEST,
     );
   }
-  if (bestuursorgaanIds.length >= 1) {
-    for (const bestuursorgaanId of bestuursorgaanIds) {
-      const isBestuursorgaan = await bestuursorgaan.isValidId(bestuursorgaanId);
-      if (!isBestuursorgaan) {
-        throw new HttpError(
-          `Bestuursorgaan with id ${bestuursorgaanId} not found.`,
-          STATUS_CODE.BAD_REQUEST,
-        );
-      }
+  if (bestuursorgaanId) {
+    const isBestuursorgaan = await bestuursorgaan.isValidId(bestuursorgaanId);
+    if (!isBestuursorgaan) {
+      throw new HttpError(
+        `Bestuursorgaan with id ${bestuursorgaanId} not found.`,
+        STATUS_CODE.BAD_REQUEST,
+      );
     }
   }
 
   const mandatarisUris = await downloadMandatarissen.getWithFilters({
     bestuursperiodeId,
+    bestuursorgaanId,
   });
 
   return await downloadMandatarissen.getPropertiesOfMandatarissen(

@@ -5,7 +5,11 @@ export const bestuursorgaan = {
   isValidId,
 };
 
-async function isValidId(id: string): Promise<boolean> {
+async function isValidId(id: string | null): Promise<boolean> {
+  if (!id) {
+    return false;
+  }
+
   const askQuery = `
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>

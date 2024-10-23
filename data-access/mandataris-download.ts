@@ -10,7 +10,16 @@ export const downloadMandatarissen = {
 };
 
 async function getWithFilters(filters) {
-  const { bestuursperiodeId } = filters;
+  const { bestuursperiodeId, bestuursorgaanId } = filters;
+  let bestuursorgaanFilter: string | null = null;
+
+  if (bestuursorgaanId) {
+    bestuursorgaanFilter = `
+      ?mandaat ^org:hasPost ?bestuursorgaan.
+      ?bestuursorgaan mu:uuid ${sparqlEscapeString(bestuursorgaanId)}.
+    `;
+  }
+
   // TODO: remove limit/
   const queryString = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -25,8 +34,9 @@ async function getWithFilters(filters) {
 
       ?bestuursorgaan lmb:heeftBestuursperiode ?bestuurspriode.
       ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
+
+      ${bestuursorgaanFilter ?? ''}
     }
-    LIMIT 100
   `;
 
   const sparqlResult = await query(queryString);
@@ -50,7 +60,7 @@ async function getPropertiesOfMandatarissen(
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     PREFIX regorg: <https://www.w3.org/ns/regorg#>
 
-    SELECT DISTINCT ?mandataris ?mandaatLabel ?statusLabel ?fName ?lName ?start ?einde ?fractieLabel ?bestuursorgaanLabel
+    SELECT DISTINCT ?mandataris ?mandaatLabel ?statusLabel ?fName ?saveLName ?start ?saveEinde ?saveFractieLabel ?bestuursorgaanLabel
     WHERE {
       VALUES ?mandataris { ${escapedUriValues} }
       ?mandataris a mandaat:Mandataris.
@@ -69,7 +79,10 @@ async function getPropertiesOfMandatarissen(
 
       ?mandataris mandaat:isBestuurlijkeAliasVan ?persoon.
       ?persoon persoon:gebruikteVoornaam ?fName.
-      ?persoon foaf:familyName ?lName.
+
+      OPTIONAL {
+        ?persoon foaf:familyName ?lName.
+      }
 
       OPTIONAL {
         ?mandataris org:hasMembership ?lidmaatschap.
@@ -79,6 +92,10 @@ async function getPropertiesOfMandatarissen(
       OPTIONAL {
         ?mandataris mandaat:einde ?einde.
       }
+
+      BIND(IF(BOUND(?lName), ?lName, """Ongekend""") AS ?saveLName).
+      BIND(IF(BOUND(?fractieLabel), ?fractieLabel, """Ongekend""") AS ?saveFractieLabel).
+      BIND(IF(BOUND(?einde), ?einde, """Ongekend""") AS ?saveEinde).
     }
   `;
 
@@ -87,17 +104,18 @@ async function getPropertiesOfMandatarissen(
   return getSparqlResults(sparqlResult).map((result) => {
     return {
       voornaam: result.fName?.value,
-      naam: result.lName?.value ?? 'Ongekend',
-      fractie: result.fractieLabel?.value ?? 'Ongekend',
+      naam: result.saveLName.value,
+      fractie: result.saveFractieLabel.value,
       mandaat: result.mandaatLabel?.value,
       status: result.statusLabel?.value,
       orgaan: result.bestuursorgaanLabel?.value ?? 'Ongekend',
       startMandaat: result.start?.value
         ? moment(result.start?.value).format('DD-MM-YYYY')
         : 'Ongekend',
-      eindeMandaat: result.einde?.value
-        ? moment(result.einde?.value).format('DD-MM-YYYY')
-        : 'Ongekend',
+      eindeMandaat:
+        result.saveEinde.value === 'Ongekend'
+          ? result.saveEinde.value
+          : moment(result.saveEinde.value).format('DD-MM-YYYY'),
     };
   });
 }
