@@ -1,6 +1,6 @@
 import { query, sparqlEscapeString } from 'mu';
 import { getSparqlResults } from '../util/sparql-result';
-import { sparqlEscapeUri } from '../util/mu';
+import { sparqlEscapeDateTime, sparqlEscapeUri } from '../util/mu';
 
 import moment from 'moment';
 
@@ -10,13 +10,26 @@ export const downloadMandatarissen = {
 };
 
 async function getWithFilters(filters) {
-  const { bestuursperiodeId, bestuursorgaanId } = filters;
+  const { bestuursperiodeId, bestuursorgaanId, onlyShowActive } = filters;
   let bestuursorgaanFilter: string | null = null;
+  let onlyActiveFilter: string | null = null;
 
   if (bestuursorgaanId) {
     bestuursorgaanFilter = `
       ?mandaat ^org:hasPost ?bestuursorgaan.
       ?bestuursorgaan mu:uuid ${sparqlEscapeString(bestuursorgaanId)}.
+    `;
+  }
+  if (onlyShowActive) {
+    const escapedTodaysDate = sparqlEscapeDateTime(new Date());
+    onlyActiveFilter = `
+      OPTIONAL {
+        ?mandataris mandaat:einde ?einde.
+      }
+      FILTER (
+        ${escapedTodaysDate} <= ?safeEnd
+      )
+      BIND(IF(BOUND(?einde), ?einde,  ${escapedTodaysDate}) as ?safeEnd )
     `;
   }
 
@@ -26,6 +39,8 @@ async function getWithFilters(filters) {
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
     PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
 
     SELECT DISTINCT ?mandataris
     WHERE {
@@ -36,6 +51,7 @@ async function getWithFilters(filters) {
       ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
 
       ${bestuursorgaanFilter ?? ''}
+      ${onlyActiveFilter ?? ''}
     }
   `;
 
