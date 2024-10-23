@@ -4,6 +4,7 @@ import { bestuursperiode } from '../data-access/bestuursperiode';
 import { BESTUURSFUNCTIE_CODES, STATUS_CODE } from '../util/constants';
 import { bestuursorgaan } from '../data-access/bestuursorgaan';
 import { downloadMandatarissen } from '../data-access/mandataris-download';
+import { fractie } from '../data-access/fractie';
 
 export const downloadMandatarissenUsecase = {
   requestToJson,
@@ -20,18 +21,7 @@ function requestToJson(request: Request) {
     }
   });
 
-  const {
-    bestuursperiodeId,
-    bestuursorgaanId,
-    bestuursfunctieCodeUri,
-    onlyShowActive,
-  } = request.body;
-  return {
-    bestuursperiodeId,
-    bestuursorgaanId,
-    bestuursfunctieCodeUri,
-    onlyShowActive,
-  };
+  return request.body;
 }
 
 async function fetchMandatarissen(requestParameters) {
@@ -39,7 +29,7 @@ async function fetchMandatarissen(requestParameters) {
     bestuursperiodeId,
     bestuursorgaanId,
     bestuursfunctieCodeUri,
-    onlyShowActive,
+    fractieId,
   } = requestParameters;
 
   const isBestuursperiode = await bestuursperiode.isValidId(bestuursperiodeId);
@@ -66,13 +56,18 @@ async function fetchMandatarissen(requestParameters) {
       );
     }
   }
+  if (fractieId) {
+    const isFractie = await fractie.isValidId(fractieId);
+    if (!isFractie) {
+      throw new HttpError(
+        `Fractie with id ${bestuursorgaanId} not found.`,
+        STATUS_CODE.BAD_REQUEST,
+      );
+    }
+  }
 
-  const mandatarisUris = await downloadMandatarissen.getWithFilters({
-    bestuursperiodeId,
-    bestuursorgaanId,
-    bestuursfunctieCodeUri,
-    onlyShowActive,
-  });
+  const mandatarisUris =
+    await downloadMandatarissen.getWithFilters(requestParameters);
 
   return await downloadMandatarissen.getPropertiesOfMandatarissen(
     mandatarisUris,

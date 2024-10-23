@@ -14,11 +14,12 @@ async function getWithFilters(filters) {
     bestuursperiodeId,
     bestuursorgaanId,
     bestuursfunctieCodeUri,
-    onlyShowActive,
+    fractieId,
   } = filters;
   let bestuursorgaanFilter: string | null = null;
   let onlyActiveFilter: string | null = null;
   let mandaatTypeFilter: string | null = null;
+  let fractieFilter: string | null = null;
 
   if (bestuursorgaanId) {
     bestuursorgaanFilter = `
@@ -26,7 +27,7 @@ async function getWithFilters(filters) {
       ?bestuursorgaan mu:uuid ${sparqlEscapeString(bestuursorgaanId)}.
     `;
   }
-  if (onlyShowActive) {
+  if (filters.onlyShowActive) {
     const escapedTodaysDate = sparqlEscapeDateTime(new Date());
     onlyActiveFilter = `
       OPTIONAL {
@@ -41,6 +42,13 @@ async function getWithFilters(filters) {
   if (bestuursfunctieCodeUri) {
     mandaatTypeFilter = `
       ?mandaat org:role ${sparqlEscapeUri(bestuursfunctieCodeUri)}.
+    `;
+  }
+  if (fractieId) {
+    fractieFilter = `
+      ?mandataris org:hasMembership ?lidmaatschap.
+      ?lidmaatschap org:organisation ?fractie.
+      ?fractie mu:uuid ${sparqlEscapeString(fractieId)}.
     `;
   }
 
@@ -64,6 +72,7 @@ async function getWithFilters(filters) {
       ${bestuursorgaanFilter ?? ''}
       ${onlyActiveFilter ?? ''}
       ${mandaatTypeFilter ?? ''}
+      ${fractieFilter ?? ''}
     }
   `;
 
