@@ -71,11 +71,10 @@ async function getPropertiesOfMandatarissen(
       ?persoon persoon:gebruikteVoornaam ?fName.
       ?persoon foaf:familyName ?lName.
 
-      ?fractie regorg:legalName ?fractieLabel.
-
       OPTIONAL {
         ?mandataris org:hasMembership ?lidmaatschap.
         ?lidmaatschap org:organisation ?fractie.
+        ?fractie regorg:legalName ?fractieLabel.
       }
       OPTIONAL {
         ?mandataris mandaat:einde ?einde.
