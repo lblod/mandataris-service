@@ -1,5 +1,6 @@
 import { fractie } from '../data-access/fractie';
 import {
+  bulkBekrachtigMandatarissen,
   findDecisionForMandataris,
   mandataris,
 } from '../data-access/mandataris';
@@ -165,4 +166,16 @@ async function findDecision(mandatarisId: string): Promise<string | null> {
   } as Term);
 
   return decision ? decision.value : null;
+}
+
+export async function handleBulkBekrachtiging(
+  mandatarissen: string[],
+  link: string,
+): Promise<void> {
+  // Check access rights
+
+  // Add besluit link
+  await bulkBekrachtigMandatarissen(mandatarissen, link);
+
+  // Check if successful?
 }

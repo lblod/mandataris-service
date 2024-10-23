@@ -597,6 +597,45 @@ export async function updatePublicationStatusOfMandataris(
   }
 }
 
+export async function bulkBekrachtigMandatarissen(
+  mandatarissen: string[],
+  link: string,
+): Promise<void> {
+  const escaped = {
+    mandatarissenUuids: mandatarissen
+      .map((uri) => sparqlEscapeString(uri))
+      .join(' '),
+    effectief: sparqlEscapeUri(PUBLICATION_STATUS.EFECTIEF),
+    bekrachtigd: sparqlEscapeUri(PUBLICATION_STATUS.BEKRACHTIGD),
+    link: sparqlEscapeString(link),
+  };
+  const query = `
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+
+    DELETE {
+      GRAPH ?graph {
+        ?mandataris lmb:hasPublicationStatus ${escaped.effectief}.
+      }
+    }
+    INSERT {
+      GRAPH ?graph {
+        ?mandataris lmb:hasPublicationStatus ${escaped.bekrachtigd} ;
+          lmb:linkToBesluit ${escaped.link} .
+      }
+    }
+    WHERE {
+      GRAPH ?graph {
+        ?mandataris a mandaat:Mandataris ;
+          mu:uuid ?uuid ;
+          lmb:hasPublicationStatus ${escaped.effectief} .
+        VALUES ?uuid { ${escaped.mandatarissenUuids} }
+      }
+    }
+  `;
+
+  await updateSudo(query);
+}
+
 async function getPersonWithBestuursperiode(
   mandatarisId: string,
   sudo: boolean = false,
