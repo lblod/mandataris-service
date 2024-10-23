@@ -32,6 +32,7 @@ async function fetchMandatarissen(requestParameters) {
     bestuursfunctieCodeUri,
     fractieId,
     persoonId,
+    sort,
   } = requestParameters;
 
   const isBestuursperiode = await bestuursperiode.isValidId(bestuursperiodeId);
@@ -82,6 +83,7 @@ async function fetchMandatarissen(requestParameters) {
 
   return await downloadMandatarissen.getPropertiesOfMandatarissen(
     mandatarisUris,
+    getPropertyFilterForMandatarisSorting(sort),
   );
 }
 
@@ -99,4 +101,34 @@ async function transformToCsv(mandatarisData) {
     .join('\n');
 
   return `${titles.join(separator)}\n${columnValues}`;
+}
+
+function getPropertyFilterForMandatarisSorting(sort: string | null) {
+  if (!sort) {
+    return null;
+  }
+
+  const mapping = {
+    'is-bestuurlijke-alias-van.gebruikte-voornaam': '?fName',
+    '-is-bestuurlijke-alias-van.gebruikte-voornaam': '?fName',
+    'is-bestuurlijke-alias-van.achternaam': '?saveLName',
+    '-is-bestuurlijke-alias-van.achternaam': '?saveLName',
+    'heeft-lidmaatschap.binnen-fractie.naam': '?fractieLabel',
+    '-heeft-lidmaatschap.binnen-fractie.naam': '?fractieLabel',
+    'bekleedt.bestuursfunctie.label': '?mandaatLabel',
+    '-bekleedt.bestuursfunctie.label': '?mandaatLabel',
+    start: '?start',
+    '-start': '?start',
+    einde: '?saveEinde',
+    '-einde': '?saveEinde',
+  };
+
+  if (!Object.keys(mapping).includes(sort)) {
+    return null;
+  }
+
+  return {
+    ascOrDesc: sort[0] === '-' ? 'DESC' : ('ASC' as 'ASC' | 'DESC'),
+    filterProperty: mapping[sort],
+  };
 }
