@@ -302,13 +302,6 @@ export const getOrCreateOCMWFractie = async (mandatarisId, graph) => {
     fractie = await getOrCreateOnafhankelijkeFractie(mandatarisId, graph);
   } else {
     fractie = await getFractieOfMandatarisInGraph(mandatarisId, graph);
-
-    if (!fractie) {
-      throw new HttpError(
-        'The given fractie does not exist in the OCMW, it is not possible to create linked mandatarissen in a fractie that exists in the municipality but not in the OCMW.',
-        400,
-      );
-    }
   }
   return fractie;
 };

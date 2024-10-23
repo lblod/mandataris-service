@@ -380,6 +380,20 @@ export async function replaceFractieOfMandataris(
     graph: sparqlEscapeTermValue(graph),
   };
 
+  let insertFractieTriples = '';
+  if (fractie) {
+    insertFractieTriples = `
+      INSERT {
+        GRAPH ${escaped.graph} {
+          ${escaped.linked} org:hasMembership ${escaped.membershipUri} .
+          ${escaped.membershipUri} ?ogMemberP ?ogMemberO ;
+            mu:uuid ${escaped.membershipId} ;
+            org:organisation ${escaped.fractie} .
+        }
+      }
+    `;
+  }
+
   const q = `
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -391,14 +405,7 @@ export async function replaceFractieOfMandataris(
         ?linkedMembership ?linkedMemberP ?linkedMemberO .
       }
     }
-    INSERT {
-      GRAPH ${escaped.graph} {
-        ${escaped.linked} org:hasMembership ${escaped.membershipUri} .
-        ${escaped.membershipUri} ?ogMemberP ?ogMemberO ;
-          mu:uuid ${escaped.membershipId} ;
-          org:organisation ${escaped.fractie} .
-      }
-    }
+    ${insertFractieTriples}
     WHERE {
       GRAPH ?origin {
         ?currentMandataris a mandaat:Mandataris ;
@@ -435,6 +442,22 @@ export async function createNewLinkedMandataris(
   const newMandatarisUri = `http://data.lblod.info/id/mandatarissen/${newMandatarisUuid}`;
   const membershipUuid = uuidv4();
   const membershipUri = `http://data.lblod.info/id/lidmaatschappen/${membershipUuid}`;
+  const escaped = {
+    newMandatarisUuid: sparqlEscapeString(newMandatarisUuid),
+    newMandataris: sparqlEscapeUri(newMandatarisUri),
+    membershipUuid: sparqlEscapeString(membershipUuid),
+    membership: sparqlEscapeUri(membershipUri),
+    fractie: sparqlEscapeUri(fractie),
+  };
+  let fractieTriples = '';
+  if (fractie) {
+    fractieTriples = `
+      ${escaped.newMandataris} org:hasMembership ${escaped.membership} .
+      ${escaped.membership} ?memberp ?membero ;
+        mu:uuid ${escaped.membershipUuid} ;
+        org:organisation ${sparqlEscapeUri(fractie)} .
+    `;
+  }
   const q = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
@@ -449,11 +472,8 @@ export async function createNewLinkedMandataris(
           mu:uuid ${sparqlEscapeString(newMandatarisUuid)} ;
           org:holds ?linkedMandaat ;
           lmb:hasPublicationStatus <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/588ce330-4abb-4448-9776-a17d9305df07> ;
-          org:hasMembership ${sparqlEscapeUri(membershipUri)} ;
           ?mandatarisp ?mandatariso .
-        ${sparqlEscapeUri(membershipUri)} ?memberp ?membero ;
-          mu:uuid ${sparqlEscapeString(membershipUuid)} ;
-          org:organisation ${sparqlEscapeUri(fractie)} .
+        ${fractieTriples}
       }
     }
     WHERE {
