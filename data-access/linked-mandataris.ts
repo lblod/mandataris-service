@@ -414,9 +414,11 @@ export async function replaceFractieOfMandataris(
         ?ogMembership ?ogMemberP ?ogMemberO .
       }
       GRAPH ${escaped.graph} {
-        ${escaped.linked} a mandaat:Mandataris ;
-          org:hasMembership ?linkedMembership .
-        ?linkedMembership ?linkedMemberP ?linkedMemberO .
+        ${escaped.linked} a mandaat:Mandataris .
+        OPTIONAL {
+          ?currentMandataris org:hasMembership ?linkedMembership .
+          ?linkedMembership ?linkedMemberP ?linkedMemberO .
+        }
       }
 
       FILTER (?ogMemberP NOT IN (mu:uuid, org:organisation))
