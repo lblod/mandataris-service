@@ -5,6 +5,8 @@ import { STATUS_CODE } from '../util/constants';
 import { bestuursorgaan } from '../data-access/bestuursorgaan';
 import { downloadMandatarissen } from '../data-access/mandataris-download';
 
+import { Parser } from '@json2csv/plainjs';
+
 export const downloadMandatarissenUsecase = {
   requestToJson,
   fetchMandatarissen,
@@ -55,16 +57,18 @@ async function transformToCsv(mandatarisData) {
   if (!mandatarisData || mandatarisData.length === 0) {
     return '';
   }
-  const titles = Object.keys(mandatarisData[0]);
-  const separator = ';';
 
-  const columnValues = mandatarisData
-    .map((it) => {
-      return Object.values(it).join(separator);
-    })
-    .join('\n');
+  let csvString = '';
+  try {
+    csvString = new Parser().parse(mandatarisData);
+  } catch (error) {
+    throw new HttpError(
+      'Something went wrong while parsing json to a csv string.',
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+    );
+  }
 
-  return `${titles.join(separator)}\n${columnValues}`;
+  return csvString;
 }
 
 function getPropertyFilterForMandatarisSorting(sort: string | null) {
