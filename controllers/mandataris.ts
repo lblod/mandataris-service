@@ -199,7 +199,7 @@ export async function handleBulkSetPublicationStatus(
     return;
   }
   throw new HttpError(
-    `The provided status: ${status} is not a valid publication status, please provide effectief or bekrachtig.`,
+    `The provided status: ${status} is not a valid publication status, please provide Effectief or Bekrachtigd.`,
     STATUS_CODE.BAD_REQUEST,
   );
 }
