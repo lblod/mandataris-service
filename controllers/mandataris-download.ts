@@ -85,6 +85,8 @@ function getPropertyFilterForMandatarisSorting(sort: string | null) {
     '-start': '?start',
     einde: '?saveEinde',
     '-einde': '?saveEinde',
+    'status.label': '?statusLabel',
+    '-status.label': '?statusLabel',
   };
 
   if (!Object.keys(mapping).includes(sort)) {

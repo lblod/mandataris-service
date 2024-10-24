@@ -85,7 +85,7 @@ async function getPropertiesOfMandatarissen(
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     PREFIX regorg: <https://www.w3.org/ns/regorg#>
 
-    SELECT DISTINCT ?mandataris ?mandaatLabel ?savePublicatieStatusLabel ?saveRangorde (GROUP_CONCAT(DISTINCT ?beleidsdomeinLabel; SEPARATOR=", ") AS ?beleidsdomeinen) ?statusLabel ?fName ?saveLName ?start ?saveEinde ?saveFractieLabel ?bestuursorgaanLabel
+    SELECT DISTINCT ?mandataris ?mandaatLabel ?savePublicatieStatusLabel ?saveRangorde (GROUP_CONCAT(DISTINCT ?beleidsdomeinLabel; SEPARATOR=", ") AS ?beleidsdomeinen) ?saveStatusLabel ?fName ?saveLName ?start ?saveEinde ?saveFractieLabel ?bestuursorgaanLabel
     WHERE {
       VALUES ?mandataris { ${escapedUriValues} }
       ?mandataris a mandaat:Mandataris.
@@ -132,6 +132,7 @@ async function getPropertiesOfMandatarissen(
         ?mandataris mandaat:einde ?einde.
       }
 
+      BIND(IF(BOUND(?statusLabel), ?statusLabel, """Ongekend""") AS ?saveStatusLabel).
       BIND(IF(BOUND(?publicatieStatusLabel), ?publicatieStatusLabel, """Ongekend""") AS ?savePublicatieStatusLabel).
       BIND(IF(BOUND(?rangorde), ?rangorde, """Ongekend""") AS ?saveRangorde).
       BIND(IF(BOUND(?beleidsdomeinLabel), ?beleidsdomeinLabel, """Ongekend""") AS ?saveBeleidsdomeinLabel).
@@ -150,7 +151,7 @@ async function getPropertiesOfMandatarissen(
       naam: result.saveLName.value,
       fractie: result.saveFractieLabel.value,
       mandaat: result.mandaatLabel?.value,
-      status: result.statusLabel?.value,
+      status: result.saveStatusLabel?.value,
       orgaan: result.bestuursorgaanLabel?.value ?? 'Ongekend',
       startMandaat: result.start?.value
         ? moment(result.start?.value).format('DD-MM-YYYY')
