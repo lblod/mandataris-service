@@ -445,8 +445,10 @@ export async function createNewLinkedMandataris(
   const newMandatarisUuid = uuidv4();
   const newMandatarisUri = `http://data.lblod.info/id/mandatarissen/${newMandatarisUuid}`;
   const escaped = {
+    mandatarisId: sparqlEscapeString(mandatarisId),
     newMandatarisUuid: sparqlEscapeString(newMandatarisUuid),
     newMandataris: sparqlEscapeUri(newMandatarisUri),
+    graph: sparqlEscapeTermValue(graph),
   };
   let fractieTriples = '';
   if (fractie) {
@@ -473,9 +475,9 @@ export async function createNewLinkedMandataris(
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
     INSERT {
-      GRAPH ${sparqlEscapeTermValue(graph)} {
-        ${sparqlEscapeUri(newMandatarisUri)} a mandaat:Mandataris ;
-          mu:uuid ${sparqlEscapeString(newMandatarisUuid)} ;
+      GRAPH ${escaped.graph} {
+        ${escaped.newMandataris} a mandaat:Mandataris ;
+          mu:uuid ${escaped.newMandatarisUuid} ;
           org:holds ?linkedMandaat ;
           lmb:hasPublicationStatus <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/588ce330-4abb-4448-9776-a17d9305df07> ;
           ?mandatarisp ?mandatariso .
@@ -485,7 +487,7 @@ export async function createNewLinkedMandataris(
     WHERE {
       GRAPH ?origin {
         ?currentMandataris a mandaat:Mandataris ;
-          mu:uuid ${sparqlEscapeString(mandatarisId)} ;
+          mu:uuid ${escaped.mandatarisId} ;
           org:holds ?currentMandaat ;
           org:hasMembership ?membership ;
           ?mandatarisp ?mandatariso .
@@ -496,7 +498,7 @@ export async function createNewLinkedMandataris(
         ?membership ?memberp ?membero .
       }
 
-      GRAPH ${sparqlEscapeTermValue(graph)} {
+      GRAPH ${escaped.graph} {
         ?linkedMandaat a mandaat:Mandaat ;
           org:role ?linkedBestuursfunctie ;
           ^org:hasPost ?linkedBestuursOrgaanIT .
