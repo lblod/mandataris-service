@@ -5,6 +5,7 @@ import { STATUS_CODE } from '../util/constants';
 import { bestuursorgaan } from '../data-access/bestuursorgaan';
 import { downloadMandatarissen } from '../data-access/mandataris-download';
 import { persoon } from '../data-access/persoon';
+import { fractie } from '../data-access/fractie';
 
 import { Parser } from '@json2csv/plainjs';
 
@@ -27,7 +28,7 @@ function requestToJson(request: Request) {
 }
 
 async function fetchMandatarissen(requestParameters) {
-  const { bestuursperiodeId, bestuursorgaanId, persoonIds, sort } =
+  const { bestuursperiodeId, bestuursorgaanId, persoonIds, fractieIds, sort } =
     requestParameters;
   const isBestuursperiode = await bestuursperiode.isValidId(bestuursperiodeId);
   if (!isBestuursperiode) {
@@ -52,6 +53,18 @@ async function fetchMandatarissen(requestParameters) {
       if (!isPersoon) {
         throw new HttpError(
           `Persoon with id ${persoonId} not found.`,
+          STATUS_CODE.BAD_REQUEST,
+        );
+      }
+    }
+  }
+
+  if (fractieIds.length >= 1) {
+    for (const fractieId of fractieIds) {
+      const isFractie = await fractie.isValidId(fractieId);
+      if (!isFractie) {
+        throw new HttpError(
+          `Fractie with id ${fractieId} not found.`,
           STATUS_CODE.BAD_REQUEST,
         );
       }
