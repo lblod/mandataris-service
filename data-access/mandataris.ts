@@ -597,6 +597,47 @@ export async function updatePublicationStatusOfMandataris(
   }
 }
 
+export async function bulkSetPublicationStatusEffectief(
+  mandatarissen: string[],
+): Promise<void> {
+  const escaped = {
+    mandatarissenUuids: mandatarissen
+      .map((uri) => sparqlEscapeString(uri))
+      .join(' '),
+    effectief: sparqlEscapeUri(PUBLICATION_STATUS.EFECTIEF),
+    bekrachtigd: sparqlEscapeUri(PUBLICATION_STATUS.BEKRACHTIGD),
+  };
+  const query = `
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+
+    DELETE {
+      GRAPH ?graph {
+        ?mandataris lmb:hasPublicationStatus ?status .
+      }
+    }
+    INSERT {
+      GRAPH ?graph {
+        ?mandataris lmb:hasPublicationStatus ${escaped.effectief} .
+      }
+    }
+    WHERE {
+      GRAPH ?graph {
+        ?mandataris a mandaat:Mandataris ;
+          mu:uuid ?uuid .
+        OPTIONAL {
+          ?mandataris lmb:hasPublicationStatus ?status .
+        }
+        VALUES ?uuid { ${escaped.mandatarissenUuids} }
+        FILTER (?status NOT IN (${escaped.bekrachtigd}))
+      }
+    }
+  `;
+
+  await updateSudo(query);
+}
+
 export async function bulkBekrachtigMandatarissen(
   mandatarissen: string[],
   link: string,
@@ -605,7 +646,6 @@ export async function bulkBekrachtigMandatarissen(
     mandatarissenUuids: mandatarissen
       .map((uri) => sparqlEscapeString(uri))
       .join(' '),
-    effectief: sparqlEscapeUri(PUBLICATION_STATUS.EFECTIEF),
     bekrachtigd: sparqlEscapeUri(PUBLICATION_STATUS.BEKRACHTIGD),
     link: sparqlEscapeString(link),
   };
