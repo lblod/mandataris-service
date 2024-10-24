@@ -28,12 +28,16 @@ export const GEMEENTERAADSLID_FUNCTIE_CODE =
   'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000011';
 export const LID_OCMW_FUNCTIE_CODE =
   'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000015';
+export const LID_FUNCTIE_CODE =
+  'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/28d0ed76-e1a3-4c90-89df-4d11587390b3';
 export const VOORZITTER_GEMEENTERAAD_FUNCTIE_CODE =
   'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000012';
 export const VOORZITTER_RMW_CODE =
   'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000016';
 export const SCHEPEN_FUNCTIE_CODE =
   'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000014';
+export const TOEGEVOEGDE_SCHEPEN_FUNCTIE_CODE =
+  'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/59a90e03-4f22-4bb9-8c91-132618db4b38';
 export const LID_VB_FUNCTIE_CODE =
   'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000017';
 export const BURGEMEESTER_FUNCTIE_CODE =
@@ -42,3 +46,17 @@ export const VOORZITTER_VB_FUNCTIE_CODE =
   'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000018';
 export const AANGEWEZEN_BURGEMEESTER_FUNCTIE_CODE =
   'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/7b038cc40bba10bec833ecfe6f15bc7a';
+
+export const BESTUURSFUNCTIE_CODES = [
+  GEMEENTERAADSLID_FUNCTIE_CODE,
+  LID_OCMW_FUNCTIE_CODE,
+  LID_FUNCTIE_CODE,
+  VOORZITTER_GEMEENTERAAD_FUNCTIE_CODE,
+  VOORZITTER_RMW_CODE,
+  SCHEPEN_FUNCTIE_CODE,
+  TOEGEVOEGDE_SCHEPEN_FUNCTIE_CODE,
+  LID_VB_FUNCTIE_CODE,
+  BURGEMEESTER_FUNCTIE_CODE,
+  VOORZITTER_VB_FUNCTIE_CODE,
+  AANGEWEZEN_BURGEMEESTER_FUNCTIE_CODE,
+];
