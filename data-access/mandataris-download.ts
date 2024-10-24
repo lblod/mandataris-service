@@ -10,18 +10,9 @@ export const downloadMandatarissen = {
 };
 
 async function getWithFilters(filters) {
-  const {
-    bestuursperiodeId,
-    bestuursorgaanId,
-    bestuursfunctieCodeUri,
-    fractieId,
-    persoonId,
-  } = filters;
+  const { bestuursperiodeId, bestuursorgaanId } = filters;
   let bestuursorgaanFilter: string | null = null;
   let onlyActiveFilter: string | null = null;
-  let mandaatTypeFilter: string | null = null;
-  let fractieFilter: string | null = null;
-  let persoonFilter: string | null = null;
 
   if (bestuursorgaanId) {
     bestuursorgaanFilter = `
@@ -39,24 +30,6 @@ async function getWithFilters(filters) {
         ${escapedTodaysDate} <= ?safeEnd
       )
       BIND(IF(BOUND(?einde), ?einde,  ${escapedTodaysDate}) as ?safeEnd )
-    `;
-  }
-  if (bestuursfunctieCodeUri) {
-    mandaatTypeFilter = `
-      ?mandaat org:role ${sparqlEscapeUri(bestuursfunctieCodeUri)}.
-    `;
-  }
-  if (fractieId) {
-    fractieFilter = `
-      ?mandataris org:hasMembership ?lidmaatschap.
-      ?lidmaatschap org:organisation ?fractie.
-      ?fractie mu:uuid ${sparqlEscapeString(fractieId)}.
-    `;
-  }
-  if (persoonId) {
-    persoonFilter = `
-      ?mandataris mandaat:isBestuurlijkeAliasVan ?persoon.
-      ?persoon mu:uuid ${sparqlEscapeString(persoonId)}.
     `;
   }
 
@@ -79,9 +52,6 @@ async function getWithFilters(filters) {
 
       ${bestuursorgaanFilter ?? ''}
       ${onlyActiveFilter ?? ''}
-      ${mandaatTypeFilter ?? ''}
-      ${fractieFilter ?? ''}
-      ${persoonFilter ?? ''}
     }
   `;
 
