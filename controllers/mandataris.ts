@@ -180,7 +180,7 @@ export async function handleBulkSetPublicationStatus(
     await bulkSetPublicationStatusEffectief(mandatarissen);
     return;
   }
-  if (status == 'bekrachtig') {
+  if (status == 'bekrachtigd') {
     if (!link) {
       throw new HttpError(
         'No link to publication was provided',
