@@ -174,7 +174,15 @@ export async function handleBulkSetPublicationStatus(
   status: string,
   link?: string,
 ): Promise<void> {
-  // Check access rights
+  if (!mandatarissen || mandatarissen.length == 0) {
+    throw new HttpError('No mandatarissen provided', STATUS_CODE.BAD_REQUEST);
+  }
+
+  // We just check access to the first mandataris
+  const isMandataris = await mandataris.isValidId(mandatarissen.at(0) ?? '');
+  if (!isMandataris) {
+    throw new HttpError('Unauthorized', 401);
+  }
 
   if (status == 'Effectief') {
     await bulkSetPublicationStatusEffectief(mandatarissen);
