@@ -26,7 +26,11 @@ export const persoon = {
   setEndDateOfActiveMandatarissen,
 };
 
-async function isValidId(id: string): Promise<boolean> {
+async function isValidId(id: string | null): Promise<boolean> {
+  if (!id) {
+    return false;
+  }
+
   const askQuery = `
     PREFIX person: <http://www.w3.org/ns/person#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>

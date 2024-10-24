@@ -4,6 +4,7 @@ import { bestuursperiode } from '../data-access/bestuursperiode';
 import { STATUS_CODE } from '../util/constants';
 import { bestuursorgaan } from '../data-access/bestuursorgaan';
 import { downloadMandatarissen } from '../data-access/mandataris-download';
+import { persoon } from '../data-access/persoon';
 
 import { Parser } from '@json2csv/plainjs';
 
@@ -26,7 +27,8 @@ function requestToJson(request: Request) {
 }
 
 async function fetchMandatarissen(requestParameters) {
-  const { bestuursperiodeId, bestuursorgaanId, sort } = requestParameters;
+  const { bestuursperiodeId, bestuursorgaanId, persoonIds, sort } =
+    requestParameters;
   const isBestuursperiode = await bestuursperiode.isValidId(bestuursperiodeId);
   if (!isBestuursperiode) {
     throw new HttpError(
@@ -41,6 +43,18 @@ async function fetchMandatarissen(requestParameters) {
         `Bestuursorgaan with id ${bestuursorgaanId} not found.`,
         STATUS_CODE.BAD_REQUEST,
       );
+    }
+  }
+
+  if (persoonIds.length >= 1) {
+    for (const persoonId of persoonIds) {
+      const isPersoon = await persoon.isValidId(persoonId);
+      if (!isPersoon) {
+        throw new HttpError(
+          `Persoon with id ${persoonId} not found.`,
+          STATUS_CODE.BAD_REQUEST,
+        );
+      }
     }
   }
 
