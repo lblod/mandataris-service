@@ -2,8 +2,6 @@ import { query, sparqlEscapeString } from 'mu';
 import { getSparqlResults } from '../util/sparql-result';
 import { sparqlEscapeDateTime, sparqlEscapeUri } from '../util/mu';
 
-import moment from 'moment';
-
 export const downloadMandatarissen = {
   getWithFilters,
   getPropertiesOfMandatarissen,
@@ -132,13 +130,13 @@ async function getPropertiesOfMandatarissen(
         ?mandataris mandaat:einde ?einde.
       }
 
-      BIND(IF(BOUND(?statusLabel), ?statusLabel, """Ongekend""") AS ?saveStatusLabel).
-      BIND(IF(BOUND(?publicatieStatusLabel), ?publicatieStatusLabel, """Ongekend""") AS ?savePublicatieStatusLabel).
-      BIND(IF(BOUND(?rangorde), ?rangorde, """Ongekend""") AS ?saveRangorde).
-      BIND(IF(BOUND(?beleidsdomeinLabel), ?beleidsdomeinLabel, """Ongekend""") AS ?saveBeleidsdomeinLabel).
-      BIND(IF(BOUND(?lName), ?lName, """Ongekend""") AS ?saveLName).
-      BIND(IF(BOUND(?fractieLabel), ?fractieLabel, """Ongekend""") AS ?saveFractieLabel).
-      BIND(IF(BOUND(?einde), ?einde, """Ongekend""") AS ?saveEinde).
+      BIND(IF(BOUND(?statusLabel), ?statusLabel, """""") AS ?saveStatusLabel).
+      BIND(IF(BOUND(?publicatieStatusLabel), ?publicatieStatusLabel, """""") AS ?savePublicatieStatusLabel).
+      BIND(IF(BOUND(?rangorde), ?rangorde, """""") AS ?saveRangorde).
+      BIND(IF(BOUND(?beleidsdomeinLabel), ?beleidsdomeinLabel, """""") AS ?saveBeleidsdomeinLabel).
+      BIND(IF(BOUND(?lName), ?lName, """""") AS ?saveLName).
+      BIND(IF(BOUND(?fractieLabel), ?fractieLabel, """""") AS ?saveFractieLabel).
+      BIND(IF(BOUND(?einde), ?einde, """""") AS ?saveEinde).
     }
     ${sortFilter ?? ''}
   `;
@@ -147,22 +145,17 @@ async function getPropertiesOfMandatarissen(
 
   return getSparqlResults(sparqlResult).map((result) => {
     return {
-      voornaam: result.fName?.value,
+      voornaam: result.fName?.value ?? '',
       naam: result.saveLName.value,
       fractie: result.saveFractieLabel.value,
-      mandaat: result.mandaatLabel?.value,
-      status: result.saveStatusLabel?.value,
-      orgaan: result.bestuursorgaanLabel?.value ?? 'Ongekend',
-      startMandaat: result.start?.value
-        ? moment(result.start?.value).format('DD-MM-YYYY')
-        : 'Ongekend',
-      eindeMandaat:
-        result.saveEinde.value === 'Ongekend'
-          ? result.saveEinde.value
-          : moment(result.saveEinde.value).format('DD-MM-YYYY'),
+      mandaat: result.mandaatLabel?.value ?? '',
+      status: result.saveStatusLabel.value,
+      orgaan: result.bestuursorgaanLabel?.value ?? '',
+      startMandaat: result.start?.value ?? '',
+      eindeMandaat: result.saveEinde?.value,
       publicatieStatus: result.savePublicatieStatusLabel.value,
       rangorde: result.saveRangorde.value,
-      beleidsdomeinen: result.beleidsdomeinen.value,
+      beleidsdomeinen: result.beleidsdomeinen?.value ?? '',
     };
   });
 }
