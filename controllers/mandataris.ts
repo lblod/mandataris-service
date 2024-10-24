@@ -1,5 +1,7 @@
 import { fractie } from '../data-access/fractie';
 import {
+  bulkBekrachtigMandatarissen,
+  bulkSetPublicationStatusEffectief,
   findDecisionForMandataris,
   mandataris,
 } from '../data-access/mandataris';
@@ -165,4 +167,39 @@ async function findDecision(mandatarisId: string): Promise<string | null> {
   } as Term);
 
   return decision ? decision.value : null;
+}
+
+export async function handleBulkSetPublicationStatus(
+  mandatarissen: string[],
+  status: string,
+  link?: string,
+): Promise<void> {
+  if (!mandatarissen || mandatarissen.length == 0) {
+    throw new HttpError('No mandatarissen provided', STATUS_CODE.BAD_REQUEST);
+  }
+
+  // We just check access to the first mandataris
+  const isMandataris = await mandataris.isValidId(mandatarissen.at(0) ?? '');
+  if (!isMandataris) {
+    throw new HttpError('Unauthorized', 401);
+  }
+
+  if (status == 'Effectief') {
+    await bulkSetPublicationStatusEffectief(mandatarissen);
+    return;
+  }
+  if (status == 'Bekrachtigd') {
+    if (!link) {
+      throw new HttpError(
+        'No link to publication was provided',
+        STATUS_CODE.BAD_REQUEST,
+      );
+    }
+    await bulkBekrachtigMandatarissen(mandatarissen, link);
+    return;
+  }
+  throw new HttpError(
+    `The provided status: ${status} is not a valid publication status, please provide Effectief or Bekrachtigd.`,
+    STATUS_CODE.BAD_REQUEST,
+  );
 }

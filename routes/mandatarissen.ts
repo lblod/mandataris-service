@@ -12,7 +12,10 @@ import {
   createLinkedMandataris,
   removeLinkLinkedMandataris,
 } from '../controllers/linked-mandataris';
-import { mandatarisUsecase } from '../controllers/mandataris';
+import {
+  handleBulkSetPublicationStatus,
+  mandatarisUsecase,
+} from '../controllers/mandataris';
 import { STATUS_CODE } from '../util/constants';
 
 const upload = multer({ dest: 'mandataris-uploads/' });
@@ -168,6 +171,24 @@ mandatarissenRouter.get(
       const message =
         error.message ??
         `Something went wrong while getting the decision of the mandataris with id: ${req.params.id}.`;
+      const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
+      return res.status(statusCode).send({ message });
+    }
+  },
+);
+
+mandatarissenRouter.post(
+  '/bulk-set-publication-status/',
+  async (req: Request, res: Response) => {
+    const { decision, status, mandatarissen } = req.body;
+
+    try {
+      await handleBulkSetPublicationStatus(mandatarissen, status, decision);
+      return res.status(200).send({ status: 'ok' });
+    } catch (error) {
+      const message =
+        error.message ??
+        'Something went wrong while executing a bulk bekrachtiging.';
       const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
       return res.status(statusCode).send({ message });
     }
