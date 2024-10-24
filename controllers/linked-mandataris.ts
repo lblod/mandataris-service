@@ -179,7 +179,10 @@ export const correctMistakesLinkedMandataris = async (req) => {
     linkedMandataris.uri,
   );
   if (!sameFractie) {
-    const fractie = getOrCreateOCMWFractie(mandatarisId, destinationGraph);
+    const fractie = await getOrCreateOCMWFractie(
+      mandatarisId,
+      destinationGraph,
+    );
 
     await replaceFractieOfMandataris(
       mandatarisId,
