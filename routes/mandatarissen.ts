@@ -13,7 +13,7 @@ import {
   removeLinkLinkedMandataris,
 } from '../controllers/linked-mandataris';
 import {
-  handleBulkBekrachtiging,
+  handleBulkSetPublicationStatus,
   mandatarisUsecase,
 } from '../controllers/mandataris';
 import { STATUS_CODE } from '../util/constants';
@@ -178,13 +178,12 @@ mandatarissenRouter.get(
 );
 
 mandatarissenRouter.post(
-  '/bulk-bekrachtig',
+  '/bulk-set-publication-status/',
   async (req: Request, res: Response) => {
-    const { decision, mandatarissen } = req.body;
-    // TODO Validate body
+    const { decision, status, mandatarissen } = req.body;
 
     try {
-      await handleBulkBekrachtiging(mandatarissen, decision);
+      await handleBulkSetPublicationStatus(mandatarissen, status, decision);
       return res.status(200).send({ status: 'ok' });
     } catch (error) {
       const message =
