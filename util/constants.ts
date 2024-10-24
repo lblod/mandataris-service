@@ -34,8 +34,6 @@ export const VOORZITTER_RMW_CODE =
   'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000016';
 export const SCHEPEN_FUNCTIE_CODE =
   'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000014';
-export const TOEGEVOEGDE_SCHEPEN_FUNCTIE_CODE =
-  'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/59a90e03-4f22-4bb9-8c91-132618db4b38';
 export const LID_VB_FUNCTIE_CODE =
   'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000017';
 export const BURGEMEESTER_FUNCTIE_CODE =
