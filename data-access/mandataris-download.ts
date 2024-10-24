@@ -21,13 +21,16 @@ async function getWithFilters(filters) {
   if (filters.onlyShowActive) {
     const escapedTodaysDate = sparqlEscapeDateTime(new Date());
     onlyActiveFilter = `
-      OPTIONAL {
-        ?mandataris mandaat:einde ?einde.
-      }
+      ?mandataris mandaat:einde ?einde.
+
+      ?bestuursorgaan mandaat:bindingStart ?startBestuursorgaan. 
+      ?bestuursorgaan mandaat:bindingEinde ?eindeBestuursorgaan. 
+
       FILTER (
-        ${escapedTodaysDate} <= ?safeEnd
+        ?einde <= ?eindeBestuursorgaan &&
+        ?einde >= ?startBestuursorgaan &&
+        ?einde >= ${escapedTodaysDate}
       )
-      BIND(IF(BOUND(?einde), ?einde,  ${escapedTodaysDate}) as ?safeEnd )
     `;
   }
 
