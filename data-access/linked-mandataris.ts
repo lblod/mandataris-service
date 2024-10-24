@@ -368,27 +368,29 @@ export async function replaceFractieOfMandataris(
   fractie,
   graph,
 ) {
-  const membershipUuid = uuidv4();
-  const membershipUri = `http://data.lblod.info/id/lidmaatschappen/${membershipUuid}`;
-
   const escaped = {
     current: sparqlEscapeString(mandatarisId),
     linked: sparqlEscapeTermValue(linkedMandataris),
-    fractie: sparqlEscapeUri(fractie),
-    membershipUri: sparqlEscapeUri(membershipUri),
-    membershipId: sparqlEscapeString(membershipUuid),
     graph: sparqlEscapeTermValue(graph),
   };
 
   let insertFractieTriples = '';
   if (fractie) {
+    const membershipUuid = uuidv4();
+    const membershipUri = `http://data.lblod.info/id/lidmaatschappen/${membershipUuid}`;
+
+    const escaped2 = {
+      fractie: sparqlEscapeUri(fractie),
+      membershipUri: sparqlEscapeUri(membershipUri),
+      membershipId: sparqlEscapeString(membershipUuid),
+    };
     insertFractieTriples = `
       INSERT {
         GRAPH ${escaped.graph} {
-          ${escaped.linked} org:hasMembership ${escaped.membershipUri} .
-          ${escaped.membershipUri} ?ogMemberP ?ogMemberO ;
-            mu:uuid ${escaped.membershipId} ;
-            org:organisation ${escaped.fractie} .
+          ${escaped.linked} org:hasMembership ${escaped2.membershipUri} .
+          ${escaped2.membershipUri} ?ogMemberP ?ogMemberO ;
+            mu:uuid ${escaped2.membershipId} ;
+            org:organisation ${escaped2.fractie} .
         }
       }
     `;
@@ -442,22 +444,24 @@ export async function createNewLinkedMandataris(
 ) {
   const newMandatarisUuid = uuidv4();
   const newMandatarisUri = `http://data.lblod.info/id/mandatarissen/${newMandatarisUuid}`;
-  const membershipUuid = uuidv4();
-  const membershipUri = `http://data.lblod.info/id/lidmaatschappen/${membershipUuid}`;
   const escaped = {
     newMandatarisUuid: sparqlEscapeString(newMandatarisUuid),
     newMandataris: sparqlEscapeUri(newMandatarisUri),
-    membershipUuid: sparqlEscapeString(membershipUuid),
-    membership: sparqlEscapeUri(membershipUri),
-    fractie: sparqlEscapeUri(fractie),
   };
   let fractieTriples = '';
   if (fractie) {
+    const membershipUuid = uuidv4();
+    const membershipUri = `http://data.lblod.info/id/lidmaatschappen/${membershipUuid}`;
+    const escaped2 = {
+      membershipUuid: sparqlEscapeString(membershipUuid),
+      membership: sparqlEscapeUri(membershipUri),
+      fractie: sparqlEscapeUri(fractie),
+    };
     fractieTriples = `
-      ${escaped.newMandataris} org:hasMembership ${escaped.membership} .
-      ${escaped.membership} ?memberp ?membero ;
-        mu:uuid ${escaped.membershipUuid} ;
-        org:organisation ${sparqlEscapeUri(fractie)} .
+      ${escaped.newMandataris} org:hasMembership ${escaped2.membership} .
+      ${escaped2.membership} ?memberp ?membero ;
+        mu:uuid ${escaped2.membershipUuid} ;
+        org:organisation ${escaped2.fractie} .
     `;
   }
   const q = `
