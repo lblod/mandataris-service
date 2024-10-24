@@ -8,11 +8,18 @@ export const downloadMandatarissen = {
 };
 
 async function getWithFilters(filters) {
-  const { bestuursperiodeId, bestuursorgaanId, persoonIds, fractieIds } = filters;
+  const {
+    bestuursperiodeId,
+    bestuursorgaanId,
+    persoonIds,
+    fractieIds,
+    bestuursFunctieCodeIds,
+  } = filters;
   let bestuursorgaanFilter: string | null = null;
   let onlyActiveFilter: string | null = null;
   let persoonFilter: string | null = null;
   let fractieFilter: string | null = null;
+  let mandaatTypeFilter: string | null = null;
 
   if (bestuursorgaanId) {
     bestuursorgaanFilter = `
@@ -57,6 +64,17 @@ async function getWithFilters(filters) {
     `;
   }
 
+  if (bestuursFunctieCodeIds.length >= 1) {
+    const idValues = bestuursFunctieCodeIds
+      .map((id) => sparqlEscapeString(id))
+      .join(' ');
+    mandaatTypeFilter = `
+      VALUES ?functieCode { ${idValues} }
+      ?mandaat org:role ?bestuursfunctieCode .
+      ?bestuursfunctieCode mu:uuid ?functieCode.
+    `;
+  }
+
   const queryString = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -77,6 +95,7 @@ async function getWithFilters(filters) {
       ${onlyActiveFilter ?? ''}
       ${persoonFilter ?? ''}
       ${fractieFilter ?? ''}
+      ${mandaatTypeFilter ?? ''}
     }
   `;
 

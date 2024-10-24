@@ -8,6 +8,7 @@ import { persoon } from '../data-access/persoon';
 import { fractie } from '../data-access/fractie';
 
 import { Parser } from '@json2csv/plainjs';
+import { bestuursfunctie } from '../data-access/bestuursfunctie';
 
 export const downloadMandatarissenUsecase = {
   requestToJson,
@@ -28,8 +29,14 @@ function requestToJson(request: Request) {
 }
 
 async function fetchMandatarissen(requestParameters) {
-  const { bestuursperiodeId, bestuursorgaanId, persoonIds, fractieIds, sort } =
-    requestParameters;
+  const {
+    bestuursperiodeId,
+    bestuursorgaanId,
+    persoonIds,
+    fractieIds,
+    bestuursFunctieCodeIds,
+    sort,
+  } = requestParameters;
   const isBestuursperiode = await bestuursperiode.isValidId(bestuursperiodeId);
   if (!isBestuursperiode) {
     throw new HttpError(
@@ -65,6 +72,17 @@ async function fetchMandatarissen(requestParameters) {
       if (!isFractie) {
         throw new HttpError(
           `Fractie with id ${fractieId} not found.`,
+          STATUS_CODE.BAD_REQUEST,
+        );
+      }
+    }
+  }
+  if (bestuursFunctieCodeIds.length >= 1) {
+    for (const bestuursFunctieCodeId of bestuursFunctieCodeIds) {
+      const isCode = await bestuursfunctie.isValidId(bestuursFunctieCodeId);
+      if (!isCode) {
+        throw new HttpError(
+          `Bestuursfunctie code with id ${bestuursFunctieCodeId} not found.`,
           STATUS_CODE.BAD_REQUEST,
         );
       }
