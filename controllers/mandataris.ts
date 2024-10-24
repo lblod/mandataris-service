@@ -176,11 +176,11 @@ export async function handleBulkSetPublicationStatus(
 ): Promise<void> {
   // Check access rights
 
-  if (status == 'effectief') {
+  if (status == 'Effectief') {
     await bulkSetPublicationStatusEffectief(mandatarissen);
     return;
   }
-  if (status == 'bekrachtigd') {
+  if (status == 'Bekrachtigd') {
     if (!link) {
       throw new HttpError(
         'No link to publication was provided',
