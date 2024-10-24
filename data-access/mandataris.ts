@@ -630,7 +630,7 @@ export async function bulkSetPublicationStatusEffectief(
           ?mandataris lmb:hasPublicationStatus ?status .
         }
         VALUES ?uuid { ${escaped.mandatarissenUuids} }
-        FILTER (?status NOT IN (${escaped.bekrachtigd}))
+        FILTER (!BOUND(?status) || ?status NOT IN (${escaped.bekrachtigd}))
       }
     }
   `;
