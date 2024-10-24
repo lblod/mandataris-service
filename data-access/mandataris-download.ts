@@ -8,10 +8,11 @@ export const downloadMandatarissen = {
 };
 
 async function getWithFilters(filters) {
-  const { bestuursperiodeId, bestuursorgaanId, persoonIds } = filters;
+  const { bestuursperiodeId, bestuursorgaanId, persoonIds, fractieIds } = filters;
   let bestuursorgaanFilter: string | null = null;
   let onlyActiveFilter: string | null = null;
   let persoonFilter: string | null = null;
+  let fractieFilter: string | null = null;
 
   if (bestuursorgaanId) {
     bestuursorgaanFilter = `
@@ -45,6 +46,17 @@ async function getWithFilters(filters) {
     `;
   }
 
+  if (fractieIds.length >= 1) {
+    const idValues = fractieIds.map((id) => sparqlEscapeString(id)).join(' ');
+    fractieFilter = `
+      VALUES ?fractieId { ${idValues} }
+
+      ?mandataris org:hasMembership ?lidmaatschap.
+      ?lidmaatschap org:organisation ?fractie.
+      ?fractie mu:uuid ?fractieId.
+    `;
+  }
+
   const queryString = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -64,6 +76,7 @@ async function getWithFilters(filters) {
       ${bestuursorgaanFilter ?? ''}
       ${onlyActiveFilter ?? ''}
       ${persoonFilter ?? ''}
+      ${fractieFilter ?? ''}
     }
   `;
 
