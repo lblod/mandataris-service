@@ -616,7 +616,7 @@ export async function bulkBekrachtigMandatarissen(
 
     DELETE {
       GRAPH ?graph {
-        ?mandataris lmb:hasPublicationStatus ${escaped.effectief}.
+        ?mandataris lmb:hasPublicationStatus ?status .
       }
     }
     INSERT {
@@ -628,8 +628,10 @@ export async function bulkBekrachtigMandatarissen(
     WHERE {
       GRAPH ?graph {
         ?mandataris a mandaat:Mandataris ;
-          mu:uuid ?uuid ;
-          lmb:hasPublicationStatus ${escaped.effectief} .
+          mu:uuid ?uuid .
+        OPTIONAL {
+          ?mandataris lmb:hasPublicationStatus ?status .
+        }
         VALUES ?uuid { ${escaped.mandatarissenUuids} }
       }
     }
