@@ -610,6 +610,8 @@ export async function bulkBekrachtigMandatarissen(
     link: sparqlEscapeString(link),
   };
   const query = `
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
     DELETE {
