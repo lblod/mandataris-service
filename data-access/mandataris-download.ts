@@ -30,7 +30,7 @@ async function getWithFilters(filters) {
   if (filters.onlyShowActive) {
     const escapedTodaysDate = sparqlEscapeDateTime(new Date());
     onlyActiveFilter = `
-      ?mandataris mandaat:einde ?einde.
+        ?mandataris mandaat:einde ?einde.
 
       ?bestuursorgaan mandaat:bindingStart ?startBestuursorgaan. 
       ?bestuursorgaan mandaat:bindingEinde ?eindeBestuursorgaan. 
@@ -106,14 +106,22 @@ async function getWithFilters(filters) {
 
 async function getPropertiesOfMandatarissen(
   mandatarisUris: Array<string>,
+  bestuursorgaanId: string | null,
   sort: { ascOrDesc: 'ASC' | 'DESC'; filterProperty: string } | null,
 ): Promise<Array<any>> {
   let sortFilter: string | null = null;
+  let bestuursorgaanFilter: string | null = null;
 
   if (sort) {
     sortFilter = `
       ORDER BY ${sort.ascOrDesc}(${sort.filterProperty})
     `;
+  }
+
+  if (bestuursorgaanId) {
+    bestuursorgaanFilter = `?bestuursorgaan mu:uuid ${sparqlEscapeString(
+      bestuursorgaanId,
+    )}.`;
   }
 
   const escapedUriValues = mandatarisUris
@@ -144,6 +152,7 @@ async function getPropertiesOfMandatarissen(
 
       ?mandaat ^org:hasPost ?bestuursorgaan.
       ?bestuursorgaan mandaat:isTijdspecialisatieVan ?bestuursorgaanInTijd. 
+      ${bestuursorgaanFilter ?? ''}
       ?bestuursorgaanInTijd skos:prefLabel ?bestuursorgaanLabel.
 
       ?mandataris mandaat:isBestuurlijkeAliasVan ?persoon.

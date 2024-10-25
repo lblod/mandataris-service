@@ -94,6 +94,7 @@ async function fetchMandatarissen(requestParameters) {
 
   return await downloadMandatarissen.getPropertiesOfMandatarissen(
     mandatarisUris,
+    bestuursorgaanId,
     getPropertyFilterForMandatarisSorting(sort),
   );
 }
