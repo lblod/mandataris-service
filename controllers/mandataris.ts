@@ -179,7 +179,7 @@ export async function handleBulkSetPublicationStatus(
   }
 
   // We just check access to the first mandataris
-  const isMandataris = await mandataris.isValidId(mandatarissen.at(0) ?? '');
+  const isMandataris = await mandataris.isValidId(mandatarissen.at(0));
   if (!isMandataris) {
     throw new HttpError('Unauthorized', 401);
   }

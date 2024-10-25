@@ -34,7 +34,11 @@ export const mandataris = {
   getMandatarisFracties,
 };
 
-async function isValidId(id: string, sudo: boolean = false): Promise<boolean> {
+async function isValidId(id?: string, sudo: boolean = false): Promise<boolean> {
+  if (!id) {
+    return false;
+  }
+
   const askQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -606,6 +610,7 @@ export async function bulkSetPublicationStatusEffectief(
       .join(' '),
     effectief: sparqlEscapeUri(PUBLICATION_STATUS.EFECTIEF),
     bekrachtigd: sparqlEscapeUri(PUBLICATION_STATUS.BEKRACHTIGD),
+    todaysDate: sparqlEscapeDateTime(new Date()),
   };
   const query = `
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -615,11 +620,13 @@ export async function bulkSetPublicationStatusEffectief(
     DELETE {
       GRAPH ?graph {
         ?mandataris lmb:hasPublicationStatus ?status .
+        ?mandataris lmb:effectiefAt ?effectiefAt .
       }
     }
     INSERT {
       GRAPH ?graph {
         ?mandataris lmb:hasPublicationStatus ${escaped.effectief} .
+        ?mandataris lmb:effectiefAt ${escaped.todaysDate} .
       }
     }
     WHERE {
@@ -628,6 +635,9 @@ export async function bulkSetPublicationStatusEffectief(
           mu:uuid ?uuid .
         OPTIONAL {
           ?mandataris lmb:hasPublicationStatus ?status .
+        }
+        OPTIONAL {
+          ?mandataris lmb:effectiefAt ?effectiefAt .
         }
         VALUES ?uuid { ${escaped.mandatarissenUuids} }
         FILTER (!BOUND(?status) || ?status NOT IN (${escaped.bekrachtigd}))
