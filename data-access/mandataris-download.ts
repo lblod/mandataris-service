@@ -108,7 +108,7 @@ async function getPropertiesOfMandatarissen(
   mandatarisUris: Array<string>,
   bestuursorgaanId: string | null,
   sort: { ascOrDesc: 'ASC' | 'DESC'; filterProperty: string } | null,
-): Promise<Array<any>> {
+): Promise<Array<{ [key: string]: string }>> {
   let sortFilter: string | null = null;
   let bestuursorgaanFilter: string | null = null;
 
@@ -187,7 +187,7 @@ async function getPropertiesOfMandatarissen(
 
       BIND(IF(BOUND(?statusLabel), ?statusLabel, """""") AS ?saveStatusLabel).
       BIND(IF(BOUND(?publicatieStatusLabel), ?publicatieStatusLabel, """""") AS ?savePublicatieStatusLabel).
-      BIND(IF(BOUND(?rangorde), ?rangorde, """""") AS ?saveRangorde).
+      BIND(IF(BOUND(?rangorde), ?rangorde, """""") AS ?saveRangorde)
       BIND(IF(BOUND(?beleidsdomeinLabel), ?beleidsdomeinLabel, """""") AS ?saveBeleidsdomeinLabel).
       BIND(IF(BOUND(?lName), ?lName, """""") AS ?saveLName).
       BIND(IF(BOUND(?fractieLabel), ?fractieLabel, """""") AS ?saveFractieLabel).
