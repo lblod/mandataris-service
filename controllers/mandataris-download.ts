@@ -136,6 +136,8 @@ function getPropertyFilterForMandatarisSorting(sort: string | null) {
     '-einde': '?saveEinde',
     'status.label': '?statusLabel',
     '-status.label': '?statusLabel',
+    'publication-status': '?savePublicatieStatusLabel',
+    '-publication-status': '?savePublicatieStatusLabel',
   };
 
   if (!Object.keys(mapping).includes(sort)) {
