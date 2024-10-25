@@ -158,20 +158,17 @@ async function copyOverNonResourceDomainPredicates(
   };
 }
 
-async function findDecision(mandatarisId: string): Promise<string | null> {
-  const isMandataris = await mandataris.isValidId(mandatarisId);
+async function findDecision(mandatarisUri: string): Promise<string | null> {
+  const isMandataris = await mandataris.isValidId(mandatarisUri);
   if (!isMandataris) {
     throw new HttpError(
-      `Mandataris with id ${mandatarisId} not found.`,
+      `Mandataris with id ${mandatarisUri} not found.`,
       STATUS_CODE.BAD_REQUEST,
     );
   }
-  const decision = await findDecisionForMandataris({
-    type: 'uri',
-    value: mandatarisId,
-  } as Term);
+  const decision = await findDecisionForMandataris(mandatarisUri);
 
-  return decision ? decision.value : null;
+  return decision ? decision.besluit : null;
 }
 
 export async function handleBulkSetPublicationStatus(

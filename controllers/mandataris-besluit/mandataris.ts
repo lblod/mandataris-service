@@ -39,7 +39,8 @@ async function copyMandatarisToExisting(
     );
     await createMandatarisBesluitNotification({
       title: 'Mandataris aangepast',
-      description: `Mandataris werd aangepast op basis van de informatie in een Besluit.`,
+      description:
+        'Mandataris werd aangepast op basis van de informatie in een Besluit.',
       type: 'info',
       info: mandatarisFullInfo,
     });
