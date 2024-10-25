@@ -79,9 +79,7 @@ async function HandleEffectieveMandatarissen() {
 
 async function fetchEffectiveMandatarissenWithoutBesluit() {
   const momentTenDaysAgo = moment(new Date()).subtract(10, 'days');
-  const escapedTenDaysBefore = sparqlEscapeDateTime(
-    new Date(momentTenDaysAgo.format('YYYY-MM-DD')),
-  );
+  const escapedTenDaysBefore = sparqlEscapeDateTime(momentTenDaysAgo.toDate());
   const query = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX dct: <http://purl.org/dc/terms/>
