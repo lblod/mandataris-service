@@ -1,3 +1,4 @@
+import { CronJob } from 'cron';
 import { Request, Response } from 'express';
 import Router from 'express-promise-router';
 import {
@@ -44,6 +45,7 @@ installatievergaderingRouter.post(
         .status(404)
         .send({ error: 'Installatievergadering not found' });
     }
+    await fixMemberOfLinksForOCMWFracties();
     await moveFracties(installatievergaderingId);
     await moveOcmwOrgans(installatievergaderingId);
     await movePersons(installatievergaderingId);
@@ -655,5 +657,70 @@ async function setLinkedIVToBehandeld(installatievergaderingId: string) {
   }`;
   await updateSudo(sparql);
 }
+
+async function fixMemberOfLinksForOCMWFracties() {
+  await createCorrectMemberOfLinks();
+  await deleteBrokenFractieLinks();
+}
+
+async function createCorrectMemberOfLinks() {
+  const query = `
+  PREFIX org: <http://www.w3.org/ns/org#>
+  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+
+  DELETE {
+    GRAPH ?g {
+      ?fractie org:memberOf ?fakeOrgIT .
+    }
+  }
+  INSERT {
+    GRAPH ?g {
+      ?fractie org:memberOf ?orgaanIT .
+    }
+  }
+  WHERE {
+    GRAPH ?g {
+      ?fractie org:memberOf ?fakeOrgIT .
+      ?fakeOrgIT ext:origineleBestuursorgaan ?orgaanIT .
+    }
+  }`;
+  await updateSudo(query);
+}
+
+async function deleteBrokenFractieLinks() {
+  const query = `
+  PREFIX org: <http://www.w3.org/ns/org#>
+
+  DELETE {
+    GRAPH ?g {
+      ?fractie org:memberOf ?orgaanIT .
+    }
+  }
+  WHERE {
+    GRAPH ?g {
+      ?fractie org:memberOf ?orgaanIT .
+      FILTER NOT EXISTS {
+        ?fractie a <http://data.vlaanderen.be/ns/mandaat#Fractie> .
+      }
+    }
+  }`;
+  await updateSudo(query);
+}
+
+let cleanupRunning = false;
+
+export const cronjob = CronJob.from({
+  cronTime: '*/5 * * * *', // every 5 minutes
+  onTick: async () => {
+    if (cleanupRunning) {
+      return;
+    }
+    cleanupRunning = true;
+    await fixMemberOfLinksForOCMWFracties();
+    cleanupRunning = false;
+  },
+});
+
+cronjob.start();
 
 export { installatievergaderingRouter };
