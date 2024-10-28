@@ -12,6 +12,7 @@ import { installatievergaderingRouter } from './routes/installatievergadering';
 import { mandatenRouter } from './routes/mandaten';
 
 import { cronjob as notificationBekrachtigdMandataris } from './cron/notification-for-bekrachtigde-mandataris';
+import { electionResultsRouter } from './routes/verkiezingsresultaten';
 
 app.use(
   bodyParser.json({
@@ -35,6 +36,7 @@ app.use('/personen', personenRouter);
 app.use('/mandaten', mandatenRouter);
 app.use('/burgemeester-benoeming', burgemeesterRouter);
 app.use('/installatievergadering-api', installatievergaderingRouter);
+app.use('/election-results-api', electionResultsRouter);
 
 const errorHandler: ErrorRequestHandler = function (err, _req, res, _next) {
   // custom error handler to have a default 500 error code instead of 400 as in the template
