@@ -48,7 +48,7 @@ async function getWithFilters(filters) {
   }
 
   if (persoonIds.length >= 1) {
-    const idValues = persoonIds.map((id) => sparqlEscapeString(id)).join(' ');
+    const idValues = persoonIds.map((id) => sparqlEscapeString(id)).join('\n');
     persoonFilter = `
       VALUES ?persoonId { ${idValues} }
 
@@ -58,7 +58,7 @@ async function getWithFilters(filters) {
   }
 
   if (fractieIds.length >= 1) {
-    const idValues = fractieIds.map((id) => sparqlEscapeString(id)).join(' ');
+    const idValues = fractieIds.map((id) => sparqlEscapeString(id)).join('\n');
     fractieFilter = `
       {
         VALUES ?fractieId { ${idValues} }
@@ -96,7 +96,7 @@ async function getWithFilters(filters) {
   if (bestuursFunctieCodeIds.length >= 1) {
     const idValues = bestuursFunctieCodeIds
       .map((id) => sparqlEscapeString(id))
-      .join(' ');
+      .join('\n');
     mandaatTypeFilter = `
       VALUES ?functieCode { ${idValues} }
       ?mandaat org:role ?bestuursfunctieCode .
@@ -159,7 +159,7 @@ async function getPropertiesOfMandatarissen(
 
   const escapedUriValues = mandatarisUris
     .map((uri) => sparqlEscapeUri(uri))
-    .join(' ');
+    .join('\n');
   const queryString = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
