@@ -226,7 +226,7 @@ mandatarissenRouter.post('/download', async (req: Request, res: Response) => {
   } catch (error) {
     const message =
       error.message ??
-      'Something went wrong export mandatarissen to a CSV file.';
+      'An error occurred while downloading mandatarissen as a CSV file.';
     const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
     return res.status(statusCode).send({ message });
   }
