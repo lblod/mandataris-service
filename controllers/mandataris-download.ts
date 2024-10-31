@@ -13,11 +13,26 @@ import { json2csv } from 'json-2-csv';
 
 export const downloadMandatarissenUsecase = {
   requestToJson,
-  fetchMandatarissen,
-  jsonToCsv,
+  mandatarissenAsCsv,
 };
 
-function requestToJson(request: Request) {
+async function mandatarissenAsCsv(requestParameters): Promise<string> {
+  const { bestuursorgaanId, sort } = requestParameters;
+
+  const mandatarisUris =
+    await downloadMandatarissen.getWithFilters(requestParameters);
+
+  const mandatarisData =
+    await downloadMandatarissen.getPropertiesOfMandatarissen(
+      mandatarisUris,
+      bestuursorgaanId,
+      getPropertyFilterForMandatarisSorting(sort),
+    );
+
+  return await jsonToCsv(mandatarisData);
+}
+
+async function requestToJson(request: Request) {
   const requiredParameters = ['bestuursperiodeId'];
 
   requiredParameters.map((param) => {
@@ -26,17 +41,16 @@ function requestToJson(request: Request) {
     }
   });
 
-  return request.body;
+  return validateJsonRequestParameters(request.body);
 }
 
-async function fetchMandatarissen(requestParameters) {
+async function validateJsonRequestParameters(requestParameters) {
   const {
     bestuursperiodeId,
     bestuursorgaanId,
     persoonIds,
     fractieIds,
     bestuursFunctieCodeIds,
-    sort,
   } = requestParameters;
   const isBestuursperiode = await bestuursperiode.isValidId(bestuursperiodeId);
   if (!isBestuursperiode) {
@@ -90,15 +104,16 @@ async function fetchMandatarissen(requestParameters) {
     }
   }
 
-  const mandatarisUris =
-    await downloadMandatarissen.getWithFilters(requestParameters);
-
-  return await downloadMandatarissen.getPropertiesOfMandatarissen(
-    mandatarisUris,
+  return {
+    bestuursperiodeId,
     bestuursorgaanId,
-    getPropertyFilterForMandatarisSorting(sort),
-  );
+    persoonIds,
+    fractieIds,
+    bestuursFunctieCodeIds,
+  };
 }
+
+
 
 async function jsonToCsv(mandatarisData) {
   if (!mandatarisData || mandatarisData.length === 0) {
