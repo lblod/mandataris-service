@@ -15,16 +15,16 @@ async function getWithFilters(filters) {
     fractieIds,
     bestuursFunctieCodeIds,
   } = filters;
-  let bestuursorgaanFilter: string | null = null;
+  let bestuursorgaanInTijdFilter: string | null = null;
   let onlyActiveFilter: string | null = null;
   let persoonFilter: string | null = null;
   let fractieFilter: string | null = null;
   let mandaatTypeFilter: string | null = null;
 
   if (bestuursorgaanId) {
-    bestuursorgaanFilter = `
-      ?mandaat ^org:hasPost ?bestuursorgaan.
-      ?bestuursorgaan mu:uuid ${sparqlEscapeString(bestuursorgaanId)}.
+    bestuursorgaanInTijdFilter = `
+      ?mandaat ^org:hasPost ?bestuursorgaanInTijd.
+      ?bestuursorgaanInTijd mu:uuid ${sparqlEscapeString(bestuursorgaanId)}.
     `;
   }
   if (filters.onlyShowActive) {
@@ -32,8 +32,8 @@ async function getWithFilters(filters) {
     onlyActiveFilter = `
       ?mandataris mandaat:einde ?einde.
 
-      ?bestuursorgaan mandaat:bindingStart ?startBestuursorgaan. 
-      ?bestuursorgaan mandaat:bindingEinde ?eindeBestuursorgaan. 
+      ?bestuursorgaanInTijd mandaat:bindingStart ?startBestuursorgaan. 
+      ?bestuursorgaanInTijd mandaat:bindingEinde ?eindeBestuursorgaan. 
 
       FILTER (
         ?einde <= ?eindeBestuursorgaan &&
@@ -91,7 +91,7 @@ async function getWithFilters(filters) {
       ?bestuursorgaan lmb:heeftBestuursperiode ?bestuursperiode.
       ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
 
-      ${bestuursorgaanFilter ?? ''}
+      ${bestuursorgaanInTijdFilter ?? ''}
       ${onlyActiveFilter ?? ''}
       ${persoonFilter ?? ''}
       ${fractieFilter ?? ''}
@@ -106,11 +106,11 @@ async function getWithFilters(filters) {
 
 async function getPropertiesOfMandatarissen(
   mandatarisUris: Array<string>,
-  bestuursorgaanId: string | null,
+  bestuursorgaanInTijdId: string | null,
   sort: { ascOrDesc: 'ASC' | 'DESC'; filterProperty: string } | null,
 ): Promise<Array<{ [key: string]: string }>> {
   let sortFilter: string | null = null;
-  let bestuursorgaanFilter: string | null = null;
+  let bestuursorgaanInTijdFilter: string | null = null;
 
   if (sort) {
     sortFilter = `
@@ -118,9 +118,9 @@ async function getPropertiesOfMandatarissen(
     `;
   }
 
-  if (bestuursorgaanId) {
-    bestuursorgaanFilter = `?bestuursorgaan mu:uuid ${sparqlEscapeString(
-      bestuursorgaanId,
+  if (bestuursorgaanInTijdId) {
+    bestuursorgaanInTijdFilter = `?bestuursorgaanInTijd mu:uuid ${sparqlEscapeString(
+      bestuursorgaanInTijdId,
     )}.`;
   }
 
@@ -150,10 +150,10 @@ async function getPropertiesOfMandatarissen(
       ?mandaat org:role ?bestuursfunctie.
       ?bestuursfunctie skos:prefLabel ?mandaatLabel.
 
-      ?mandaat ^org:hasPost ?bestuursorgaan.
-      ?bestuursorgaan mandaat:isTijdspecialisatieVan ?bestuursorgaanInTijd. 
-      ${bestuursorgaanFilter ?? ''}
-      ?bestuursorgaanInTijd skos:prefLabel ?bestuursorgaanLabel.
+      ?mandaat ^org:hasPost ?bestuursorgaanInTijd.
+      ?bestuursorgaanInTijd mandaat:isTijdspecialisatieVan ?bestuursorgaan. 
+      ${bestuursorgaanInTijdFilter ?? ''}
+      ?bestuursorgaan skos:prefLabel ?bestuursorgaanLabel.
 
       ?mandataris mandaat:isBestuurlijkeAliasVan ?persoon.
 
