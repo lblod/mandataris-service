@@ -12,17 +12,11 @@ async function getWithFilters(filters) {
     bestuursperiodeId,
     bestuursorgaanId,
     persoonIds,
-    fractieIds,
-    hasFilterOnOnafhankelijkeFractie,
-    hasFilterOnNietBeschikbareFractie,
     bestuursFunctieCodeIds,
   } = filters;
   let bestuursorgaanInTijdFilter: string | null = null;
   let onlyActiveFilter: string | null = null;
   let persoonFilter: string | null = null;
-  let fractieFilter: string | null = null;
-  let fractieOnafhankelijkFilter: string | null = null;
-  let fractieOOBFilter: string | null = null;
   let mandaatTypeFilter: string | null = null;
 
   if (bestuursorgaanId) {
@@ -54,42 +48,6 @@ async function getWithFilters(filters) {
 
       ?mandataris mandaat:isBestuurlijkeAliasVan ?persoon.
       ?persoon mu:uuid ?persoonId.
-    `;
-  }
-
-  if (fractieIds.length >= 1) {
-    const idValues = fractieIds.map((id) => sparqlEscapeString(id)).join('\n');
-    fractieFilter = `
-      {
-        VALUES ?fractieId { ${idValues} }
-
-        ?mandataris org:hasMembership ?lidmaatschap.
-        ?lidmaatschap org:organisation ?fractie.
-        ?fractie mu:uuid ?fractieId.  
-      }
-    `;
-  }
-
-  if (hasFilterOnOnafhankelijkeFractie) {
-    if (fractieIds.length >= 1) {
-      fractieOnafhankelijkFilter = `
-        UNION {
-          ?fractie ext:isFractietype fractieType:Onafhankelijk.
-        }
-      `;
-    } else {
-      fractieOnafhankelijkFilter = `
-      ?mandataris org:hasMembership ?lidmaatschap.
-      ?lidmaatschap org:organisation ?fractie.
-      ?fractie ext:isFractietype fractieType:Onafhankelijk.
-      `;
-    }
-  }
-  if (hasFilterOnNietBeschikbareFractie) {
-    fractieOOBFilter = `
-      FILTER NOT EXISTS {
-        ?mandataris org:hasMembership ?lidmaatschap.
-      }
     `;
   }
 
@@ -125,9 +83,7 @@ async function getWithFilters(filters) {
       ${bestuursorgaanInTijdFilter ?? ''}
       ${onlyActiveFilter ?? ''}
       ${persoonFilter ?? ''}
-      ${fractieFilter ?? ''}
-      ${fractieOnafhankelijkFilter ?? ''}
-      ${fractieOOBFilter ?? ''}
+      ${getFractieFilters(filters)}
       ${mandaatTypeFilter ?? ''}
     }
   `;
@@ -135,6 +91,42 @@ async function getWithFilters(filters) {
   const sparqlResult = await query(queryString);
 
   return getSparqlResults(sparqlResult).map((res) => res.mandataris.value);
+}
+
+function getFractieFilters(filters): string {
+  const {
+    fractieIds,
+    hasFilterOnOnafhankelijkeFractie,
+    hasFilterOnNietBeschikbareFractie,
+  } = filters;
+  const idValues = fractieIds.map((id) => sparqlEscapeString(id)).join('\n');
+  const filterOnafhankelijk =
+    '?fractie ext:isFractietype fractieType:Onafhankelijk.';
+  const filterNietBeschikbaar =
+    'FILTER (BOUND(?lidmaatschap) || BOUND(?fractie))';
+  const isOptional =
+    fractieIds.length === 0 &&
+    !hasFilterOnNietBeschikbareFractie &&
+    !hasFilterOnOnafhankelijkeFractie;
+
+  return `
+      {
+        ${fractieIds.length >= 1 ? `VALUES ?fractieId {\n ${idValues} }` : ''}
+        ${isOptional ? 'OPTIONAL {\n' : ''}
+          ?mandataris org:hasMembership ?lidmaatschap.
+          ?lidmaatschap org:organisation ?fractie.
+        ${isOptional ? '}' : ''}
+        ${fractieIds.length >= 1 ? '?fractie mu:uuid ?fractieId.' : ''}
+      } UNION {
+        ${isOptional ? 'OPTIONAL {\n' : ''}
+          ?mandataris org:hasMembership ?lidmaatschap.
+          ?lidmaatschap org:organisation ?fractie.
+          ${fractieIds.length >= 1 ? '?fractie mu:uuid ?fractieId.' : ''}
+        ${isOptional ? '}' : ''}
+        ${hasFilterOnOnafhankelijkeFractie ? filterOnafhankelijk : ''}
+        ${hasFilterOnNietBeschikbareFractie ? filterNietBeschikbaar : ''}
+      } 
+    `;
 }
 
 async function getPropertiesOfMandatarissen(
