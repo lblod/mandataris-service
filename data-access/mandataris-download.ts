@@ -30,7 +30,7 @@ async function getWithFilters(filters) {
   if (filters.onlyShowActive) {
     const escapedTodaysDate = sparqlEscapeDateTime(new Date());
     onlyActiveFilter = `
-        ?mandataris mandaat:einde ?einde.
+      ?mandataris mandaat:einde ?einde.
 
       ?bestuursorgaan mandaat:bindingStart ?startBestuursorgaan. 
       ?bestuursorgaan mandaat:bindingEinde ?eindeBestuursorgaan. 
@@ -88,7 +88,7 @@ async function getWithFilters(filters) {
       ?mandataris a mandaat:Mandataris.
       ?mandataris org:holds ?mandaat.
 
-      ?bestuursorgaan lmb:heeftBestuursperiode ?bestuurspriode.
+      ?bestuursorgaan lmb:heeftBestuursperiode ?bestuursperiode.
       ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
 
       ${bestuursorgaanFilter ?? ''}
@@ -137,7 +137,7 @@ async function getPropertiesOfMandatarissen(
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     PREFIX regorg: <https://www.w3.org/ns/regorg#>
 
-    SELECT DISTINCT ?mandataris ?mandaatLabel ?savePublicatieStatusLabel ?saveRangorde (GROUP_CONCAT(DISTINCT ?beleidsdomeinLabel; SEPARATOR=", ") AS ?beleidsdomeinen) ?saveStatusLabel ?fName ?saveLName ?start ?saveEinde ?saveFractieLabel ?bestuursorgaanLabel
+    SELECT DISTINCT ?mandataris ?mandaatLabel ?publicatieStatusLabel ?rangorde (GROUP_CONCAT(DISTINCT ?beleidsdomeinLabel; SEPARATOR="; ") AS ?beleidsdomeinen) ?statusLabel ?fName ?lName ?start ?einde ?fractieLabel ?bestuursorgaanLabel
     WHERE {
       VALUES ?mandataris { ${escapedUriValues} }
       ?mandataris a mandaat:Mandataris.
@@ -156,7 +156,6 @@ async function getPropertiesOfMandatarissen(
       ?bestuursorgaanInTijd skos:prefLabel ?bestuursorgaanLabel.
 
       ?mandataris mandaat:isBestuurlijkeAliasVan ?persoon.
-      ?persoon persoon:gebruikteVoornaam ?fName.
 
       OPTIONAL {
         ?mandataris lmb:hasPublicationStatus ?publicatieStatusCode.
@@ -173,6 +172,9 @@ async function getPropertiesOfMandatarissen(
       }
 
       OPTIONAL {
+        ?persoon persoon:gebruikteVoornaam ?fName.
+      }
+      OPTIONAL {
         ?persoon foaf:familyName ?lName.
       }
 
@@ -184,14 +186,6 @@ async function getPropertiesOfMandatarissen(
       OPTIONAL {
         ?mandataris mandaat:einde ?einde.
       }
-
-      BIND(IF(BOUND(?statusLabel), ?statusLabel, """""") AS ?saveStatusLabel).
-      BIND(IF(BOUND(?publicatieStatusLabel), ?publicatieStatusLabel, """""") AS ?savePublicatieStatusLabel).
-      BIND(IF(BOUND(?rangorde), ?rangorde, """""") AS ?saveRangorde)
-      BIND(IF(BOUND(?beleidsdomeinLabel), ?beleidsdomeinLabel, """""") AS ?saveBeleidsdomeinLabel).
-      BIND(IF(BOUND(?lName), ?lName, """""") AS ?saveLName).
-      BIND(IF(BOUND(?fractieLabel), ?fractieLabel, """""") AS ?saveFractieLabel).
-      BIND(IF(BOUND(?einde), ?einde, """""") AS ?saveEinde).
     }
     ${sortFilter ?? ''}
   `;
@@ -201,15 +195,15 @@ async function getPropertiesOfMandatarissen(
   return getSparqlResults(sparqlResult).map((result) => {
     return {
       voornaam: result.fName?.value ?? '',
-      naam: result.saveLName.value,
-      fractie: result.saveFractieLabel.value,
+      naam: result.lName?.value ?? '',
+      fractie: result.fractieLabel?.value ?? '',
       mandaat: result.mandaatLabel?.value ?? '',
-      status: result.saveStatusLabel.value,
+      status: result.statusLabel?.value ?? '',
       orgaan: result.bestuursorgaanLabel?.value ?? '',
       startMandaat: result.start?.value ?? '',
-      eindeMandaat: result.saveEinde?.value,
-      publicatieStatus: result.savePublicatieStatusLabel.value,
-      rangorde: result.saveRangorde.value,
+      eindeMandaat: result.einde?.value ?? '',
+      publicatieStatus: result.publicatieStatusLabel?.value ?? '',
+      rangorde: result.rangorde?.value ?? '',
       beleidsdomeinen: result.beleidsdomeinen?.value ?? '',
     };
   });
