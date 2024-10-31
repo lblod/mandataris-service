@@ -13,12 +13,16 @@ async function getWithFilters(filters) {
     bestuursorgaanId,
     persoonIds,
     fractieIds,
+    hasFilterOnOnafhankelijkeFractie,
+    hasFilterOnNietBeschikbareFractie,
     bestuursFunctieCodeIds,
   } = filters;
   let bestuursorgaanInTijdFilter: string | null = null;
   let onlyActiveFilter: string | null = null;
   let persoonFilter: string | null = null;
   let fractieFilter: string | null = null;
+  let fractieOnafhankelijkFilter: string | null = null;
+  let fractieOOBFilter: string | null = null;
   let mandaatTypeFilter: string | null = null;
 
   if (bestuursorgaanId) {
@@ -56,11 +60,36 @@ async function getWithFilters(filters) {
   if (fractieIds.length >= 1) {
     const idValues = fractieIds.map((id) => sparqlEscapeString(id)).join(' ');
     fractieFilter = `
-      VALUES ?fractieId { ${idValues} }
+      {
+        VALUES ?fractieId { ${idValues} }
 
+        ?mandataris org:hasMembership ?lidmaatschap.
+        ?lidmaatschap org:organisation ?fractie.
+        ?fractie mu:uuid ?fractieId.  
+      }
+    `;
+  }
+
+  if (hasFilterOnOnafhankelijkeFractie) {
+    if (fractieIds.length >= 1) {
+      fractieOnafhankelijkFilter = `
+        UNION {
+          ?fractie ext:isFractietype fractieType:Onafhankelijk.
+        }
+      `;
+    } else {
+      fractieOnafhankelijkFilter = `
       ?mandataris org:hasMembership ?lidmaatschap.
       ?lidmaatschap org:organisation ?fractie.
-      ?fractie mu:uuid ?fractieId.
+      ?fractie ext:isFractietype fractieType:Onafhankelijk.
+      `;
+    }
+  }
+  if (hasFilterOnNietBeschikbareFractie) {
+    fractieOOBFilter = `
+      FILTER NOT EXISTS {
+        ?mandataris org:hasMembership ?lidmaatschap.
+      }
     `;
   }
 
@@ -81,6 +110,8 @@ async function getWithFilters(filters) {
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX fractieType: <http://data.vlaanderen.be/id/concept/Fractietype/>
 
 
     SELECT DISTINCT ?mandataris
@@ -95,6 +126,8 @@ async function getWithFilters(filters) {
       ${onlyActiveFilter ?? ''}
       ${persoonFilter ?? ''}
       ${fractieFilter ?? ''}
+      ${fractieOnafhankelijkFilter ?? ''}
+      ${fractieOOBFilter ?? ''}
       ${mandaatTypeFilter ?? ''}
     }
   `;
