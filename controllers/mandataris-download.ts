@@ -104,16 +104,8 @@ async function validateJsonRequestParameters(requestParameters) {
     }
   }
 
-  return {
-    bestuursperiodeId,
-    bestuursorgaanId,
-    persoonIds,
-    fractieIds,
-    bestuursFunctieCodeIds,
-  };
+  return requestParameters;
 }
-
-
 
 async function jsonToCsv(mandatarisData) {
   if (!mandatarisData || mandatarisData.length === 0) {
