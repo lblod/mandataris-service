@@ -1,4 +1,5 @@
 import { Request } from 'express';
+
 import { HttpError } from '../util/http-error';
 import { bestuursperiode } from '../data-access/bestuursperiode';
 import { STATUS_CODE } from '../util/constants';
@@ -6,14 +7,14 @@ import { bestuursorgaan } from '../data-access/bestuursorgaan';
 import { downloadMandatarissen } from '../data-access/mandataris-download';
 import { persoon } from '../data-access/persoon';
 import { fractie } from '../data-access/fractie';
-
-import { Parser } from '@json2csv/plainjs';
 import { bestuursfunctie } from '../data-access/bestuursfunctie';
+
+import { json2csv } from 'json-2-csv';
 
 export const downloadMandatarissenUsecase = {
   requestToJson,
   fetchMandatarissen,
-  transformToCsv,
+  jsonToCsv,
 };
 
 function requestToJson(request: Request) {
@@ -99,14 +100,14 @@ async function fetchMandatarissen(requestParameters) {
   );
 }
 
-async function transformToCsv(mandatarisData) {
+async function jsonToCsv(mandatarisData) {
   if (!mandatarisData || mandatarisData.length === 0) {
     return '';
   }
 
   let csvString = '';
   try {
-    csvString = new Parser().parse(mandatarisData);
+    csvString = await json2csv(mandatarisData);
   } catch (error) {
     throw new HttpError(
       'Something went wrong while parsing json to a csv string.',

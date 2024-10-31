@@ -221,7 +221,7 @@ mandatarissenRouter.post('/download', async (req: Request, res: Response) => {
     const mandatarisData =
       await downloadMandatarissenUsecase.fetchMandatarissen(requestParameters);
     const csvString =
-      await downloadMandatarissenUsecase.transformToCsv(mandatarisData);
+      await downloadMandatarissenUsecase.jsonToCsv(mandatarisData);
 
     return res.status(STATUS_CODE.OK).send({ data: btoa(csvString) });
   } catch (error) {
