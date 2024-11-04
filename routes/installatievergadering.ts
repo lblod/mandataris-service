@@ -193,14 +193,13 @@ async function getExistingGemeenteFractions(installatieVergaderingId: string) {
     GRAPH ?origin {
       ?installatieVergadering lmb:heeftBestuursperiode ?period.
       ?installatieVergadering mu:uuid ${escapedId} .
-      ?bestuursorgaan ext:origineleBestuursorgaan ?realOrg.
       ?bestuursorgaan mandaat:isTijdspecialisatieVan ?org.
+      ?bestuursorgaan lmb:heeftBestuursperiode ?period.
       ?fractie org:memberOf ?bestuursorgaan.
       ?fractie regorg:legalName ?name.
       OPTIONAL {
         ?fractie ext:isFractietype ?type.
       }
-      ?bestuursorgaan lmb:heeftBestuursperiode ?period.
     }
     FILTER NOT EXISTS {
       ?origin a <http://mu.semte.ch/vocabularies/ext/FormHistory>
