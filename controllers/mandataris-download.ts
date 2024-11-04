@@ -17,7 +17,12 @@ export const downloadMandatarissenUsecase = {
 };
 
 async function mandatarissenAsCsv(requestParameters): Promise<string> {
-  const { bestuursorgaanId, sort } = requestParameters;
+  const {
+    bestuursorgaanId,
+    sort,
+    hasFilterOnOnafhankelijkeFractie,
+    hasFilterOnNietBeschikbareFractie,
+  } = requestParameters;
 
   const mandatarisUris =
     await downloadMandatarissen.getWithFilters(requestParameters);
@@ -27,6 +32,7 @@ async function mandatarissenAsCsv(requestParameters): Promise<string> {
       mandatarisUris,
       bestuursorgaanId,
       getPropertyFilterForMandatarisSorting(sort),
+      hasFilterOnNietBeschikbareFractie && !hasFilterOnOnafhankelijkeFractie,
     );
 
   return await jsonToCsv(mandatarisData);
