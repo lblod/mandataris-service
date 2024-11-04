@@ -16,23 +16,24 @@ export const downloadMandatarissenUsecase = {
   mandatarissenAsCsv,
 };
 
-async function mandatarissenAsCsv(requestParameters): Promise<string> {
+async function mandatarissenAsCsv(queryParams): Promise<string> {
   const {
     bestuursorgaanId,
     sort,
     hasFilterOnOnafhankelijkeFractie,
     hasFilterOnNietBeschikbareFractie,
-  } = requestParameters;
+  } = queryParams;
 
   const mandatarisUris =
-    await downloadMandatarissen.getWithFilters(requestParameters);
+    await downloadMandatarissen.getWithFilters(queryParams);
 
   const mandatarisData =
     await downloadMandatarissen.getPropertiesOfMandatarissen(
       mandatarisUris,
       bestuursorgaanId,
       getPropertyFilterForMandatarisSorting(sort),
-      hasFilterOnNietBeschikbareFractie && !hasFilterOnOnafhankelijkeFractie,
+      hasFilterOnNietBeschikbareFractie === 'true' &&
+        hasFilterOnOnafhankelijkeFractie === 'false',
     );
 
   return await jsonToCsv(mandatarisData);
@@ -75,8 +76,9 @@ async function validateJsonQueryParams(queryParams) {
     }
   }
 
-  if (persoonIds.length >= 1) {
-    for (const persoonId of persoonIds) {
+  const personen = persoonIds.trim() !== '' ? persoonIds.split(',') : [];
+  if (personen.length >= 1) {
+    for (const persoonId of personen) {
       const isPersoon = await persoon.isValidId(persoonId);
       if (!isPersoon) {
         throw new HttpError(
@@ -87,8 +89,9 @@ async function validateJsonQueryParams(queryParams) {
     }
   }
 
-  if (fractieIds.length >= 1) {
-    for (const fractieId of fractieIds) {
+  const fracties = fractieIds.trim() !== '' ? fractieIds.split(',') : [];
+  if (fracties.length >= 1) {
+    for (const fractieId of fracties) {
       const isFractie = await fractie.isValidId(fractieId);
       if (!isFractie) {
         throw new HttpError(
@@ -98,8 +101,13 @@ async function validateJsonQueryParams(queryParams) {
       }
     }
   }
-  if (bestuursFunctieCodeIds.length >= 1) {
-    for (const bestuursFunctieCodeId of bestuursFunctieCodeIds) {
+
+  const bestuursFunctieCodes =
+    bestuursFunctieCodeIds.trim() !== ''
+      ? bestuursFunctieCodeIds.split(',')
+      : [];
+  if (bestuursFunctieCodes.length >= 1) {
+    for (const bestuursFunctieCodeId of bestuursFunctieCodes) {
       const isCode = await bestuursfunctie.isValidId(bestuursFunctieCodeId);
       if (!isCode) {
         throw new HttpError(
@@ -110,7 +118,17 @@ async function validateJsonQueryParams(queryParams) {
     }
   }
 
-  return queryParams;
+  delete queryParams.persoonIds;
+  delete queryParams.fractieIds;
+  delete queryParams.bestuursFunctieCodeIds;
+  delete queryParams.onlyShowActive;
+
+  return {
+    ...queryParams,
+    persoonIds: personen,
+    fractieIds: fracties,
+    bestuursFunctieCodeIds: bestuursFunctieCodes,
+  };
 }
 
 async function jsonToCsv(mandatarisData) {
