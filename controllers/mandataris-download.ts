@@ -1,6 +1,7 @@
 import { Request } from 'express';
 
 import { HttpError } from '../util/http-error';
+
 import { bestuursperiode } from '../data-access/bestuursperiode';
 import { STATUS_CODE } from '../util/constants';
 import { bestuursorgaan } from '../data-access/bestuursorgaan';
@@ -43,7 +44,7 @@ async function requestToJson(request: Request) {
   const requiredParameters = ['bestuursperiodeId'];
 
   requiredParameters.map((param) => {
-    if (!Object.keys(request.query).includes(param) || !request.query[param]) {
+    if (!Object.keys(request.query).includes(param)) {
       throw new HttpError(`${param} is missing in the query parameters`, 400);
     }
   });

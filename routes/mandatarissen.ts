@@ -1,9 +1,9 @@
+import Router from 'express-promise-router';
+
 import { Request, Response } from 'express';
 import multer from 'multer';
-import Router from 'express-promise-router';
 import { deleteInstanceWithTombstone } from '../data-access/delete';
 import { uploadCsv } from '../controllers/mandataris-upload';
-import { CsvUploadState } from '../types';
 import {
   addLinkLinkedMandataris,
   changeStateLinkedMandataris,
@@ -17,7 +17,9 @@ import {
   mandatarisUsecase,
 } from '../controllers/mandataris';
 import { downloadMandatarissenUsecase } from '../controllers/mandataris-download';
+
 import { STATUS_CODE } from '../util/constants';
+import { CsvUploadState } from '../types';
 
 const upload = multer({ dest: 'mandataris-uploads/' });
 
