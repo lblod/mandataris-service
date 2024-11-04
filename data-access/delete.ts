@@ -1,6 +1,6 @@
 import { query, sparqlEscapeDateTime, sparqlEscapeString } from 'mu';
 
-export const deleteMandataris = async (id: string) => {
+export const deleteInstanceWithTombstone = async (id: string) => {
   const q = `
   PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
   PREFIX astreams: <http://www.w3.org/ns/activitystreams#>

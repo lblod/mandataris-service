@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import multer from 'multer';
 import Router from 'express-promise-router';
-import { deleteMandataris } from '../data-access/delete';
+import { deleteInstanceWithTombstone } from '../data-access/delete';
 import { uploadCsv } from '../controllers/mandataris-upload';
 import { CsvUploadState } from '../types';
 import {
@@ -23,7 +23,7 @@ const upload = multer({ dest: 'mandataris-uploads/' });
 const mandatarissenRouter = Router();
 
 mandatarissenRouter.delete('/:id', async (req: Request, res: Response) => {
-  await deleteMandataris(req.params.id);
+  await deleteInstanceWithTombstone(req.params.id);
   return res.status(204).send();
 });
 

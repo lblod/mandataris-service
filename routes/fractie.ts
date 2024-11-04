@@ -5,8 +5,14 @@ import { Request, Response } from 'express';
 import { STATUS_CODE } from '../util/constants';
 import { fractieUsecase } from '../controllers/fractie';
 import { mandatarisUsecase } from '../controllers/mandataris';
+import { deleteInstanceWithTombstone } from '../data-access/delete';
 
 export const fractiesRouter = Router();
+
+fractiesRouter.delete('/:id', async (req: Request, res: Response) => {
+  await deleteInstanceWithTombstone(req.params.id);
+  return res.status(204).send();
+});
 
 fractiesRouter.get(
   '/onafhankelijk/:bestuursperiodeId/bestuursperiode',
