@@ -215,14 +215,15 @@ mandatarissenRouter.get(
   },
 );
 
-mandatarissenRouter.post('/download', async (req: Request, res: Response) => {
+mandatarissenRouter.get('/download', async (req: Request, res: Response) => {
   try {
-    const requestParameters =
-      await downloadMandatarissenUsecase.requestToJson(req);
+    const parameters = await downloadMandatarissenUsecase.requestToJson(req);
     const csvString =
-      await downloadMandatarissenUsecase.mandatarissenAsCsv(requestParameters);
+      await downloadMandatarissenUsecase.mandatarissenAsCsv(parameters);
 
-    return res.status(STATUS_CODE.OK).send({ data: btoa(csvString) });
+    res.set('Content-Type', 'text/csv');
+    res.set('Content-Disposition', 'attachment; filename="mandatarissen.csv"');
+    return res.status(STATUS_CODE.OK).send(csvString);
   } catch (error) {
     const message =
       error.message ??

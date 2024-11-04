@@ -42,22 +42,22 @@ async function requestToJson(request: Request) {
   const requiredParameters = ['bestuursperiodeId'];
 
   requiredParameters.map((param) => {
-    if (!Object.keys(request.body).includes(param)) {
-      throw new HttpError(`${param} is missing in the json body.`, 400);
+    if (!Object.keys(request.query).includes(param) || !request.query[param]) {
+      throw new HttpError(`${param} is missing in the query parameters`, 400);
     }
   });
 
-  return validateJsonRequestParameters(request.body);
+  return validateJsonQueryParams(request.query);
 }
 
-async function validateJsonRequestParameters(requestParameters) {
+async function validateJsonQueryParams(queryParams) {
   const {
     bestuursperiodeId,
     bestuursorgaanId,
     persoonIds,
     fractieIds,
     bestuursFunctieCodeIds,
-  } = requestParameters;
+  } = queryParams;
   const isBestuursperiode = await bestuursperiode.isValidId(bestuursperiodeId);
   if (!isBestuursperiode) {
     throw new HttpError(
@@ -110,7 +110,7 @@ async function validateJsonRequestParameters(requestParameters) {
     }
   }
 
-  return requestParameters;
+  return queryParams;
 }
 
 async function jsonToCsv(mandatarisData) {

@@ -5,7 +5,11 @@ export const bestuursperiode = {
   isValidId,
 };
 
-async function isValidId(id: string): Promise<boolean> {
+async function isValidId(id?: string): Promise<boolean> {
+  if (!id) {
+    return false;
+  }
+
   const askQuery = `
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
