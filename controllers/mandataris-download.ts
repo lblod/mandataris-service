@@ -84,14 +84,14 @@ async function validateJsonQueryParams(queryParams) {
   }
 
   if (bestuursFunctieCodeIds.length >= 1) {
-    for (const bestuursFunctieCodeId of bestuursFunctieCodeIds) {
-      const isCode = await bestuursfunctie.isValidId(bestuursFunctieCodeId);
-      if (!isCode) {
-        throw new HttpError(
-          `Bestuursfunctie code with id ${bestuursFunctieCodeId} not found.`,
-          STATUS_CODE.BAD_REQUEST,
-        );
-      }
+    const codes = await bestuursfunctie.areIdsValid(bestuursFunctieCodeIds);
+    if (!codes.isValid) {
+      throw new HttpError(
+        `Bestuursfunctie code with id: ${codes.unknownIds.join(
+          ', ',
+        )} not found.`,
+        STATUS_CODE.BAD_REQUEST,
+      );
     }
   }
 
