@@ -77,19 +77,21 @@ async function validateJsonQueryParams(queryParams) {
     const areFractiesValid = await fractie.areIdsValid(fractieIds);
     if (!areFractiesValid) {
       throw new HttpError(
-        `Not all fractie ids where found. (${persoonIds.join(', ')}).`,
+        `Not all fractie ids where found. (${fractieIds.join(', ')}).`,
         STATUS_CODE.BAD_REQUEST,
       );
     }
   }
 
   if (bestuursFunctieCodeIds.length >= 1) {
-    const codes = await bestuursfunctie.areIdsValid(bestuursFunctieCodeIds);
-    if (!codes.isValid) {
+    const areCodesValid = await bestuursfunctie.areIdsValid(
+      bestuursFunctieCodeIds,
+    );
+    if (!areCodesValid) {
       throw new HttpError(
-        `Bestuursfunctie code with id: ${codes.unknownIds.join(
+        `Not all bestuursfunctie code ids where found. (${bestuursFunctieCodeIds.join(
           ', ',
-        )} not found.`,
+        )}).`,
         STATUS_CODE.BAD_REQUEST,
       );
     }

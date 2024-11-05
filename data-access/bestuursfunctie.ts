@@ -1,24 +1,21 @@
 import { sparqlEscapeString, query } from 'mu';
-import { getSparqlResults } from '../util/sparql-result';
+import { findFirstSparqlResult } from '../util/sparql-result';
 
 export const bestuursfunctie = {
   areIdsValid,
 };
 
-async function areIdsValid(ids?: Array<string>) {
+async function areIdsValid(ids?: Array<string>): Promise<boolean> {
   if (!ids || ids.length === 0) {
-    return {
-      isValid: false,
-      unknownIds: [],
-    };
+    return false;
   }
 
   const values = ids.map((id) => sparqlEscapeString(id));
-  const getNonExisting = `
+  const countOfExisting = `
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
-    SELECT DISTINCT ?bestuursfunctieId
+    SELECT (COUNT(DISTINCT ?bestuursfunctieCode ) as ?count)
     WHERE {
       VALUES ?bestuursfunctieId { ${values.join('\n')} }
       FILTER NOT EXISTS {
@@ -27,11 +24,12 @@ async function areIdsValid(ids?: Array<string>) {
       }
     }
   `;
-  const sparqlResult = await query(getNonExisting);
-  const nonExistingResults = getSparqlResults(sparqlResult);
+  const sparqlResult = await query(countOfExisting);
+  const result = findFirstSparqlResult(sparqlResult);
+  if (!result) {
+    return false;
+  }
 
-  return {
-    isValid: nonExistingResults.length === 0,
-    unknownIds: nonExistingResults.map((term) => term.bestuursfunctieId?.value),
-  };
+  const count = parseInt(result.count?.value);
+  return !isNaN(count) && count === ids.length;
 }
