@@ -95,30 +95,60 @@ async function getWithFilters(filters) {
 }
 
 function getFractieFilters(filters): string {
-  const { fractieIds, hasFilterOnOnafhankelijkeFractie } = filters;
+  const {
+    fractieIds,
+    hasFilterOnOnafhankelijkeFractie,
+    hasFilterOnNietBeschikbareFractie,
+  } = filters;
   const idValues = fractieIds.map((id) => sparqlEscapeString(id)).join('\n');
-  const filterOnafhankelijk =
-    '?fractie ext:isFractietype fractieType:Onafhankelijk.';
-  const isOptional =
-    fractieIds.length === 0 && !hasFilterOnOnafhankelijkeFractie;
+  const unions = [
+    {
+      apply:
+        fractieIds.length === 0 &&
+        !hasFilterOnNietBeschikbareFractie &&
+        !hasFilterOnOnafhankelijkeFractie,
+      filter: `
+      UNION {
+        OPTIONAL {
+          ?mandataris org:hasMembership ?lidmaatschap.
+          ?lidmaatschap org:organisation ?fractie.
+        }
+      }
+      `,
+    },
+    {
+      apply: hasFilterOnNietBeschikbareFractie,
+      filter: `
+        UNION {
+         FILTER NOT EXISTS {
+           ?mandataris org:hasMembership ?lidmaatschap.
+           ?lidmaatschap org:organisation ?fractie.
+         }
+        }
+      `,
+    },
+    {
+      apply: hasFilterOnOnafhankelijkeFractie,
+      filter: `
+        UNION {
+         ?fractie ext:isFractietype fractieType:Onafhankelijk.
+        }
+      `,
+    },
+  ];
+  const unionFilters = unions
+    .filter((union) => union.apply)
+    .map((union) => union.filter)
+    .join('\n');
 
   return `
-      {
-        ${fractieIds.length >= 1 ? `VALUES ?fractieId {\n ${idValues} }` : ''}
-        ${isOptional ? 'OPTIONAL {\n' : ''}
-          ?mandataris org:hasMembership ?lidmaatschap.
-          ?lidmaatschap org:organisation ?fractie.
-        ${isOptional ? '}' : ''}
-        ${fractieIds.length >= 1 ? '?fractie mu:uuid ?fractieId.' : ''}
-      } UNION {
-        ${isOptional ? 'OPTIONAL {\n' : ''}
-          ?mandataris org:hasMembership ?lidmaatschap.
-          ?lidmaatschap org:organisation ?fractie.
-          ${fractieIds.length >= 1 ? '?fractie mu:uuid ?fractieId.' : ''}
-        ${isOptional ? '}' : ''}
-        ${hasFilterOnOnafhankelijkeFractie ? filterOnafhankelijk : ''}
-      } 
-    `;
+    {
+      ${fractieIds.length >= 1 ? `VALUES ?fractieId {\n ${idValues} }` : ''}
+        ?mandataris org:hasMembership ?lidmaatschap.
+        ?lidmaatschap org:organisation ?fractie.
+      ${fractieIds.length >= 1 ? '?fractie mu:uuid ?fractieId.' : ''}
+    }${unionFilters}
+  `;
 }
 
 async function getPropertiesOfMandatarissen(
