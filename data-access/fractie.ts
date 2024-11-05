@@ -33,10 +33,8 @@ async function areIdsValid(ids?: Array<string>): Promise<boolean> {
     SELECT (COUNT(DISTINCT ?fractie ) as ?count)
     WHERE {
       VALUES ?fractieId { ${values.join('\n')} }
-      FILTER NOT EXISTS {
         ?fractie a mandaat:Fractie.
         ?fractie mu:uuid ?fractieId.
-      }
     }
   `;
   const sparqlResult = await query(countOfExisting);

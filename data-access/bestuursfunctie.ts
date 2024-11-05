@@ -18,10 +18,8 @@ async function areIdsValid(ids?: Array<string>): Promise<boolean> {
     SELECT (COUNT(DISTINCT ?bestuursfunctieCode ) as ?count)
     WHERE {
       VALUES ?bestuursfunctieId { ${values.join('\n')} }
-      FILTER NOT EXISTS {
         ?bestuursfunctieCode a ext:BestuursfunctieCode.
         ?bestuursfunctieCode mu:uuid ?bestuursfunctieId.
-      }
     }
   `;
   const sparqlResult = await query(countOfExisting);
