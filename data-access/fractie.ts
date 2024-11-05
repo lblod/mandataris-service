@@ -7,38 +7,49 @@ import {
 } from 'mu';
 import { updateSudo } from '@lblod/mu-auth-sudo';
 
-import {
-  getBooleanSparqlResult,
-  getSparqlResults,
-} from '../util/sparql-result';
+import { getSparqlResults } from '../util/sparql-result';
 import { FRACTIE_TYPE } from '../util/constants';
-import { Term, TermProperty } from '../types';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
+import { Term, TermProperty } from '../types';
 
 export const fractie = {
-  isValidId,
+  areIdsValid,
   forBestuursperiode,
   addFractieOnPerson,
   addFractieOnPersonWithGraph,
   removeFractieWhenNoLidmaatschap,
 };
 
-async function isValidId(id: string | null): Promise<boolean> {
-  if (!id) {
-    return false;
+async function areIdsValid(ids?: Array<string>) {
+  if (!ids || ids.length === 0) {
+    return {
+      isValid: false,
+      unknownIds: [],
+    };
   }
 
-  const askQuery = `
+  const values = ids.map((id) => sparqlEscapeString(id));
+  const getNonExisting = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-    ASK {
-      ?fractie a mandaat:Fractie;
-        mu:uuid ${sparqlEscapeString(id)}.
+
+    SELECT DISTINCT ?fractieId
+    WHERE {
+      VALUES ?fractieId { ${values.join('\n')} }
+      OPTIONAL {
+        ?fractie a mandaat:Fractie.
+        ?fractie mu:uuid ?fractieId.
+      }
+      FILTER (!BOUND(?fractie))
     }
   `;
-  const sparqlResult = await query(askQuery);
+  const sparqlResult = await query(getNonExisting);
+  const nonExistingResults = getSparqlResults(sparqlResult);
 
-  return getBooleanSparqlResult(sparqlResult);
+  return {
+    isValid: nonExistingResults.length === 0,
+    unknownIds: nonExistingResults.map((term) => term.fractieId?.value),
+  };
 }
 
 async function forBestuursperiode(
