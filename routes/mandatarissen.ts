@@ -2,7 +2,11 @@ import Router from 'express-promise-router';
 
 import { Request, Response } from 'express';
 import multer from 'multer';
+
+import { mandatarisExportRequest } from '../Requests/mandataris-export';
+
 import { deleteInstanceWithTombstone } from '../data-access/delete';
+
 import { uploadCsv } from '../controllers/mandataris-upload';
 import {
   addLinkLinkedMandataris,
@@ -219,7 +223,7 @@ mandatarissenRouter.get(
 
 mandatarissenRouter.get('/download', async (req: Request, res: Response) => {
   try {
-    const parameters = await downloadMandatarissenUsecase.requestToJson(req);
+    const parameters = mandatarisExportRequest(req);
     const csvString =
       await downloadMandatarissenUsecase.mandatarissenAsCsv(parameters);
 

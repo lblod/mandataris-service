@@ -1,5 +1,3 @@
-import { Request } from 'express';
-
 import { HttpError } from '../util/http-error';
 
 import { bestuursperiode } from '../data-access/bestuursperiode';
@@ -13,11 +11,12 @@ import { bestuursfunctie } from '../data-access/bestuursfunctie';
 import { json2csv } from 'json-2-csv';
 
 export const downloadMandatarissenUsecase = {
-  requestToJson,
   mandatarissenAsCsv,
 };
 
 async function mandatarissenAsCsv(queryParams): Promise<string> {
+  await validateJsonQueryParams(queryParams);
+
   const {
     bestuursorgaanId,
     sort,
@@ -33,23 +32,10 @@ async function mandatarissenAsCsv(queryParams): Promise<string> {
       mandatarisUris,
       bestuursorgaanId,
       getPropertyFilterForMandatarisSorting(sort),
-      hasFilterOnNietBeschikbareFractie === 'true' &&
-        hasFilterOnOnafhankelijkeFractie === 'false',
+      hasFilterOnNietBeschikbareFractie && !hasFilterOnOnafhankelijkeFractie,
     );
 
   return await jsonToCsv(mandatarisData);
-}
-
-async function requestToJson(request: Request) {
-  const requiredParameters = ['bestuursperiodeId'];
-
-  requiredParameters.map((param) => {
-    if (!Object.keys(request.query).includes(param)) {
-      throw new HttpError(`${param} is missing in the query parameters`, 400);
-    }
-  });
-
-  return validateJsonQueryParams(request.query);
 }
 
 async function validateJsonQueryParams(queryParams) {
@@ -77,9 +63,8 @@ async function validateJsonQueryParams(queryParams) {
     }
   }
 
-  const personen = persoonIds.trim() !== '' ? persoonIds.split(',') : [];
-  if (personen.length >= 1) {
-    for (const persoonId of personen) {
+  if (persoonIds.length >= 1) {
+    for (const persoonId of persoonIds) {
       const isPersoon = await persoon.isValidId(persoonId);
       if (!isPersoon) {
         throw new HttpError(
@@ -90,9 +75,8 @@ async function validateJsonQueryParams(queryParams) {
     }
   }
 
-  const fracties = fractieIds.trim() !== '' ? fractieIds.split(',') : [];
-  if (fracties.length >= 1) {
-    for (const fractieId of fracties) {
+  if (fractieIds.length >= 1) {
+    for (const fractieId of fractieIds) {
       const isFractie = await fractie.isValidId(fractieId);
       if (!isFractie) {
         throw new HttpError(
@@ -103,12 +87,8 @@ async function validateJsonQueryParams(queryParams) {
     }
   }
 
-  const bestuursFunctieCodes =
-    bestuursFunctieCodeIds.trim() !== ''
-      ? bestuursFunctieCodeIds.split(',')
-      : [];
-  if (bestuursFunctieCodes.length >= 1) {
-    for (const bestuursFunctieCodeId of bestuursFunctieCodes) {
+  if (bestuursFunctieCodeIds.length >= 1) {
+    for (const bestuursFunctieCodeId of bestuursFunctieCodeIds) {
       const isCode = await bestuursfunctie.isValidId(bestuursFunctieCodeId);
       if (!isCode) {
         throw new HttpError(
@@ -119,17 +99,7 @@ async function validateJsonQueryParams(queryParams) {
     }
   }
 
-  delete queryParams.persoonIds;
-  delete queryParams.fractieIds;
-  delete queryParams.bestuursFunctieCodeIds;
-  delete queryParams.onlyShowActive;
-
-  return {
-    ...queryParams,
-    persoonIds: personen,
-    fractieIds: fracties,
-    bestuursFunctieCodeIds: bestuursFunctieCodes,
-  };
+  return queryParams;
 }
 
 async function jsonToCsv(mandatarisData) {

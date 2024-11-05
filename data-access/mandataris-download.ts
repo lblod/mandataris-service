@@ -25,7 +25,7 @@ async function getWithFilters(filters) {
       ?bestuursorgaanInTijd mu:uuid ${sparqlEscapeString(bestuursorgaanId)}.
     `;
   }
-  if (filters.onlyShowActive == 'true') {
+  if (filters.onlyShowActive) {
     const escapedTodaysDate = sparqlEscapeDateTime(new Date());
     onlyActiveFilter = `
       ?mandataris mandaat:einde ?einde.
@@ -115,7 +115,7 @@ function getFractieFilters(filters): string {
           ?lidmaatschap org:organisation ?fractie.
           ${fractieIds.length >= 1 ? '?fractie mu:uuid ?fractieId.' : ''}
         ${isOptional ? '}' : ''}
-        ${hasFilterOnOnafhankelijkeFractie == 'true' ? filterOnafhankelijk : ''}
+        ${hasFilterOnOnafhankelijkeFractie ? filterOnafhankelijk : ''}
       } 
     `;
 }
