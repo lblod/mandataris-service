@@ -1,7 +1,7 @@
 import { HttpError } from '../util/http-error';
+import { STATUS_CODE } from '../util/constants';
 
 import { bestuursperiode } from '../data-access/bestuursperiode';
-import { STATUS_CODE } from '../util/constants';
 import { bestuursorgaan } from '../data-access/bestuursorgaan';
 import { downloadMandatarissen } from '../data-access/mandataris-download';
 import { persoon } from '../data-access/persoon';
@@ -64,14 +64,12 @@ async function validateJsonQueryParams(queryParams) {
   }
 
   if (persoonIds.length >= 1) {
-    for (const persoonId of persoonIds) {
-      const isPersoon = await persoon.isValidId(persoonId);
-      if (!isPersoon) {
-        throw new HttpError(
-          `Persoon with id ${persoonId} not found.`,
-          STATUS_CODE.BAD_REQUEST,
-        );
-      }
+    const personen = await persoon.areIdsValid(persoonIds);
+    if (!personen.isValid) {
+      throw new HttpError(
+        `Person with id: ${personen.unknownIds.join(', ')} not found.`,
+        STATUS_CODE.BAD_REQUEST,
+      );
     }
   }
 

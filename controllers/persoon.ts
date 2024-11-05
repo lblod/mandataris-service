@@ -1,5 +1,6 @@
 import { bestuursperiode } from '../data-access/bestuursperiode';
 import { persoon } from '../data-access/persoon';
+
 import { STATUS_CODE } from '../util/constants';
 import { HttpError } from '../util/http-error';
 
@@ -12,10 +13,10 @@ async function getFractie(
   id: string,
   bestuursperiodeId: string,
 ): Promise<string | null> {
-  const isPersoon = await persoon.isValidId(id);
-  if (!isPersoon) {
+  const personen = await persoon.areIdsValid([id]);
+  if (!personen.isValid) {
     throw new HttpError(
-      `Persoon with id ${id} not found.`,
+      `Persoon with id ${personen.unknownIds.at(0)} not found.`,
       STATUS_CODE.BAD_REQUEST,
     );
   }
@@ -34,10 +35,10 @@ async function getFractie(
 }
 
 async function setEndDateOfActiveMandatarissen(id: string): Promise<void> {
-  const isPersoon = await persoon.isValidId(id);
-  if (!isPersoon) {
+  const personen = await persoon.areIdsValid([id]);
+  if (!personen.isValid) {
     throw new HttpError(
-      `Persoon with id ${id} not found.`,
+      `Persoon with id ${personen.unknownIds.at(0)} not found.`,
       STATUS_CODE.BAD_REQUEST,
     );
   }

@@ -13,36 +13,50 @@ import { TERM_STAGING_GRAPH } from './mandatees-decisions';
 import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
+  getSparqlResults,
 } from '../util/sparql-result';
 import { getIdentifierFromPersonUri } from '../util/find-uuid-in-uri';
 
 // note since we use the regular query, not sudo queries, be sure to log in when using this endpoint. E.g. use the vendor login
 
 export const persoon = {
-  isValidId,
+  areIdsValid,
   getFractie,
   removeFractieFromCurrent,
   removeFractieFromCurrentWithGraph,
   setEndDateOfActiveMandatarissen,
 };
 
-async function isValidId(id: string | null): Promise<boolean> {
-  if (!id) {
-    return false;
+async function areIdsValid(ids?: Array<string>) {
+  if (!ids || ids.length === 0) {
+    return {
+      isValid: false,
+      unknownIds: [],
+    };
   }
 
-  const askQuery = `
+  const values = ids.map((id) => sparqlEscapeString(id));
+  const getNonExisting = `
     PREFIX person: <http://www.w3.org/ns/person#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
-    ASK {
-      ?persoon a person:Person;
-        mu:uuid ${sparqlEscapeString(id)}.
+    SELECT DISTINCT ?persoonId
+    WHERE {
+      VALUES ?persoonId { ${values.join('\n')} }
+        OPTIONAL {
+          ?persoon a person:Person.
+          ?persoon mu:uuid ?persoonId.
+        }
+      FILTER (!BOUND(?persoon))
     }
   `;
-  const sparqlResult = await query(askQuery);
+  const sparqlResult = await query(getNonExisting);
+  const nonExistingResults = getSparqlResults(sparqlResult);
 
-  return getBooleanSparqlResult(sparqlResult);
+  return {
+    isValid: nonExistingResults.length === 0,
+    unknownIds: nonExistingResults.map((term) => term.persoonId?.value),
+  };
 }
 
 export const findPerson = async (rrn: string) => {
