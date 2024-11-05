@@ -21,7 +21,7 @@ async function getWithFilters(filters) {
 
   if (bestuursorgaanId) {
     bestuursorgaanInTijdFilter = `
-      ?mandaat ^org:hasPost ?bestuursorgaanInTijd.
+      ?bestuursorgaanInTijd org:hasPost ?mandaat.
       ?bestuursorgaanInTijd mu:uuid ${sparqlEscapeString(bestuursorgaanId)}.
     `;
   }
