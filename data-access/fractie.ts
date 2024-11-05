@@ -36,11 +36,10 @@ async function areIdsValid(ids?: Array<string>) {
     SELECT DISTINCT ?fractieId
     WHERE {
       VALUES ?fractieId { ${values.join('\n')} }
-      OPTIONAL {
+      FILTER NOT EXISTS {
         ?fractie a mandaat:Fractie.
         ?fractie mu:uuid ?fractieId.
       }
-      FILTER (!BOUND(?fractie))
     }
   `;
   const sparqlResult = await query(getNonExisting);

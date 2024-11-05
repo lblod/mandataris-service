@@ -21,11 +21,10 @@ async function areIdsValid(ids?: Array<string>) {
     SELECT DISTINCT ?bestuursfunctieId
     WHERE {
       VALUES ?bestuursfunctieId { ${values.join('\n')} }
-      OPTIONAL {
+      FILTER NOT EXISTS {
         ?bestuursfunctieCode a ext:BestuursfunctieCode.
         ?bestuursfunctieCode mu:uuid ?bestuursfunctieId.
       }
-      FILTER (!BOUND(?bestuursfunctieCode))
     }
   `;
   const sparqlResult = await query(getNonExisting);
