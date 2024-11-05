@@ -74,10 +74,10 @@ async function validateJsonQueryParams(queryParams) {
   }
 
   if (fractieIds.length >= 1) {
-    const fracties = await fractie.areIdsValid(fractieIds);
-    if (!fracties.isValid) {
+    const areFractiesValid = await fractie.areIdsValid(fractieIds);
+    if (!areFractiesValid) {
       throw new HttpError(
-        `Fractie with id: ${fracties.unknownIds.join(', ')} not found.`,
+        `Not all fractie ids where found. (${persoonIds.join(', ')}).`,
         STATUS_CODE.BAD_REQUEST,
       );
     }
