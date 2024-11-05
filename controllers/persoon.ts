@@ -13,10 +13,10 @@ async function getFractie(
   id: string,
   bestuursperiodeId: string,
 ): Promise<string | null> {
-  const personen = await persoon.areIdsValid([id]);
-  if (!personen.isValid) {
+  const isPersoon = await persoon.areIdsValid([id]);
+  if (!isPersoon) {
     throw new HttpError(
-      `Persoon with id ${personen.unknownIds.at(0)} not found.`,
+      `Person with id ${id} was not found.`,
       STATUS_CODE.BAD_REQUEST,
     );
   }
@@ -35,10 +35,10 @@ async function getFractie(
 }
 
 async function setEndDateOfActiveMandatarissen(id: string): Promise<void> {
-  const personen = await persoon.areIdsValid([id]);
-  if (!personen.isValid) {
+  const isPersoon = await persoon.areIdsValid([id]);
+  if (!isPersoon) {
     throw new HttpError(
-      `Persoon with id ${personen.unknownIds.at(0)} not found.`,
+      `Person with id ${id} was not found.`,
       STATUS_CODE.BAD_REQUEST,
     );
   }

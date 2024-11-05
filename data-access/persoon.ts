@@ -13,7 +13,6 @@ import { TERM_STAGING_GRAPH } from './mandatees-decisions';
 import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
-  getSparqlResults,
 } from '../util/sparql-result';
 import { getIdentifierFromPersonUri } from '../util/find-uuid-in-uri';
 
@@ -27,35 +26,31 @@ export const persoon = {
   setEndDateOfActiveMandatarissen,
 };
 
-async function areIdsValid(ids?: Array<string>) {
+async function areIdsValid(ids?: Array<string>): Promise<boolean> {
   if (!ids || ids.length === 0) {
-    return {
-      isValid: false,
-      unknownIds: [],
-    };
+    return false;
   }
 
   const values = ids.map((id) => sparqlEscapeString(id));
-  const getNonExisting = `
+  const countOfExisting = `
     PREFIX person: <http://www.w3.org/ns/person#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
-    SELECT DISTINCT ?persoonId
+    SELECT (COUNT(DISTINCT ?persoon ) as ?count)
     WHERE {
       VALUES ?persoonId { ${values.join('\n')} }
-      FILTER NOT EXISTS {
         ?persoon a person:Person.
         ?persoon mu:uuid ?persoonId.
-      }
     }
   `;
-  const sparqlResult = await query(getNonExisting);
-  const nonExistingResults = getSparqlResults(sparqlResult);
+  const sparqlResult = await query(countOfExisting);
+  const result = findFirstSparqlResult(sparqlResult);
+  if (!result) {
+    return false;
+  }
 
-  return {
-    isValid: nonExistingResults.length === 0,
-    unknownIds: nonExistingResults.map((term) => term.persoonId?.value),
-  };
+  const count = parseInt(result.count?.value);
+  return !isNaN(count) && count === ids.length;
 }
 
 export const findPerson = async (rrn: string) => {
