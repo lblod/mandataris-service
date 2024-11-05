@@ -25,7 +25,7 @@ async function getWithFilters(filters) {
       ?bestuursorgaanInTijd mu:uuid ${sparqlEscapeString(bestuursorgaanId)}.
     `;
   }
-  if (filters.onlyShowActive) {
+  if (filters.activeOnly) {
     const escapedTodaysDate = sparqlEscapeDateTime(new Date());
     onlyActiveFilter = `
       ?mandataris mandaat:einde ?einde.
@@ -38,6 +38,7 @@ async function getWithFilters(filters) {
         ?einde >= ?startBestuursorgaan &&
         ?einde >= ${escapedTodaysDate}
       )
+      BIND(IF(BOUND(?eindeBestuursorgaan), ?eindeBestuursorgaan, ${escapedTodaysDate}) AS ?saveEindeBestuursorgaan).
     `;
   }
 
