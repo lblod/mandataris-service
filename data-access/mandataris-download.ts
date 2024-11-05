@@ -155,20 +155,14 @@ async function getPropertiesOfMandatarissen(
   mandatarisUris: Array<string>,
   bestuursorgaanInTijdId: string | null,
   sort: { ascOrDesc: 'ASC' | 'DESC'; filterProperty: string } | null,
-  withFilterNietBeschikbaar: boolean,
 ): Promise<Array<{ [key: string]: string }>> {
   let sortFilter: string | null = null;
   let bestuursorgaanInTijdFilter: string | null = null;
-  let nietBeschikbaarFilter: string | null = null;
 
   if (sort) {
     sortFilter = `
       ORDER BY ${sort.ascOrDesc}(${sort.filterProperty})
     `;
-  }
-
-  if (withFilterNietBeschikbaar) {
-    nietBeschikbaarFilter = 'FILTER(!BOUND(?lidmaatschap) || !BOUND(?fractie))';
   }
 
   if (bestuursorgaanInTijdId) {
@@ -239,7 +233,6 @@ async function getPropertiesOfMandatarissen(
       OPTIONAL {
         ?mandataris mandaat:einde ?einde.
       }
-      ${nietBeschikbaarFilter ?? ''}
     }
     ${sortFilter ?? ''}
   `;
