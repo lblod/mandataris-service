@@ -53,6 +53,7 @@ async function validateJsonQueryParams(queryParams) {
       STATUS_CODE.BAD_REQUEST,
     );
   }
+
   if (bestuursorgaanId) {
     const isBestuursorgaan = await bestuursorgaan.isValidId(bestuursorgaanId);
     if (!isBestuursorgaan) {
@@ -62,12 +63,11 @@ async function validateJsonQueryParams(queryParams) {
       );
     }
   }
-
   if (persoonIds.length >= 1) {
-    const personen = await persoon.areIdsValid(persoonIds);
-    if (!personen.isValid) {
+    const arePersonenValid = await persoon.areIdsValid(persoonIds);
+    if (!arePersonenValid) {
       throw new HttpError(
-        `Person with id: ${personen.unknownIds.join(', ')} not found.`,
+        `Not all person ids where found. (${persoonIds.join(', ')}).`,
         STATUS_CODE.BAD_REQUEST,
       );
     }

@@ -5,7 +5,7 @@ export const bestuursorgaan = {
   isValidId,
 };
 
-async function isValidId(id: string | null): Promise<boolean> {
+async function isValidId(id?: string): Promise<boolean> {
   if (!id) {
     return false;
   }

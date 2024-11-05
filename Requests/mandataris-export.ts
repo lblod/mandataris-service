@@ -39,7 +39,7 @@ export function mandatarisExportRequest(request: Request) {
 }
 
 function stringToArray(commaSeparatedString) {
-  return commaSeparatedString.trim() !== ''
+  return commaSeparatedString && commaSeparatedString.trim() !== ''
     ? commaSeparatedString.split(',')
     : [];
 }
