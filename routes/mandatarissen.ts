@@ -3,7 +3,7 @@ import Router from 'express-promise-router';
 import { Request, Response } from 'express';
 import multer from 'multer';
 
-import { mandatarisExportRequest } from '../Requests/mandataris-export';
+import { mandatarisDownloadRequest } from '../Requests/mandataris-download';
 
 import { deleteInstanceWithTombstone } from '../data-access/delete';
 
@@ -20,7 +20,7 @@ import {
   handleBulkSetPublicationStatus,
   mandatarisUsecase,
 } from '../controllers/mandataris';
-import { downloadMandatarissenUsecase } from '../controllers/mandataris-download';
+import { mandatarisDownloadUsecase } from '../controllers/mandataris-download';
 
 import { STATUS_CODE } from '../util/constants';
 import { CsvUploadState } from '../types';
@@ -223,9 +223,8 @@ mandatarissenRouter.get(
 
 mandatarissenRouter.get('/download', async (req: Request, res: Response) => {
   try {
-    const parameters = mandatarisExportRequest(req);
-    const csvString =
-      await downloadMandatarissenUsecase.mandatarissenAsCsv(parameters);
+    const parameters = mandatarisDownloadRequest(req);
+    const csvString = await mandatarisDownloadUsecase.toCsv(parameters);
 
     res.set('Content-Type', 'text/csv');
     res.set('Content-Disposition', 'attachment; filename="mandatarissen.csv"');

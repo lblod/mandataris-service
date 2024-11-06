@@ -3,11 +3,11 @@ import { getSparqlResults } from '../util/sparql-result';
 import { sparqlEscapeDateTime, sparqlEscapeUri } from '../util/mu';
 
 export const downloadMandatarissen = {
-  getWithFilters,
+  getUrisForFilters,
   getPropertiesOfMandatarissen,
 };
 
-async function getWithFilters(filters) {
+async function getUrisForFilters(filters) {
   const {
     bestuursperiodeId,
     bestuursorgaanId,
@@ -84,7 +84,7 @@ async function getWithFilters(filters) {
       ${bestuursorgaanInTijdFilter ?? ''}
       ${onlyActiveFilter ?? ''}
       ${persoonFilter ?? ''}
-      ${getFractieFilters(filters)}
+      ${createFractieFilter(filters)}
       ${mandaatTypeFilter ?? ''}
     }
   `;
@@ -94,7 +94,7 @@ async function getWithFilters(filters) {
   return getSparqlResults(sparqlResult).map((res) => res.mandataris.value);
 }
 
-function getFractieFilters(filters): string {
+function createFractieFilter(filters): string {
   const {
     fractieIds,
     hasFilterOnOnafhankelijkeFractie,

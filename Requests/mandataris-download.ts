@@ -2,7 +2,7 @@ import { Request } from 'express';
 
 import { HttpError } from '../util/http-error';
 
-export function mandatarisExportRequest(request: Request) {
+export function mandatarisDownloadRequest(request: Request) {
   const requiredParameters = ['bestuursperiodeId'];
 
   requiredParameters.map((param) => {

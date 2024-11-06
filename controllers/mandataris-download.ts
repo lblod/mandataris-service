@@ -10,29 +10,27 @@ import { bestuursfunctie } from '../data-access/bestuursfunctie';
 
 import { json2csv } from 'json-2-csv';
 
-export const downloadMandatarissenUsecase = {
-  mandatarissenAsCsv,
+export const mandatarisDownloadUsecase = {
+  toCsv,
 };
 
-async function mandatarissenAsCsv(queryParams): Promise<string> {
-  await validateJsonQueryParams(queryParams);
-
-  const { bestuursorgaanId, sort } = queryParams;
+async function toCsv(queryParams): Promise<string> {
+  await validateQueryParams(queryParams);
 
   const mandatarisUris =
-    await downloadMandatarissen.getWithFilters(queryParams);
+    await downloadMandatarissen.getUrisForFilters(queryParams);
 
   const mandatarisData =
     await downloadMandatarissen.getPropertiesOfMandatarissen(
       mandatarisUris,
-      bestuursorgaanId,
-      getPropertyFilterForMandatarisSorting(sort),
+      queryParams.bestuursorgaanId,
+      getSortingPropertyForQuery(queryParams.sort),
     );
 
   return await jsonToCsv(mandatarisData);
 }
 
-async function validateJsonQueryParams(queryParams) {
+async function validateQueryParams(queryParams) {
   const {
     bestuursperiodeId,
     bestuursorgaanId,
@@ -94,14 +92,14 @@ async function validateJsonQueryParams(queryParams) {
   return queryParams;
 }
 
-async function jsonToCsv(mandatarisData) {
-  if (!mandatarisData || mandatarisData.length === 0) {
+async function jsonToCsv(jsonArray) {
+  if (!jsonArray || jsonArray.length === 0) {
     return '';
   }
 
   let csvString = '';
   try {
-    csvString = await json2csv(mandatarisData);
+    csvString = await json2csv(jsonArray);
   } catch (error) {
     throw new HttpError(
       'Something went wrong while parsing json to a csv string.',
@@ -112,7 +110,7 @@ async function jsonToCsv(mandatarisData) {
   return csvString;
 }
 
-function getPropertyFilterForMandatarisSorting(sort: string | null) {
+function getSortingPropertyForQuery(sort?: string) {
   if (!sort) {
     return null;
   }
