@@ -5,6 +5,8 @@ import { jsonToCsv } from '../util/json-to-csv';
 import { downloadMandatarissen } from '../data-access/mandataris-download';
 import { areIdsValid, RDF_TYPE } from '../util/are-ids-valid';
 
+import moment from 'moment';
+
 export const mandatarisDownloadUsecase = {
   toCsv,
 };
@@ -21,8 +23,9 @@ async function toCsv(queryParams): Promise<string> {
       queryParams.bestuursorgaanId,
       getSortingPropertyForQuery(queryParams.sort),
     );
+  const formatMandatarisData = getFormattedJsonResult(mandatarisData);
 
-  return await jsonToCsv(mandatarisData);
+  return await jsonToCsv(formatMandatarisData);
 }
 
 async function validateQueryParams(queryParams) {
@@ -124,4 +127,25 @@ function getSortingPropertyForQuery(sort?: string) {
     ascOrDesc: sort[0] === '-' ? 'DESC' : ('ASC' as 'ASC' | 'DESC'),
     filterProperty: mapping[sort],
   };
+}
+
+function getFormattedJsonResult(jsonArray) {
+  const dateFormat = (date?: string) =>
+    date?.trim() !== '' ? moment(date).format('DD-MM-YYYY') : '';
+  const formatMap = {
+    StartMandaat: (date) => dateFormat(date),
+    EindeMandaat: (date) => dateFormat(date),
+  };
+  return jsonArray.map((jsonObject) => {
+    const formattedResult = {};
+    for (const key in jsonObject) {
+      const originalValue = jsonObject[key];
+      const keyToFormat = Object.keys(formatMap).includes(key);
+      formattedResult[key] = keyToFormat
+        ? formatMap[key](originalValue)
+        : originalValue;
+    }
+
+    return formattedResult;
+  });
 }
