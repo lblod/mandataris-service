@@ -29,17 +29,21 @@ async function getUrisForFilters(filters) {
   if (filters.activeOnly) {
     const escapedTodaysDate = sparqlEscapeDateTime(new Date());
     onlyActiveFilter = `
-      ?mandataris mandaat:einde ?einde.
-
+      OPTIONAL {
+        ?mandataris mandaat:einde ?einde.
+      }
       ?bestuursorgaanInTijd mandaat:bindingStart ?startBestuursorgaan. 
-      ?bestuursorgaanInTijd mandaat:bindingEinde ?eindeBestuursorgaan. 
+      OPTIONAL {
+        ?bestuursorgaanInTijd mandaat:bindingEinde ?eindeBestuursorgaan. 
+      }
 
       FILTER (
-        ?einde <= ?eindeBestuursorgaan &&
-        ?einde >= ?startBestuursorgaan &&
-        ?einde >= ${escapedTodaysDate}
+        ?saveEinde <= ?saveEindeBestuursorgaan &&
+        ?saveEinde >= ?startBestuursorgaan &&
+        ?saveEinde >= ${escapedTodaysDate}
       )
       BIND(IF(BOUND(?eindeBestuursorgaan), ?eindeBestuursorgaan, ${escapedTodaysDate}) AS ?saveEindeBestuursorgaan).
+      BIND(IF(BOUND(?einde), ?einde, ${escapedTodaysDate}) AS ?saveEinde).
     `;
   }
 
