@@ -208,15 +208,17 @@ async function getPropertiesOfMandatarissen(
       VALUES ?mandataris { ${escapedUriValues} }
       ?mandataris a mandaat:Mandataris.
       ?mandataris org:holds ?mandaat.
-      ?mandataris mandaat:status ?status.
       ?mandataris mandaat:start ?start.
 
-      ?status skos:prefLabel ?statusLabel.
+      OPTIONAL {
+        ?mandataris mandaat:status ?status.
+        ?status skos:prefLabel ?statusLabel.
+      }
 
       ?mandaat org:role ?bestuursfunctie.
       ?bestuursfunctie skos:prefLabel ?mandaatLabel.
 
-      ?mandaat ^org:hasPost ?bestuursorgaanInTijd.
+      ?bestuursorgaanInTijd org:hasPost ?mandaat.
       ?bestuursorgaanInTijd mandaat:isTijdspecialisatieVan ?bestuursorgaan. 
       ${bestuursorgaanInTijdFilter ?? ''}
       ?bestuursorgaan skos:prefLabel ?bestuursorgaanLabel.
