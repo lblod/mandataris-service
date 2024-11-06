@@ -37,13 +37,13 @@ async function getUrisForFilters(filters) {
         ?bestuursorgaanInTijd mandaat:bindingEinde ?eindeBestuursorgaan. 
       }
 
+      BIND(IF(BOUND(?eindeBestuursorgaan), ?eindeBestuursorgaan, ${escapedTodaysDate}) AS ?safeEindeBestuursorgaan).
+      BIND(IF(BOUND(?einde), ?einde, ${escapedTodaysDate}) AS ?safeEinde).
       FILTER (
-        ?saveEinde <= ?saveEindeBestuursorgaan &&
-        ?saveEinde >= ?startBestuursorgaan &&
-        ?saveEinde >= ${escapedTodaysDate}
+        ?safeEinde <= ?safeEindeBestuursorgaan &&
+        ?safeEinde >= ?startBestuursorgaan &&
+        ?safeEinde >= ${escapedTodaysDate}
       )
-      BIND(IF(BOUND(?eindeBestuursorgaan), ?eindeBestuursorgaan, ${escapedTodaysDate}) AS ?saveEindeBestuursorgaan).
-      BIND(IF(BOUND(?einde), ?einde, ${escapedTodaysDate}) AS ?saveEinde).
     `;
   }
 
