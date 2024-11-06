@@ -1,6 +1,7 @@
 import { query, sparqlEscapeString } from 'mu';
 import { getSparqlResults } from '../util/sparql-result';
 import { sparqlEscapeDateTime, sparqlEscapeUri } from '../util/mu';
+import { queryResultToJson } from '../util/json-to-csv';
 
 export const downloadMandatarissen = {
   getUrisForFilters,
@@ -239,19 +240,5 @@ async function getPropertiesOfMandatarissen(
 
   const sparqlResult = await query(queryString);
 
-  return getSparqlResults(sparqlResult).map((result) => {
-    return {
-      voornaam: result.fName?.value ?? '',
-      naam: result.lName?.value ?? '',
-      fractie: result.fractieLabel?.value ?? '',
-      mandaat: result.mandaatLabel?.value ?? '',
-      status: result.statusLabel?.value ?? '',
-      orgaan: result.bestuursorgaanLabel?.value ?? '',
-      startMandaat: result.start?.value ?? '',
-      eindeMandaat: result.einde?.value ?? '',
-      publicatieStatus: result.publicatieStatusLabel?.value ?? '',
-      rangorde: result.rangorde?.value ?? '',
-      beleidsdomeinen: result.beleidsdomeinen?.value ?? '',
-    };
-  });
+  return queryResultToJson(sparqlResult);
 }

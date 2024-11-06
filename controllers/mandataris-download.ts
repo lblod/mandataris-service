@@ -1,5 +1,6 @@
 import { HttpError } from '../util/http-error';
 import { STATUS_CODE } from '../util/constants';
+import { jsonToCsv } from '../util/json-to-csv';
 
 import { bestuursperiode } from '../data-access/bestuursperiode';
 import { bestuursorgaan } from '../data-access/bestuursorgaan';
@@ -7,8 +8,6 @@ import { downloadMandatarissen } from '../data-access/mandataris-download';
 import { persoon } from '../data-access/persoon';
 import { fractie } from '../data-access/fractie';
 import { bestuursfunctie } from '../data-access/bestuursfunctie';
-
-import { json2csv } from 'json-2-csv';
 
 export const mandatarisDownloadUsecase = {
   toCsv,
@@ -90,24 +89,6 @@ async function validateQueryParams(queryParams) {
   }
 
   return queryParams;
-}
-
-async function jsonToCsv(jsonArray) {
-  if (!jsonArray || jsonArray.length === 0) {
-    return '';
-  }
-
-  let csvString = '';
-  try {
-    csvString = await json2csv(jsonArray);
-  } catch (error) {
-    throw new HttpError(
-      'Something went wrong while parsing json to a csv string.',
-      STATUS_CODE.INTERNAL_SERVER_ERROR,
-    );
-  }
-
-  return csvString;
 }
 
 function getSortingPropertyForQuery(sort?: string) {
