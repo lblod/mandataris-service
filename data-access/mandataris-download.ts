@@ -152,9 +152,11 @@ function createFractieFilter(filters): string {
 
   return `
     {
+      {
       ?mandataris org:hasMembership ?lidmaatschap.
-      ?lidmaatschap org:organisation ?fractie.
-    }${unionFilters}
+        ?lidmaatschap org:organisation ?fractie.
+      } ${unionFilters}
+    }
   `;
 }
 
