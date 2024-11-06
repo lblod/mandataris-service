@@ -104,6 +104,15 @@ function createFractieFilter(filters): string {
   const idValues = fractieIds.map((id) => sparqlEscapeString(id)).join('\n');
   const unions = [
     {
+      apply: fractieIds.length >= 1,
+      filter: `
+        UNION {
+          VALUES ?fractieId {\n ${idValues} }
+          ?fractie mu:uuid ?fractieId.
+        }
+      `,
+    },
+    {
       apply: hasFilterOnNietBeschikbareFractie,
       filter: `
         UNION {
@@ -130,10 +139,8 @@ function createFractieFilter(filters): string {
 
   return `
     {
-      ${fractieIds.length >= 1 ? `VALUES ?fractieId {\n ${idValues} }` : ''}
-        ?mandataris org:hasMembership ?lidmaatschap.
-        ?lidmaatschap org:organisation ?fractie.
-      ${fractieIds.length >= 1 ? '?fractie mu:uuid ?fractieId.' : ''}
+      ?mandataris org:hasMembership ?lidmaatschap.
+      ?lidmaatschap org:organisation ?fractie.
     }${unionFilters}
   `;
 }
