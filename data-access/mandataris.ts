@@ -15,7 +15,11 @@ import {
 } from '../types';
 import moment from 'moment';
 import { v4 as uuidv4 } from 'uuid';
-import { PUBLICATION_STATUS } from '../util/constants';
+import {
+  MANDATARIS_STATUS,
+  PUBLICATION_STATUS,
+  STATUS_CODE,
+} from '../util/constants';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import {
   findFirstSparqlResult,
@@ -23,6 +27,7 @@ import {
   getSparqlResults,
 } from '../util/sparql-result';
 import { TERM_MANDATARIS_TYPE } from './mandatees-decisions';
+import { HttpError } from '../util/http-error';
 
 export const mandataris = {
   isValidId,
@@ -32,6 +37,7 @@ export const mandataris = {
   getNonResourceDomainProperties,
   addPredicatesToMandataris,
   getMandatarisFracties,
+  generateMandatarissen,
 };
 
 async function isValidId(id?: string, sudo: boolean = false): Promise<boolean> {
@@ -832,4 +838,53 @@ async function getMandatarisFracties(
   const results = await query(q);
 
   return getSparqlResults(results);
+}
+
+async function generateMandatarissen(
+  sparqlValues: Array<{ id: string; uri: string; rangorde: string }>,
+  parameters,
+) {
+  const { startDate, endDate, mandaatUri, rangordeAsString } = parameters;
+  const uriAndIdValues = sparqlValues
+    .map(
+      (item) =>
+        `(${sparqlEscapeUri(item.uri)} ${sparqlEscapeString(
+          item.id,
+        )} ${sparqlEscapeString(item.rangorde)})`,
+    )
+    .join('\n');
+
+  const createQuery = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+    PREFIX mps: <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX generiek: <http://data.vlaanderen.be/ns/generiek#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+    INSERT DATA {
+      GRAPH <http://mu.semte.ch/graphs/application> {
+        VALUES ( ?uri ?id ) { ${uriAndIdValues} }
+        ?uri a mandaat:Mandataris ;
+          mu:uuid ?id ;
+          mandaat:rangorde ${sparqlEscapeString(rangordeAsString)} ;
+          mandaat:start ${sparqlEscapeDateTime(startDate)} ;
+          ${endDate ? `mandaat:einde ${sparqlEscapeDateTime(endDate)}` : ''}
+          org:holds ${sparqlEscapeUri(mandaatUri)} ;
+          mandaat:status ${MANDATARIS_STATUS.EFFECTIEF} ;
+          lmb:hasPublicationStatus ${PUBLICATION_STATUS.DRAFT} .
+      }
+    }`;
+
+  try {
+    return [];
+    await query(createQuery);
+  } catch (error) {
+    throw new HttpError(
+      `Could not create mandataris for values ${parameters.join(',')}.`,
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+    );
+  }
 }
