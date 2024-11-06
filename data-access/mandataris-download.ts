@@ -101,6 +101,15 @@ function createFractieFilter(filters): string {
     hasFilterOnOnafhankelijkeFractie,
     hasFilterOnNietBeschikbareFractie,
   } = filters;
+
+  if (
+    fractieIds.length === 0 &&
+    !hasFilterOnNietBeschikbareFractie &&
+    !hasFilterOnOnafhankelijkeFractie
+  ) {
+    return '';
+  }
+
   const idValues = fractieIds.map((id) => sparqlEscapeString(id)).join('\n');
   const unions = [
     {
