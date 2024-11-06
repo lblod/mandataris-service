@@ -1,6 +1,7 @@
 import { bestuursperiode } from '../data-access/bestuursperiode';
 import { persoon } from '../data-access/persoon';
 
+import { areIdsValid, RDF_TYPE } from '../util/are-ids-valid';
 import { STATUS_CODE } from '../util/constants';
 import { HttpError } from '../util/http-error';
 
@@ -13,7 +14,7 @@ async function getFractie(
   id: string,
   bestuursperiodeId: string,
 ): Promise<string | null> {
-  const isPersoon = await persoon.areIdsValid([id]);
+  const isPersoon = await areIdsValid(RDF_TYPE.PERSON, [id]);
   if (!isPersoon) {
     throw new HttpError(
       `Person with id ${id} was not found.`,
@@ -35,7 +36,7 @@ async function getFractie(
 }
 
 async function setEndDateOfActiveMandatarissen(id: string): Promise<void> {
-  const isPersoon = await persoon.areIdsValid([id]);
+  const isPersoon = await areIdsValid(RDF_TYPE.PERSON, [id]);
   if (!isPersoon) {
     throw new HttpError(
       `Person with id ${id} was not found.`,

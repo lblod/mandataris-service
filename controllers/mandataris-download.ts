@@ -3,11 +3,8 @@ import { STATUS_CODE } from '../util/constants';
 import { jsonToCsv } from '../util/json-to-csv';
 
 import { bestuursperiode } from '../data-access/bestuursperiode';
-import { bestuursorgaan } from '../data-access/bestuursorgaan';
 import { downloadMandatarissen } from '../data-access/mandataris-download';
-import { persoon } from '../data-access/persoon';
-import { fractie } from '../data-access/fractie';
-import { bestuursfunctie } from '../data-access/bestuursfunctie';
+import { areIdsValid, RDF_TYPE } from '../util/are-ids-valid';
 
 export const mandatarisDownloadUsecase = {
   toCsv,
@@ -46,7 +43,9 @@ async function validateQueryParams(queryParams) {
   }
 
   if (bestuursorgaanId) {
-    const isBestuursorgaan = await bestuursorgaan.isValidId(bestuursorgaanId);
+    const isBestuursorgaan = await areIdsValid(RDF_TYPE.BESTUURSORGAAN, [
+      bestuursorgaanId,
+    ]);
     if (!isBestuursorgaan) {
       throw new HttpError(
         `Bestuursorgaan with id ${bestuursorgaanId} not found.`,
@@ -55,7 +54,7 @@ async function validateQueryParams(queryParams) {
     }
   }
   if (persoonIds.length >= 1) {
-    const arePersonenValid = await persoon.areIdsValid(persoonIds);
+    const arePersonenValid = await areIdsValid(RDF_TYPE.PERSON, persoonIds);
     if (!arePersonenValid) {
       throw new HttpError(
         `Not all person ids where found. (${persoonIds.join(', ')}).`,
@@ -65,7 +64,7 @@ async function validateQueryParams(queryParams) {
   }
 
   if (fractieIds.length >= 1) {
-    const areFractiesValid = await fractie.areIdsValid(fractieIds);
+    const areFractiesValid = await areIdsValid(RDF_TYPE.FRACTIE, fractieIds);
     if (!areFractiesValid) {
       throw new HttpError(
         `Not all fractie ids where found. (${fractieIds.join(', ')}).`,
@@ -75,7 +74,8 @@ async function validateQueryParams(queryParams) {
   }
 
   if (bestuursFunctieCodeIds.length >= 1) {
-    const areCodesValid = await bestuursfunctie.areIdsValid(
+    const areCodesValid = await areIdsValid(
+      RDF_TYPE.BESTUURSFUNCTIE_CODE,
       bestuursFunctieCodeIds,
     );
     if (!areCodesValid) {

@@ -19,39 +19,11 @@ import { getIdentifierFromPersonUri } from '../util/find-uuid-in-uri';
 // note since we use the regular query, not sudo queries, be sure to log in when using this endpoint. E.g. use the vendor login
 
 export const persoon = {
-  areIdsValid,
   getFractie,
   removeFractieFromCurrent,
   removeFractieFromCurrentWithGraph,
   setEndDateOfActiveMandatarissen,
 };
-
-async function areIdsValid(ids?: Array<string>): Promise<boolean> {
-  if (!ids || ids.length === 0) {
-    return false;
-  }
-
-  const values = ids.map((id) => sparqlEscapeString(id));
-  const countOfExisting = `
-    PREFIX person: <http://www.w3.org/ns/person#>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-
-    SELECT (COUNT(DISTINCT ?persoon ) as ?count)
-    WHERE {
-      VALUES ?persoonId { ${values.join('\n')} }
-        ?persoon a person:Person.
-        ?persoon mu:uuid ?persoonId.
-    }
-  `;
-  const sparqlResult = await query(countOfExisting);
-  const result = findFirstSparqlResult(sparqlResult);
-  if (!result) {
-    return false;
-  }
-
-  const count = parseInt(result.count?.value);
-  return !isNaN(count) && count === ids.length;
-}
 
 export const findPerson = async (rrn: string) => {
   const q = `

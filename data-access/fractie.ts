@@ -7,45 +7,17 @@ import {
 } from 'mu';
 import { updateSudo } from '@lblod/mu-auth-sudo';
 
-import { findFirstSparqlResult, getSparqlResults } from '../util/sparql-result';
+import { getSparqlResults } from '../util/sparql-result';
 import { FRACTIE_TYPE } from '../util/constants';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import { Term, TermProperty } from '../types';
 
 export const fractie = {
-  areIdsValid,
   forBestuursperiode,
   addFractieOnPerson,
   addFractieOnPersonWithGraph,
   removeFractieWhenNoLidmaatschap,
 };
-
-async function areIdsValid(ids?: Array<string>): Promise<boolean> {
-  if (!ids || ids.length === 0) {
-    return false;
-  }
-
-  const values = ids.map((id) => sparqlEscapeString(id));
-  const countOfExisting = `
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-
-    SELECT (COUNT(DISTINCT ?fractie ) as ?count)
-    WHERE {
-      VALUES ?fractieId { ${values.join('\n')} }
-        ?fractie a mandaat:Fractie.
-        ?fractie mu:uuid ?fractieId.
-    }
-  `;
-  const sparqlResult = await query(countOfExisting);
-  const result = findFirstSparqlResult(sparqlResult);
-  if (!result) {
-    return false;
-  }
-
-  const count = parseInt(result.count?.value);
-  return !isNaN(count) && count === ids.length;
-}
 
 async function forBestuursperiode(
   bestuursperiodeId: string,
