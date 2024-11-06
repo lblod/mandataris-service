@@ -185,7 +185,18 @@ async function getPropertiesOfMandatarissen(
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     PREFIX regorg: <https://www.w3.org/ns/regorg#>
 
-    SELECT DISTINCT ?mandataris ?mandaatLabel ?publicatieStatusLabel ?rangorde (GROUP_CONCAT(DISTINCT ?beleidsdomeinLabel; SEPARATOR="; ") AS ?beleidsdomeinen) ?statusLabel ?fName ?lName ?start ?einde ?fractieLabel ?bestuursorgaanLabel
+    SELECT 
+      ?Voornaam
+      ?Naam 
+      (?fractieLabel as ?Fractie)
+      (?mandaatLabel as ?Mandaat)
+      (?statusLabel as ?Status)
+      (?bestuursorgaanLabel as ?Orgaan)
+      (?start as ?StartMandaat)
+      (?einde as ?EindeMandaat)
+      (?publicatieStatusLabel as ?PublicatieStatus)
+      ?Rangorde
+      (GROUP_CONCAT(DISTINCT ?beleidsdomeinLabel; SEPARATOR=" / ") AS ?Beleidsdomeinen)
     WHERE {
       VALUES ?mandataris { ${escapedUriValues} }
       ?mandataris a mandaat:Mandataris.
@@ -211,7 +222,7 @@ async function getPropertiesOfMandatarissen(
       }
       
       OPTIONAL {
-        ?mandataris mandaat:rangorde ?rangorde.
+        ?mandataris mandaat:rangorde ?Rangorde.
       }
     
       OPTIONAL {
@@ -220,10 +231,10 @@ async function getPropertiesOfMandatarissen(
       }
 
       OPTIONAL {
-        ?persoon persoon:gebruikteVoornaam ?fName.
+        ?persoon persoon:gebruikteVoornaam ?Voornaam.
       }
       OPTIONAL {
-        ?persoon foaf:familyName ?lName.
+        ?persoon foaf:familyName ?Naam.
       }
 
       OPTIONAL {
