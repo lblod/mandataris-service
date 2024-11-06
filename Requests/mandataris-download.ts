@@ -1,13 +1,17 @@
 import { Request } from 'express';
 
 import { HttpError } from '../util/http-error';
+import { STATUS_CODE } from '../util/constants';
 
 export function mandatarisDownloadRequest(request: Request) {
   const requiredParameters = ['bestuursperiodeId'];
 
   requiredParameters.map((param) => {
     if (!Object.keys(request.query).includes(param)) {
-      throw new HttpError(`${param} is missing in the query parameters`, 400);
+      throw new HttpError(
+        `${param} is missing in the query parameters`,
+        STATUS_CODE.BAD_REQUEST,
+      );
     }
   });
 
