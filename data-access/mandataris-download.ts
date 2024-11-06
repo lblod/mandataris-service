@@ -119,28 +119,34 @@ function createFractieFilter(filters): string {
     {
       apply: fractieIds.length >= 1,
       filter: `
-        UNION {
+        {
+          ?mandataris org:hasMembership ?lidmaatschap.
+          ?lidmaatschap org:organisation ?fractie.
+
           VALUES ?fractieId {\n ${idValues} }
           ?fractie mu:uuid ?fractieId.
         }
       `,
     },
     {
-      apply: hasFilterOnNietBeschikbareFractie,
+      apply: hasFilterOnOnafhankelijkeFractie,
       filter: `
-        UNION {
-         FILTER NOT EXISTS {
-           ?mandataris org:hasMembership ?lidmaatschap.
-           ?lidmaatschap org:organisation ?fractie.
-         }
+        {
+          ?mandataris org:hasMembership ?lidmaatschap.
+          ?lidmaatschap org:organisation ?fractie.
+
+          ?fractie ext:isFractietype fractieType:Onafhankelijk.
         }
       `,
     },
     {
-      apply: hasFilterOnOnafhankelijkeFractie,
+      apply: hasFilterOnNietBeschikbareFractie,
       filter: `
-        UNION {
-         ?fractie ext:isFractietype fractieType:Onafhankelijk.
+        {
+          FILTER NOT EXISTS {
+            ?mandataris org:hasMembership ?lidmaatschap.
+            ?lidmaatschap org:organisation ?fractie.
+          }
         }
       `,
     },
@@ -148,16 +154,9 @@ function createFractieFilter(filters): string {
   const unionFilters = unions
     .filter((union) => union.apply)
     .map((union) => union.filter)
-    .join('\n');
+    .join('\n UNION ');
 
-  return `
-    {
-      {
-      ?mandataris org:hasMembership ?lidmaatschap.
-        ?lidmaatschap org:organisation ?fractie.
-      } ${unionFilters}
-    }
-  `;
+  return `{ ${unionFilters} }`;
 }
 
 async function getPropertiesOfMandatarissen(
