@@ -28,7 +28,7 @@ export function queryResultToJson(queryResult) {
   return bindings.map((binding) => {
     const unpacked = {};
     for (const headerKey of headers) {
-      unpacked[headerKey] = binding[headerKey]?.value ?? '';
+      unpacked[headerKey] = binding[headerKey] ? binding[headerKey].value : '';
     }
     return unpacked;
   });
