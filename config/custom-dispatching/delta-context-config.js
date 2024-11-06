@@ -26,7 +26,8 @@ PREFIX regorg: <https://www.w3.org/ns/regorg#>
 PREFIX schema: <http://schema.org/>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
-PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>`;
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>`;
 
 const contextConfig = {
   addTypes: {

@@ -1,4 +1,3 @@
-import { bestuursperiode } from '../data-access/bestuursperiode';
 import { persoon } from '../data-access/persoon';
 
 import { areIdsValid, RDF_TYPE } from '../util/are-ids-valid';
@@ -22,7 +21,9 @@ async function getFractie(
     );
   }
 
-  const isBestuursperiode = await bestuursperiode.isValidId(bestuursperiodeId);
+  const isBestuursperiode = await areIdsValid(RDF_TYPE.BESTUURSPERIODE, [
+    bestuursperiodeId,
+  ]);
   if (!isBestuursperiode) {
     throw new HttpError(
       `Bestuursperiode with id ${bestuursperiodeId} not found.`,

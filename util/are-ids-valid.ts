@@ -37,4 +37,5 @@ export enum RDF_TYPE {
   FRACTIE = 'mandaat:Fractie',
   BESTUURSORGAAN = 'besluit:Bestuursorgaan',
   BESTUURSFUNCTIE_CODE = 'ext:BestuursfunctieCode',
+  BESTUURSPERIODE = 'lmb:Bestuursperiode',
 }

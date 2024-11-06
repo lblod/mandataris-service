@@ -2,7 +2,6 @@ import { HttpError } from '../util/http-error';
 import { STATUS_CODE } from '../util/constants';
 import { jsonToCsv } from '../util/json-to-csv';
 
-import { bestuursperiode } from '../data-access/bestuursperiode';
 import { downloadMandatarissen } from '../data-access/mandataris-download';
 import { areIdsValid, RDF_TYPE } from '../util/are-ids-valid';
 
@@ -34,7 +33,9 @@ async function validateQueryParams(queryParams) {
     fractieIds,
     bestuursFunctieCodeIds,
   } = queryParams;
-  const isBestuursperiode = await bestuursperiode.isValidId(bestuursperiodeId);
+  const isBestuursperiode = await areIdsValid(RDF_TYPE.BESTUURSPERIODE, [
+    bestuursperiodeId,
+  ]);
   if (!isBestuursperiode) {
     throw new HttpError(
       `Bestuursperiode with id ${bestuursperiodeId} not found.`,
