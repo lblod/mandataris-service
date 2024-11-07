@@ -6,6 +6,9 @@ import {
   sparqlEscapeDateTime,
   sparqlEscapeUri,
 } from 'mu';
+import moment from 'moment';
+import { v4 as uuidv4 } from 'uuid';
+
 import {
   CSVRow,
   CsvUploadState,
@@ -13,8 +16,7 @@ import {
   Term,
   TermProperty,
 } from '../types';
-import moment from 'moment';
-import { v4 as uuidv4 } from 'uuid';
+
 import {
   MANDATARIS_STATUS,
   PUBLICATION_STATUS,
@@ -26,8 +28,9 @@ import {
   getBooleanSparqlResult,
   getSparqlResults,
 } from '../util/sparql-result';
-import { TERM_MANDATARIS_TYPE } from './mandatees-decisions';
 import { HttpError } from '../util/http-error';
+
+import { TERM_MANDATARIS_TYPE } from './mandatees-decisions';
 
 export const mandataris = {
   isValidId,

@@ -6,13 +6,14 @@ import {
   mandataris,
 } from '../data-access/mandataris';
 import { persoon } from '../data-access/persoon';
+
 import { Term } from '../types';
 
 import { STATUS_CODE } from '../util/constants';
 import { HttpError } from '../util/http-error';
+import { createRangorde } from '../util/rangorde';
 
 import { v4 as uuidv4 } from 'uuid';
-import { createRangorde } from '../util/rangorde';
 
 export const mandatarisUsecase = {
   getMandatarisFracties,

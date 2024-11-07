@@ -7,7 +7,6 @@ import { mandatarisDownloadRequest } from '../Requests/mandataris-download';
 
 import { deleteInstanceWithTombstone } from '../data-access/delete';
 
-import { uploadCsv } from '../controllers/mandataris-upload';
 import {
   addLinkLinkedMandataris,
   changeStateLinkedMandataris,
@@ -21,9 +20,11 @@ import {
   mandatarisUsecase,
 } from '../controllers/mandataris';
 import { mandatarisDownloadUsecase } from '../controllers/mandataris-download';
+import { uploadCsv } from '../controllers/mandataris-upload';
+
+import { CsvUploadState } from '../types';
 
 import { STATUS_CODE } from '../util/constants';
-import { CsvUploadState } from '../types';
 
 const upload = multer({ dest: 'mandataris-uploads/' });
 
