@@ -844,15 +844,26 @@ async function generateMandatarissen(
   sparqlValues: Array<{ id: string; uri: string; rangorde: string }>,
   parameters,
 ) {
-  const { startDate, endDate, mandaatUri, rangordeAsString } = parameters;
+  const { count, startDate, endDate, mandaatUri } = parameters;
   const uriAndIdValues = sparqlValues
-    .map(
-      (item) =>
-        `(${sparqlEscapeUri(item.uri)} ${sparqlEscapeString(
-          item.id,
-        )} ${sparqlEscapeString(item.rangorde)})`,
-    )
+    .map((item) => {
+      const values = [
+        sparqlEscapeUri(item.uri),
+        sparqlEscapeString(item.id),
+        sparqlEscapeString(item.rangorde),
+      ];
+
+      return `( ${values.join(' ')} )`;
+    })
     .join('\n');
+
+  const escapedCommon = {
+    startDate: sparqlEscapeDateTime(startDate),
+    endDate: sparqlEscapeDateTime(endDate),
+    mandaat: sparqlEscapeUri(mandaatUri),
+    effectief: sparqlEscapeUri(MANDATARIS_STATUS.EFFECTIEF),
+    publication: sparqlEscapeUri(PUBLICATION_STATUS.DRAFT),
+  };
 
   const createQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -864,26 +875,28 @@ async function generateMandatarissen(
     PREFIX generiek: <http://data.vlaanderen.be/ns/generiek#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
-    INSERT DATA {
+    INSERT {
       GRAPH <http://mu.semte.ch/graphs/application> {
-        VALUES ( ?uri ?id ) { ${uriAndIdValues} }
         ?uri a mandaat:Mandataris ;
           mu:uuid ?id ;
-          mandaat:rangorde ${sparqlEscapeString(rangordeAsString)} ;
-          mandaat:start ${sparqlEscapeDateTime(startDate)} ;
-          ${endDate ? `mandaat:einde ${sparqlEscapeDateTime(endDate)}` : ''}
-          org:holds ${sparqlEscapeUri(mandaatUri)} ;
-          mandaat:status ${MANDATARIS_STATUS.EFFECTIEF} ;
-          lmb:hasPublicationStatus ${PUBLICATION_STATUS.DRAFT} .
+          mandaat:rangorde ?rangorde ;
+          mandaat:start ${escapedCommon.startDate} ;
+          ${endDate ? `mandaat:einde ${escapedCommon.endDate};` : ''}
+          org:holds ${escapedCommon.mandaat} ;
+          mandaat:status ${escapedCommon.effectief} ;
+          lmb:hasPublicationStatus ${escapedCommon.publication} .
       }
-    }`;
+    }
+    WHERE {
+      VALUES ( ?uri ?id ?rangorde ) { ${uriAndIdValues} }
+    }  
+    `;
 
   try {
-    return [];
     await query(createQuery);
   } catch (error) {
     throw new HttpError(
-      `Could not create mandataris for values ${parameters.join(',')}.`,
+      `Could not generate ${count} mandataris(sen).`,
       STATUS_CODE.INTERNAL_SERVER_ERROR,
     );
   }

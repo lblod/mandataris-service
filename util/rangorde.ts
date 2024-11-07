@@ -1,10 +1,8 @@
 export function createRangorde(rangordeAsNumber: number, mandaatWord: string) {
-  const numberAsString = getRangordeNumberMapping[rangordeAsNumber];
+  const numberAsString = getRangordeNumberMapping()[rangordeAsNumber];
 
   return `${numberAsString} ${mandaatWord}`;
 }
-
-
 
 function getRangordeNumberMapping() {
   const numberWithString = {};

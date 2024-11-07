@@ -208,19 +208,23 @@ export async function handleBulkSetPublicationStatus(
   );
 }
 
-async function generate(config): Promise<void> {
+async function generate(config): Promise<Array<string>> {
   const { count, rangordeStartsAt, rangordeLabel } = config;
   let rangordeNumber = rangordeStartsAt;
   const valuesForQuery = new Array(count).fill(null).map(() => {
+    const rangordeState = rangordeNumber;
+    rangordeNumber++;
     const uuid = uuidv4();
     const uri: string = `http://data.lblod.info/id/mandatarissen/${uuid}`;
 
     return {
       uri,
       id: `${uuid}`,
-      rangorde: createRangorde(++rangordeNumber, rangordeLabel),
+      rangorde: createRangorde(rangordeState, rangordeLabel),
     };
   });
 
   await mandataris.generateMandatarissen(valuesForQuery, config);
+
+  return valuesForQuery.map((value) => value.uri);
 }
