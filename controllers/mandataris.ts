@@ -219,12 +219,12 @@ async function generate(config): Promise<Array<string>> {
 
     return {
       uri,
-      id: `${uuid}`,
+      id: uuid,
       rangorde: createRangorde(rangordeState, rangordeLabel),
     };
   });
 
   await mandataris.generateMandatarissen(valuesForQuery, config);
 
-  return valuesForQuery.map((value) => value.uri);
+  return valuesForQuery.map((value) => value.id);
 }
