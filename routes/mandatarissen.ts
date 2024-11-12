@@ -239,16 +239,19 @@ mandatarissenRouter.get('/download', async (req: Request, res: Response) => {
   }
 });
 
-mandatarissenRouter.post('/generate', async (req: Request, res: Response) => {
-  try {
-    const createdIds = await mandatarisUsecase.generate(req.body);
-    return res.status(STATUS_CODE.OK).send({ ids: createdIds });
-  } catch (error) {
-    const message =
-      error.message ?? 'Something went wrong while generating mandatarissen';
-    const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
-    return res.status(statusCode).send({ message });
-  }
-});
+mandatarissenRouter.post(
+  '/generate-rows',
+  async (req: Request, res: Response) => {
+    try {
+      const createdIds = await mandatarisUsecase.generateRows(req.body);
+      return res.status(STATUS_CODE.OK).send({ ids: createdIds });
+    } catch (error) {
+      const message =
+        error.message ?? 'Something went wrong while generating mandatarissen';
+      const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
+      return res.status(statusCode).send({ message });
+    }
+  },
+);
 
 export { mandatarissenRouter };

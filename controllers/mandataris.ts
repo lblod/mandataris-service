@@ -21,7 +21,7 @@ export const mandatarisUsecase = {
   updateCurrentFractieSudo,
   copyOverNonResourceDomainPredicates,
   findDecision,
-  generate,
+  generateRows,
 };
 
 async function getMandatarisFracties(
@@ -209,7 +209,7 @@ export async function handleBulkSetPublicationStatus(
   );
 }
 
-async function generate(config): Promise<Array<string>> {
+async function generateRows(config): Promise<Array<string>> {
   const { count, rangordeStartsAt, rangordeLabel } = config;
   let rangordeNumber = rangordeStartsAt;
   const valuesForQuery = new Array(count).fill(null).map(() => {
