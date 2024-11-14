@@ -50,6 +50,7 @@ export const findBurgemeesterMandates = async (
     PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     SELECT DISTINCT ?orgGraph ?burgemeesterMandaat ?aangewezenBurgemeesterMandaat WHERE {
       ?bestuurseenheid a besluit:Bestuurseenheid ;
@@ -62,9 +63,7 @@ export const findBurgemeesterMandates = async (
           <http://data.vlaanderen.be/id/concept/BestuursorgaanClassificatieCode/4955bd72cd0e4eb895fdbfab08da0284>
         }
       }
-      FILTER NOT EXISTS {
-        ?orgGraph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-      }
+      ?orgGraph ext:ownedBy ?owningEenheid.
       ?bestuursOrgaanIt mandaat:isTijdspecialisatieVan ?bestuursOrgaan .
       ?bestuursOrgaanIt mandaat:bindingStart ?start .
       OPTIONAL { ?bestuursOrgaanIt mandaat:bindingEinde ?einde }

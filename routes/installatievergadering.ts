@@ -125,6 +125,8 @@ async function moveFracties(installatievergaderingId: string) {
     GRAPH ?origin {
       ?installatieVergadering lmb:heeftBestuursperiode ?period.
       ?installatieVergadering mu:uuid ${escapedId} .
+      ?installatieVergadering lmb:heeftBestuurseenheid ?eenheid .
+      ?bestuursorgaan mandaat:isTijdspecialisatieVan / ext:isTijdelijkOrgaanIn ?eenheid .
       ?bestuursorgaan ext:origineleBestuursorgaan ?realOrgT.
     }
     GRAPH ?target {
@@ -135,9 +137,8 @@ async function moveFracties(installatievergaderingId: string) {
       ${valueBindings}
     }
     FILTER(?target != ?origin)
-    FILTER NOT EXISTS {
-      ?origin a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-    }
+    ?origin ext:ownedBy ?owningEenheid.
+    ?target ext:ownedBy ?owningEenheid2.
   }`;
   await updateSudo(insertSparql);
 }
@@ -159,6 +160,8 @@ async function ocmwHasFractions(installatievergaderingId: string) {
     GRAPH ?origin {
       ?installatieVergadering lmb:heeftBestuursperiode ?period.
       ?installatieVergadering mu:uuid ${escapedId} .
+      ?installatieVergadering lmb:heeftBestuurseenheid ?eenheid .
+      ?bestuursorgaan mandaat:isTijdspecialisatieVan / ext:isTijdelijkOrgaanIn ?eenheid .
       ?bestuursorgaan ext:origineleBestuursorgaan ?realOrg.
       ?bestuursorgaan mandaat:isTijdspecialisatieVan ?org.
       ?bestuursorgaan lmb:heeftBestuursperiode ?period.
@@ -169,9 +172,8 @@ async function ocmwHasFractions(installatievergaderingId: string) {
       ?fractie regorg:legalName ?name.
     }
     FILTER(?target != ?origin)
-    FILTER NOT EXISTS {
-      ?origin a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-    }
+    ?origin ext:ownedBy ?owningEenheid.
+    ?target ext:ownedBy ?owningEenheid2.
   } LIMIT 1`;
   const result = await querySudo(sparql);
   return result.results.bindings.length > 0;
@@ -193,6 +195,8 @@ async function getExistingGemeenteFractions(installatieVergaderingId: string) {
     GRAPH ?origin {
       ?installatieVergadering lmb:heeftBestuursperiode ?period.
       ?installatieVergadering mu:uuid ${escapedId} .
+      ?installatieVergadering lmb:heeftBestuurseenheid ?eenheid .
+      ?org besluit:bestuurt ?eenheid .
       ?bestuursorgaan mandaat:isTijdspecialisatieVan ?org.
       ?bestuursorgaan lmb:heeftBestuursperiode ?period.
       ?fractie org:memberOf ?bestuursorgaan.
@@ -201,9 +205,7 @@ async function getExistingGemeenteFractions(installatieVergaderingId: string) {
         ?fractie ext:isFractietype ?type.
       }
     }
-    FILTER NOT EXISTS {
-      ?origin a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-    }
+    ?origin ext:ownedBy ?owningEenheid.
   }`;
 
   const result = await querySudo(sparql);
@@ -222,6 +224,12 @@ async function moveOcmwOrgans(installatievergaderingId: string) {
 }
 
 async function moveMandatarisesWithFractions(installatievergaderingId: string) {
+  // split because this is apparently more efficient for virtuoso
+  await moveMandatarises(installatievergaderingId);
+  await moveMandatarisMemberships(installatievergaderingId);
+}
+
+async function moveMandatarises(installatievergaderingId: string) {
   const escapedId = sparqlEscapeString(installatievergaderingId);
   const sparql = `
     PREFIX mandaat:	<http://data.vlaanderen.be/ns/mandaat#>
@@ -237,6 +245,44 @@ async function moveMandatarisesWithFractions(installatievergaderingId: string) {
     INSERT {
       GRAPH ?target {
         ?mandataris ?p ?o.
+      }
+    } WHERE {
+      GRAPH ?origin {
+        ?installatieVergadering lmb:heeftBestuursperiode ?period.
+        ?installatieVergadering mu:uuid ${escapedId} .
+        ?installatieVergadering lmb:heeftBestuurseenheid ?eenheid .
+        ?bestuursorgaanT mandaat:isTijdspecialisatieVan / ext:isTijdelijkOrgaanIn ?eenheid .
+        ?bestuursorgaanT ext:origineleBestuursorgaan ?realOrgT.
+        ?bestuursorgaanT lmb:heeftBestuursperiode ?period.
+        ?bestuursorgaanT org:hasPost ?mandaat.
+        ?mandataris org:holds ?mandaat.
+        ?mandataris ?p ?o.
+      }
+      GRAPH ?target {
+        ?realOrgT mandaat:isTijdspecialisatieVan ?thing.
+      }
+      FILTER(?target != ?origin)
+      ?origin ext:ownedBy ?owningEenheid.
+      ?target ext:ownedBy ?owningEenheid2.
+    }`;
+  await updateSudo(sparql);
+}
+
+async function moveMandatarisMemberships(installatievergaderingId: string) {
+  const escapedId = sparqlEscapeString(installatievergaderingId);
+  const sparql = `
+    PREFIX mandaat:	<http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX besluit:	<http://data.vlaanderen.be/ns/besluit#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+    PREFIX bestuurseenheidscode: <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX regorg: <https://www.w3.org/ns/regorg#>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+
+    INSERT {
+      GRAPH ?target {
         ?membership ?mp ?mo.
         ?membership org:organisation ?realFractie.
       }
@@ -244,11 +290,12 @@ async function moveMandatarisesWithFractions(installatievergaderingId: string) {
       GRAPH ?origin {
         ?installatieVergadering lmb:heeftBestuursperiode ?period.
         ?installatieVergadering mu:uuid ${escapedId} .
+        ?installatieVergadering lmb:heeftBestuurseenheid ?eenheid .
+        ?bestuursorgaanT mandaat:isTijdspecialisatieVan / ext:isTijdelijkOrgaanIn ?eenheid .
         ?bestuursorgaanT ext:origineleBestuursorgaan ?realOrgT.
         ?bestuursorgaanT lmb:heeftBestuursperiode ?period.
         ?bestuursorgaanT org:hasPost ?mandaat.
         ?mandataris org:holds ?mandaat.
-        ?mandataris ?p ?o.
         ?mandataris org:hasMembership ?membership.
         ?membership ?mp ?mo.
         FILTER(?mp != org:organisation)
@@ -261,9 +308,8 @@ async function moveMandatarisesWithFractions(installatievergaderingId: string) {
         ?realFractie regorg:legalName ?name.
       }
       FILTER(?target != ?origin)
-      FILTER NOT EXISTS {
-        ?origin a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-      }
+      ?origin ext:ownedBy ?owningEenheid.
+      ?target ext:ownedBy ?owningEenheid2.
     }`;
   await updateSudo(sparql);
 }
@@ -291,6 +337,8 @@ async function moveMandatarisesWithoutFractions(
       GRAPH ?origin {
         ?installatieVergadering lmb:heeftBestuursperiode ?period.
         ?installatieVergadering mu:uuid ${escapedId} .
+        ?installatieVergadering lmb:heeftBestuurseenheid ?eenheid.
+        ?bestuursorgaanT mandaat:isTijdspecialisatieVan / ext:isTijdelijkOrgaanIn ?eenheid .
         ?bestuursorgaanT ext:origineleBestuursorgaan ?realOrgT.
         ?bestuursorgaanT lmb:heeftBestuursperiode ?period.
         ?bestuursorgaanT org:hasPost ?mandaat.
@@ -305,9 +353,7 @@ async function moveMandatarisesWithoutFractions(
         ?realOrgT mandaat:isTijdspecialisatieVan ?thing.
       }
       FILTER(?target != ?origin)
-      FILTER NOT EXISTS {
-        ?origin a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-      }
+      ?origin ext:ownedBy ?owningEenheid.
     }`;
   await updateSudo(sparql);
 }
@@ -334,16 +380,18 @@ async function movePersons(installatievergaderingId: string) {
       ?related ?relatedp ?relatedo.
     }
   } WHERE {
-    ?installatieVergadering mu:uuid ${escapedId} .
-    ?installatieVergadering lmb:heeftBestuursperiode ?period.
-    ?bestuursorgaanT lmb:heeftBestuursperiode ?period.
-    ?bestuursorgaanT ext:origineleBestuursorgaan ?realOrg.
     GRAPH ?target {
       ?realOrg org:hasPost ?mandaat.
     }
-    ?mandataris org:holds ?mandaat.
-    ?mandataris mandaat:isBestuurlijkeAliasVan ?person.
     GRAPH ?origin {
+      ?installatieVergadering mu:uuid ${escapedId} .
+      ?installatieVergadering lmb:heeftBestuursperiode ?period .
+      ?installatieVergadering lmb:heeftBestuurseenheid ?eenheid .
+      ?bestuursorgaanT mandaat:isTijdspecialisatieVan / ext:isTijdelijkOrgaanIn ?eenheid .
+      ?bestuursorgaanT lmb:heeftBestuursperiode ?period.
+      ?bestuursorgaanT ext:origineleBestuursorgaan ?realOrg.
+      ?mandataris org:holds ?mandaat.
+      ?mandataris mandaat:isBestuurlijkeAliasVan ?person.
       ?person ?p ?o.
       OPTIONAL {
         ?person ?relation ?related.
@@ -354,9 +402,8 @@ async function movePersons(installatievergaderingId: string) {
         ?related ?relatedp ?relatedo.
       }
     }
-    FILTER NOT EXISTS {
-      ?origin a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-    }
+    ?origin ext:ownedBy ?owningEenheid.
+    ?target ext:ownedBy ?owningEenheid2.
   }`;
   await updateSudo(sparql);
 }
@@ -627,6 +674,7 @@ async function setLinkedIVToBehandeld(installatievergaderingId: string) {
   PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
   PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
   PREFIX ivs: <http://data.lblod.info/id/concept/InstallatievergaderingStatus/>
+  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
 
   DELETE {
     GRAPH ?target {
@@ -641,6 +689,8 @@ async function setLinkedIVToBehandeld(installatievergaderingId: string) {
     GRAPH ?origin {
       ?iv mu:uuid ${escapedId} .
       ?iv lmb:heeftBestuursperiode ?period .
+      ?iv lmb:heeftBestuurseenheid ?eenheid .
+      ?bestuursorgaanIT mandaat:isTijdspecialisatieVan / ext:isTijdelijkOrgaanIn ?eenheid .
       ?bestuursorgaanIT lmb:heeftBestuursperiode ?period .
       ?bestuursorgaanIT ext:origineleBestuursorgaan ?realOrg .
     }
@@ -650,9 +700,8 @@ async function setLinkedIVToBehandeld(installatievergaderingId: string) {
       ?ivOCMW lmb:hasStatus ?status .
     }
     FILTER(?target != ?origin)
-    FILTER NOT EXISTS {
-      ?origin a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-    }
+    ?origin ext:ownedBy ?owningEenheid.
+    ?target ext:ownedBy ?owningEenheid2.
   }`;
   await updateSudo(sparql);
 }

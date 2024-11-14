@@ -7,6 +7,7 @@ export const getNbActiveMandatarissen = async (mandaatId: string) => {
   PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
   PREFIX org: <http://www.w3.org/ns/org#>
   PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
   SELECT (COUNT(DISTINCT ?mandataris) as ?count) WHERE {
     GRAPH ?g {
@@ -31,9 +32,8 @@ export const getNbActiveMandatarissen = async (mandaatId: string) => {
     FILTER(!BOUND(?mandatarisEinde) || ?mandatarisEinde >= ?testEinde).
     # Filter mandatarissen that are either effectief, verhinderd or titelvoerend (or have no status)
     FILTER(!BOUND(?status) || ?status IN (<http://data.vlaanderen.be/id/concept/MandatarisStatusCode/21063a5b-912c-4241-841c-cc7fb3c73e75>, <http://data.vlaanderen.be/id/concept/MandatarisStatusCode/c301248f-0199-45ca-b3e5-4c596731d5fe>, <http://data.vlaanderen.be/id/concept/MandatarisStatusCode/aacb3fed-b51d-4e0b-a411-f3fa641da1b3>)).
-    FILTER NOT EXISTS {
-      ?g a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-    }
+
+    ?g ext:ownedBy ?owningEenheid.
   }
   `;
 
