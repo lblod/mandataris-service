@@ -203,6 +203,7 @@ export async function copyPersonOfMandataris(mandatarisId, graph) {
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
     PREFIX adms: <http://www.w3.org/ns/adms#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     INSERT {
       GRAPH ${sparqlEscapeTermValue(graph)} {
@@ -226,9 +227,7 @@ export async function copyPersonOfMandataris(mandatarisId, graph) {
           ?id ?idp ?ido .
         }
       }
-      FILTER NOT EXISTS {
-        ?origin a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-      }
+      ?origin ext:ownedBy ?owningEenheid.
     }`;
 
   try {
@@ -247,6 +246,7 @@ export async function isFractieNameEqual(ogMandatarisId, linkedMandataris) {
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX regorg: <https://www.w3.org/ns/regorg#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     ASK {
       GRAPH ?origin {
@@ -263,13 +263,8 @@ export async function isFractieNameEqual(ogMandatarisId, linkedMandataris) {
         ?linkedLidmaatschap org:organisation ?linkedFractie .
         ?linkedFractie regorg:legalName ?fractieNaam .
       }
-
-      FILTER NOT EXISTS {
-        ?origin a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-      }
-      FILTER NOT EXISTS {
-        ?dest a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-      }
+      ?origin ext:ownedBy ?owningEenheid.
+      ?dest ext:ownedBy ?owningEenheid2.
     }`;
 
   const result = await querySudo(q);
@@ -346,9 +341,7 @@ export async function copyOnafhankelijkeFractieOfMandataris(
           mandaat:isTijdspecialisatieVan / besluit:bestuurt ?linkedBestuurseenheid .
       }
 
-      FILTER NOT EXISTS {
-        ?origin a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-      }
+      ?origin ext:ownedBy ?owningEenheid.
     }`;
 
   try {
@@ -535,6 +528,7 @@ export async function correctLinkedMandataris(mandatarisId, linkedMandataris) {
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     DELETE {
       GRAPH ?dest {
@@ -562,12 +556,8 @@ export async function correctLinkedMandataris(mandatarisId, linkedMandataris) {
           ${escaped.linked} ?mandatarisP ?linkedMandatarisO .
         }
       }
-      FILTER NOT EXISTS {
-        ?dest a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-      }
-      FILTER NOT EXISTS {
-        ?origin a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-      }
+      ?dest ext:ownedBy ?owningEenheid.
+      ?origin ext:ownedBy ?owningEenheid2.
     }
     `;
 
@@ -588,6 +578,7 @@ export async function copyExtraValues(oldMandataris, newMandataris) {
   };
   const q = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     INSERT {
       GRAPH ?graph {
@@ -603,9 +594,7 @@ export async function copyExtraValues(oldMandataris, newMandataris) {
         ${escaped.new} ?p ?newO .
 
       }
-      FILTER NOT EXISTS {
-        ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-      }
+      ?graph ext:ownedBy ?owningEenheid.
     }
     `;
 
