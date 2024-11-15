@@ -6,10 +6,14 @@ import {
   mandataris,
 } from '../data-access/mandataris';
 import { persoon } from '../data-access/persoon';
+
 import { Term } from '../types';
 
 import { STATUS_CODE } from '../util/constants';
 import { HttpError } from '../util/http-error';
+import { createRangorde } from '../util/rangorde';
+
+import { v4 as uuidv4 } from 'uuid';
 
 export const mandatarisUsecase = {
   getMandatarisFracties,
@@ -17,6 +21,7 @@ export const mandatarisUsecase = {
   updateCurrentFractieSudo,
   copyOverNonResourceDomainPredicates,
   findDecision,
+  generateRows,
 };
 
 async function getMandatarisFracties(
@@ -202,4 +207,25 @@ export async function handleBulkSetPublicationStatus(
     `The provided status: ${status} is not a valid publication status, please provide Effectief or Bekrachtigd.`,
     STATUS_CODE.BAD_REQUEST,
   );
+}
+
+async function generateRows(config): Promise<Array<string>> {
+  const { count, rangordeStartsAt, rangordeLabel } = config;
+  let rangordeNumber = rangordeStartsAt;
+  const valuesForQuery = new Array(count).fill(null).map(() => {
+    const rangordeState = rangordeNumber;
+    rangordeNumber++;
+    const uuid = uuidv4();
+    const uri: string = `http://data.lblod.info/id/mandatarissen/${uuid}`;
+
+    return {
+      uri,
+      id: uuid,
+      rangorde: createRangorde(rangordeState, rangordeLabel),
+    };
+  });
+
+  await mandataris.generateMandatarissen(valuesForQuery, config);
+
+  return valuesForQuery.map((value) => value.id);
 }

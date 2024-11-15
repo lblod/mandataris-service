@@ -6,6 +6,9 @@ import {
   sparqlEscapeDateTime,
   sparqlEscapeUri,
 } from 'mu';
+import moment from 'moment';
+import { v4 as uuidv4 } from 'uuid';
+
 import {
   CSVRow,
   CsvUploadState,
@@ -13,15 +16,20 @@ import {
   Term,
   TermProperty,
 } from '../types';
-import moment from 'moment';
-import { v4 as uuidv4 } from 'uuid';
-import { PUBLICATION_STATUS } from '../util/constants';
+
+import {
+  MANDATARIS_STATUS,
+  PUBLICATION_STATUS,
+  STATUS_CODE,
+} from '../util/constants';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
   getSparqlResults,
 } from '../util/sparql-result';
+import { HttpError } from '../util/http-error';
+
 import { TERM_MANDATARIS_TYPE } from './mandatees-decisions';
 
 export const mandataris = {
@@ -32,6 +40,7 @@ export const mandataris = {
   getNonResourceDomainProperties,
   addPredicatesToMandataris,
   getMandatarisFracties,
+  generateMandatarissen,
 };
 
 async function isValidId(id?: string, sudo: boolean = false): Promise<boolean> {
@@ -832,4 +841,66 @@ async function getMandatarisFracties(
   const results = await query(q);
 
   return getSparqlResults(results);
+}
+
+async function generateMandatarissen(
+  sparqlValues: Array<{ id: string; uri: string; rangorde: string }>,
+  parameters,
+) {
+  const { count, startDate, endDate, mandaatUri } = parameters;
+  const uriAndIdValues = sparqlValues
+    .map((item) => {
+      const values = [
+        sparqlEscapeUri(item.uri),
+        sparqlEscapeString(item.id),
+        sparqlEscapeString(item.rangorde),
+      ];
+
+      return `( ${values.join(' ')} )`;
+    })
+    .join('\n');
+
+  const escapedCommon = {
+    startDate: sparqlEscapeDateTime(startDate),
+    endDate: sparqlEscapeDateTime(endDate),
+    mandaat: sparqlEscapeUri(mandaatUri),
+    effectief: sparqlEscapeUri(MANDATARIS_STATUS.EFFECTIEF),
+    publication: sparqlEscapeUri(PUBLICATION_STATUS.DRAFT),
+  };
+
+  const createQuery = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+    PREFIX mps: <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX generiek: <http://data.vlaanderen.be/ns/generiek#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+    INSERT {
+      GRAPH <http://mu.semte.ch/graphs/application> {
+        ?uri a mandaat:Mandataris ;
+          mu:uuid ?id ;
+          mandaat:rangorde ?rangorde ;
+          mandaat:start ${escapedCommon.startDate} ;
+          ${endDate ? `mandaat:einde ${escapedCommon.endDate};` : ''}
+          org:holds ${escapedCommon.mandaat} ;
+          mandaat:status ${escapedCommon.effectief} ;
+          lmb:hasPublicationStatus ${escapedCommon.publication} .
+      }
+    }
+    WHERE {
+      VALUES ( ?uri ?id ?rangorde ) { ${uriAndIdValues} }
+    }  
+    `;
+
+  try {
+    await query(createQuery);
+  } catch (error) {
+    throw new HttpError(
+      `Could not generate ${count} mandataris(sen).`,
+      STATUS_CODE.INTERNAL_SERVER_ERROR,
+    );
+  }
 }

@@ -7,7 +7,6 @@ import { mandatarisDownloadRequest } from '../Requests/mandataris-download';
 
 import { deleteInstanceWithTombstone } from '../data-access/delete';
 
-import { uploadCsv } from '../controllers/mandataris-upload';
 import {
   addLinkLinkedMandataris,
   changeStateLinkedMandataris,
@@ -21,9 +20,11 @@ import {
   mandatarisUsecase,
 } from '../controllers/mandataris';
 import { mandatarisDownloadUsecase } from '../controllers/mandataris-download';
+import { uploadCsv } from '../controllers/mandataris-upload';
+
+import { CsvUploadState } from '../types';
 
 import { STATUS_CODE } from '../util/constants';
-import { CsvUploadState } from '../types';
 
 const upload = multer({ dest: 'mandataris-uploads/' });
 
@@ -237,5 +238,20 @@ mandatarissenRouter.get('/download', async (req: Request, res: Response) => {
     return res.status(statusCode).send({ message });
   }
 });
+
+mandatarissenRouter.post(
+  '/generate-rows',
+  async (req: Request, res: Response) => {
+    try {
+      const createdIds = await mandatarisUsecase.generateRows(req.body);
+      return res.status(STATUS_CODE.OK).send({ ids: createdIds });
+    } catch (error) {
+      const message =
+        error.message ?? 'Something went wrong while generating mandatarissen';
+      const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
+      return res.status(statusCode).send({ message });
+    }
+  },
+);
 
 export { mandatarissenRouter };
