@@ -19,27 +19,11 @@ import { getIdentifierFromPersonUri } from '../util/find-uuid-in-uri';
 // note since we use the regular query, not sudo queries, be sure to log in when using this endpoint. E.g. use the vendor login
 
 export const persoon = {
-  isValidId,
   getFractie,
   removeFractieFromCurrent,
   removeFractieFromCurrentWithGraph,
   setEndDateOfActiveMandatarissen,
 };
-
-async function isValidId(id: string): Promise<boolean> {
-  const askQuery = `
-    PREFIX person: <http://www.w3.org/ns/person#>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-
-    ASK {
-      ?persoon a person:Person;
-        mu:uuid ${sparqlEscapeString(id)}.
-    }
-  `;
-  const sparqlResult = await query(askQuery);
-
-  return getBooleanSparqlResult(sparqlResult);
-}
 
 export const findPerson = async (rrn: string) => {
   const q = `

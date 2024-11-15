@@ -9,8 +9,8 @@ import { updateSudo } from '@lblod/mu-auth-sudo';
 
 import { getSparqlResults } from '../util/sparql-result';
 import { FRACTIE_TYPE } from '../util/constants';
-import { Term, TermProperty } from '../types';
 import { sparqlEscapeTermValue } from '../util/sparql-escape';
+import { Term, TermProperty } from '../types';
 
 export const fractie = {
   forBestuursperiode,

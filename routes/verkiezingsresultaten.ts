@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import Router from 'express-promise-router';
 import { sparqlEscapeString } from '../util/mu';
 import { query } from 'mu';
-import { json2csv } from 'json-2-csv';
+import { jsonToCsv, queryResultToJson } from '../util/json-to-csv';
 
 export const electionResultsRouter = Router();
 
@@ -80,13 +80,6 @@ async function downloadElectionResults(
     }
   `;
   const result = await query(q);
-  const results = result.results.bindings.map((b) => {
-    const simplified = {};
-    for (const key in b) {
-      simplified[key] = b[key].value;
-    }
-    return simplified;
-  });
-  const csv = await json2csv(results);
-  return csv;
+
+  return await jsonToCsv(queryResultToJson(result));
 }

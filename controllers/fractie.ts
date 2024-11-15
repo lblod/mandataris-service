@@ -1,5 +1,5 @@
-import { bestuursperiode } from '../data-access/bestuursperiode';
 import { fractie } from '../data-access/fractie';
+import { areIdsValid, RDF_TYPE } from '../util/are-ids-valid';
 import { STATUS_CODE } from '../util/constants';
 import { HttpError } from '../util/http-error';
 
@@ -12,7 +12,9 @@ async function forBestuursperiode(
   bestuursperiodeId: string,
   onafhankelijk,
 ): Promise<Array<string>> {
-  const isBestuursperiode = await bestuursperiode.isValidId(bestuursperiodeId);
+  const isBestuursperiode = await areIdsValid(RDF_TYPE.BESTUURSPERIODE, [
+    bestuursperiodeId,
+  ]);
   if (!isBestuursperiode) {
     throw new HttpError(
       `Bestuursperiode with id ${bestuursperiodeId} not found.`,
@@ -35,7 +37,9 @@ async function forBestuursperiode(
 async function removeFractieWhenNoLidmaatschap(
   bestuursperiodeId: string,
 ): Promise<Array<string>> {
-  const isBestuursperiode = await bestuursperiode.isValidId(bestuursperiodeId);
+  const isBestuursperiode = await areIdsValid(RDF_TYPE.BESTUURSPERIODE, [
+    bestuursperiodeId,
+  ]);
   if (!isBestuursperiode) {
     throw new HttpError(
       `Bestuursperiode with id ${bestuursperiodeId} not found.`,

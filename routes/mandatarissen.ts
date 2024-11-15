@@ -1,9 +1,13 @@
+import Router from 'express-promise-router';
+
 import { Request, Response } from 'express';
 import multer from 'multer';
-import Router from 'express-promise-router';
+
+import { mandatarisDownloadRequest } from '../Requests/mandataris-download';
+
 import { deleteInstanceWithTombstone } from '../data-access/delete';
+
 import { uploadCsv } from '../controllers/mandataris-upload';
-import { CsvUploadState } from '../types';
 import {
   addLinkLinkedMandataris,
   changeStateLinkedMandataris,
@@ -16,7 +20,10 @@ import {
   handleBulkSetPublicationStatus,
   mandatarisUsecase,
 } from '../controllers/mandataris';
+import { mandatarisDownloadUsecase } from '../controllers/mandataris-download';
+
 import { STATUS_CODE } from '../util/constants';
+import { CsvUploadState } from '../types';
 
 const upload = multer({ dest: 'mandataris-uploads/' });
 
@@ -213,5 +220,22 @@ mandatarissenRouter.get(
     }
   },
 );
+
+mandatarissenRouter.get('/download', async (req: Request, res: Response) => {
+  try {
+    const parameters = mandatarisDownloadRequest(req);
+    const csvString = await mandatarisDownloadUsecase.toCsv(parameters);
+
+    res.set('Content-Type', 'text/csv');
+    res.set('Content-Disposition', 'attachment; filename="mandatarissen.csv"');
+    return res.status(STATUS_CODE.OK).send(csvString);
+  } catch (error) {
+    const message =
+      error.message ??
+      'An error occurred while downloading mandatarissen as a CSV file.';
+    const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
+    return res.status(statusCode).send({ message });
+  }
+});
 
 export { mandatarissenRouter };
