@@ -55,11 +55,12 @@ export async function areIdsValid(
 
 // Make sure the prefix is available in the PREFIXES array
 export enum RDF_TYPE {
-  PERSON = 'person:Person',
-  FRACTIE = 'mandaat:Fractie',
-  BESTUURSORGAAN = 'besluit:Bestuursorgaan',
   BESTUURSFUNCTIE_CODE = 'ext:BestuursfunctieCode',
+  BESTUURSORGAAN = 'besluit:Bestuursorgaan',
   BESTUURSPERIODE = 'lmb:Bestuursperiode',
+  FRACTIE = 'mandaat:Fractie',
+  MANDATARIS = 'mandaat:Mandataris',
+  PERSON = 'person:Person',
 }
 
 const PREFIXES = `
