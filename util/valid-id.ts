@@ -1,5 +1,28 @@
-import { findFirstSparqlResult } from './sparql-result';
+import { findFirstSparqlResult, getBooleanSparqlResult } from './sparql-result';
 import { query, sparqlEscapeString } from 'mu';
+import { querySudo } from '@lblod/mu-auth-sudo';
+
+export async function isValidId(
+  rdfType: RDF_TYPE,
+  id?: string,
+  sudo: boolean = false,
+): Promise<boolean> {
+  if (!id) {
+    return false;
+  }
+
+  const askQuery = `
+    ${PREFIXES}
+
+    ASK {
+      ?entity a ${rdfType} ;
+        mu:uuid ${sparqlEscapeString(id)} .
+    }
+  `;
+  const result = sudo ? await querySudo(askQuery) : await query(askQuery);
+
+  return getBooleanSparqlResult(result);
+}
 
 export async function areIdsValid(
   rdfType: RDF_TYPE,

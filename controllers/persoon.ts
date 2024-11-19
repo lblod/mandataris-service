@@ -1,6 +1,6 @@
 import { persoon } from '../data-access/persoon';
 
-import { areIdsValid, RDF_TYPE } from '../util/are-ids-valid';
+import { areIdsValid, RDF_TYPE } from '../util/valid-id';
 import { STATUS_CODE } from '../util/constants';
 import { HttpError } from '../util/http-error';
 
