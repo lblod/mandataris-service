@@ -1,4 +1,8 @@
-import { checkIfPersonInCorrectGraph, persoon } from '../data-access/persoon';
+import {
+  checkIfPersonInCorrectGraph,
+  getDestinationGraphPerson,
+  persoon,
+} from '../data-access/persoon';
 
 import { areIdsValid, isValidId, RDF_TYPE } from '../util/valid-id';
 import { STATUS_CODE } from '../util/constants';
@@ -77,6 +81,13 @@ export async function putPersonInRightGraph(
   }
 
   // Find destination graph
+  const destinationGraph = await getDestinationGraphPerson(personId, orgaanId);
+  if (!destinationGraph) {
+    throw new HttpError(
+      'Could not find a target graph to copy the person to.',
+      STATUS_CODE.BAD_REQUEST,
+    );
+  }
 
   // Copy person to destination graph
 }

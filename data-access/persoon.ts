@@ -419,3 +419,41 @@ export async function checkIfPersonInCorrectGraph(
 
   return getBooleanSparqlResult(result);
 }
+
+export async function getDestinationGraphPerson(
+  persoonID: string,
+  orgaanID: string,
+): Promise<string | undefined> {
+  const escaped = {
+    person: sparqlEscapeString(persoonID),
+    orgaanIT: sparqlEscapeString(orgaanID),
+  };
+
+  const getDestinationGraph = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX person: <http://www.w3.org/ns/person#>
+    PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    prefix ext: <http://mu.semte.ch/vocabularies/ext/>
+
+    SELECT DISTINCT ?target
+    WHERE {
+      GRAPH ?g {
+        ?persoon a person:Person ;
+          mu:uuid ${escaped.person} .
+        ?orgaanIT a besluit:Bestuursorgaan ;
+          mu:uuid ${escaped.orgaanIT} ;
+          mandaat:isTijdspecialisatieVan ?orgaan .
+        ?orgaan ?p ?bestuurseenheid2 .
+        VALUES ?p { besluit:bestuurt ext:origineleBestuurseenheid }
+      }
+      ?g ext:ownedBy ?betuurseenheid .
+      ?target ext:ownedBy ?betuurseenheid2 .
+      FILTER ( ?bestuurseenheid != ?bestuurseenheid2 )
+    }
+  `;
+  const queryResult = await query(getDestinationGraph);
+
+  const result = findFirstSparqlResult(queryResult);
+  return result?.target.value;
+}
