@@ -4,6 +4,7 @@ import moment from 'moment';
 import { querySudo } from '@lblod/mu-auth-sudo';
 
 import {
+  findFirstSparqlResult,
   getBooleanSparqlResult,
   getSparqlResults,
 } from '../util/sparql-result';
@@ -65,9 +66,7 @@ async function HandleEffectieveMandatarissen() {
       });
 
       if (SEND_EMAILS) {
-        const email = await bestuurseenheid_sudo.getContactEmailFromMandataris(
-          mandataris.uri,
-        );
+        const email = await getContactEmailFromMandataris(mandataris.uri);
         if (email) {
           await sendMailTo(email, mandataris);
         }
@@ -75,6 +74,36 @@ async function HandleEffectieveMandatarissen() {
     }, bufferTime);
   }
   running = false;
+}
+
+async function getContactEmailFromMandataris(mandatarisUri: string) {
+  const query = `
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX person: <http://www.w3.org/ns/person#>
+    PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX schema: <http://schema.org/>
+    SELECT ?email WHERE {
+      ${sparqlEscapeUri(mandatarisUri)} a mandaat:Mandataris;
+        org:holds ?mandaat.
+      ?bestuurseenheid a besluit:Bestuurseenheid.
+      ?bestuursorgaan besluit:bestuurt ?bestuurseenheid .
+      ?bestuursorgaanInTijd mandaat:isTijdspecialisatieVan ?bestuursorgaan .
+      ?bestuursorgaanInTijd org:hasPost ?mandaat .
+      OPTIONAL {
+        ?contact a ext:BestuurseenheidContact ;
+          ext:contactVoor ?bestuurseenheid ;
+          schema:email ?email .
+      }
+    } LIMIT 1
+  `;
+  const sparqlResult = await querySudo(query);
+  const result = findFirstSparqlResult(sparqlResult);
+
+  return result?.email.value;
 }
 
 async function fetchEffectiveMandatarissenWithoutBesluit() {
@@ -89,7 +118,7 @@ async function fetchEffectiveMandatarissenWithoutBesluit() {
     PREFIX foaf: <http://xmlns.com/foaf/0.1/>
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
-  
+
     SELECT DISTINCT ?mandataris ?fName ?lName ?bestuursfunctieName ?graph
       WHERE {
         GRAPH ?graph {
@@ -104,9 +133,7 @@ async function fetchEffectiveMandatarissenWithoutBesluit() {
           }
         }
         ?bestuursfunctie skos:prefLabel ?bestuursfunctieName .
-        FILTER NOT EXISTS {
-          ?graph a <http://mu.semte.ch/vocabularies/ext/FormHistory>
-        }
+        ?graph ext:ownedBy ?owningEenheid.
         FILTER NOT EXISTS {
           ?graph a <http://mu.semte.ch/graphs/public>
         }
@@ -136,13 +163,13 @@ async function hasNotificationForMandataris(
   const query = `
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX dct: <http://purl.org/dc/terms/>
-    
+
     ASK {
       GRAPH ${sparqlEscapeUri(graph)} {
         ?notification a ext:SystemNotification;
           dct:subject ${sparqlEscapeString(SUBJECT)};
           ext:notificationLink ?notificationLink.
-        
+
         ?notificationLink ext:linkedTo ${sparqlEscapeUri(mandataris)}.
       }
     }

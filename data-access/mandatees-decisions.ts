@@ -15,10 +15,6 @@ export const BESLUIT_STAGING_GRAPH =
   process.env.BESLUIT_STAGING_GRAPH ||
   'http://mu.semte.ch/graphs/besluiten-consumed';
 
-export const TERM_STAGING_GRAPH = {
-  type: TERM_TYPE.URI,
-  value: 'http://mu.semte.ch/graphs/besluiten-consumed',
-};
 export const TERM_MANDATARIS_TYPE = {
   type: TERM_TYPE.URI,
   value: 'http://data.vlaanderen.be/ns/mandaat#Mandataris',
@@ -162,10 +158,7 @@ export async function getGraphsWhereInstanceExists(instanceUri) {
       GRAPH ?graph {
         ${sparqlEscapeUri(instanceUri)} a ?thing.
       }
-      OPTIONAL {
-        ?graph ext:ownedBy ?bestuurseenheid.
-      }
-      FILTER(?graph = <http://mu.semte.ch/graphs/public> || BOUND(?bestuurseenheid))
+      ?graph ext:ownedBy ?bestuurseenheid.
     }
   `;
   const result = await querySudo(query);

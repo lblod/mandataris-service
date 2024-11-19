@@ -16,42 +16,44 @@ import { copyMandatarisInfo } from './mandataris-besluit/mandataris';
 import { copyPersonInfo } from './mandataris-besluit/persoon';
 
 export async function processMandatarisForDecisions(
-  mandatarisSubject: string,
+  mandatarisUri: string,
 ): Promise<void> {
   const { valid, besluitUri, type } =
-    await isValidMandataris(mandatarisSubject);
-  if (!valid || !besluitUri) {
+    await isValidMandatarisWithBesluit(mandatarisUri);
+  if (!valid || !besluitUri || !type) {
     return;
   }
   const mandatarisPointer: MandatarisBesluitLookup = {
-    mandatarisUri: mandatarisSubject,
+    mandatarisUri,
     besluitUri,
     type,
   };
   await handleMandatarisSubject(mandatarisPointer);
   await updatePublicationStatusOfMandataris(
-    mandatarisSubject,
+    mandatarisUri,
     PUBLICATION_STATUS.BEKRACHTIGD,
   );
 }
 
-async function isValidMandataris(mandataris: string) {
+async function isValidMandatarisWithBesluit(mandatarisUri: string) {
   const isMandataris = await isSubjectOfType(
     TERM_MANDATARIS_TYPE.value,
-    mandataris,
+    mandatarisUri,
   );
   if (!isMandataris) {
     console.log(
-      `|> URI: ${mandataris} is not of type: ${TERM_MANDATARIS_TYPE.value}`,
+      `|> URI: ${mandatarisUri} is not of type: ${TERM_MANDATARIS_TYPE.value}`,
     );
     return { valid: false, besluitUri: null, type: null };
   }
 
   // The decision can also be a besluit:Artikel this
   // because the besluit does not have a direct relation to the mandataris yet
-  const result = await findDecisionForMandataris(mandataris);
+  const result = await findDecisionForMandataris(mandatarisUri);
   if (!result) {
-    console.log(`|> Could not find a decision for mandataris: ${mandataris}`);
+    console.log(
+      `|> Could not find a decision for mandataris: ${mandatarisUri}`,
+    );
     return { valid: false, besluitUri: null, type: null };
   }
   return {

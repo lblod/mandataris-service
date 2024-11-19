@@ -2,16 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { sparqlEscapeUri } from 'mu';
 import { querySudo } from '@lblod/mu-auth-sudo';
 
-export function getIdentifierFromPersonUri(uri: string) {
-  const personBaseUri = 'http://data.lblod.info/id/personen/';
-  if (!uri.includes(personBaseUri)) {
-    return uuidv4();
-  }
-
-  return uri.replace(personBaseUri, '').trim();
-}
-
-export function getIdentifierFromUri(uri: string) {
+function getIdentifierFromUri(uri: string) {
   const uuid = uri.split('/').pop();
   if (
     uuid &&

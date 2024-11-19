@@ -30,7 +30,10 @@ import {
 } from '../util/sparql-result';
 import { HttpError } from '../util/http-error';
 
-import { TERM_MANDATARIS_TYPE } from './mandatees-decisions';
+import {
+  BESLUIT_STAGING_GRAPH,
+  TERM_MANDATARIS_TYPE,
+} from './mandatees-decisions';
 
 export const mandataris = {
   isValidId,
@@ -520,34 +523,37 @@ export async function endExistingMandataris(
   }
 }
 
-export async function findDecisionForMandataris(
-  mandataris: string,
-): Promise<{ besluit: string; link: string } | null> {
-  const mandatarisSubject = sparqlEscapeUri(mandataris);
+export async function findDecisionAndLinkForMandataris(
+  mandatarisUri: string,
+): Promise<{ besluit: string | undefined; link: string | undefined }> {
+  const mandatarisSubject = sparqlEscapeUri(mandatarisUri);
   const besluiteQuery = `
   PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
    SELECT ?artikel ?link
    WHERE {
-      VALUES ?link {
-        mandaat:bekrachtigtAanstellingVan
-        mandaat:bekrachtigtOntslagVan
+      GRAPH ?g {
+        VALUES ?link {
+          mandaat:bekrachtigtAanstellingVan
+          mandaat:bekrachtigtOntslagVan
+        }
+        ?artikel ?link ${mandatarisSubject}.
       }
-      ?artikel ?link ${mandatarisSubject}.
+      OPTIONAL {
+        ?g ext:ownedBy ?eenheid.
+      }
+      FILTER(BOUND(?eenheid) || ?g = ${sparqlEscapeUri(BESLUIT_STAGING_GRAPH)})
     }
   `;
 
   const result = await querySudo(besluiteQuery);
   const sparqlresult = findFirstSparqlResult(result);
 
-  if (sparqlresult?.artikel) {
-    return {
-      besluit: sparqlresult.artikel.value,
-      link: sparqlresult.link.value,
-    };
-  }
-
-  return null;
+  return {
+    besluit: sparqlresult?.artikel?.value,
+    link: sparqlresult?.link?.value,
+  };
 }
 
 export async function updatePublicationStatusOfMandataris(
@@ -876,7 +882,7 @@ async function generateMandatarissen(
     }
     WHERE {
       VALUES ( ?uri ?id ?rangorde ) { ${uriAndIdValues} }
-    }  
+    }
     `;
 
   try {

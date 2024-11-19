@@ -1,13 +1,12 @@
 import { querySudo } from '@lblod/mu-auth-sudo';
 import { sparqlEscapeUri } from 'mu';
-import { fixLidmaatschapTijdsinterval } from '../../data-access/lidmaatschap';
 import { BESLUIT_STAGING_GRAPH } from '../../data-access/mandatees-decisions';
 import { MandatarisFullInfo } from '../../types';
 import { createMandatarisBesluitNotification } from '../../util/create-notification';
 import { sparqlEscapeString } from '../../util/mu';
 import {
+  findFirstSparqlResult,
   getBooleanSparqlResult,
-  getSparqlResults,
 } from '../../util/sparql-result';
 import { getUuidForUri } from '../../util/uuid-for-uri';
 
@@ -24,10 +23,6 @@ export async function copyFractionInfo(mandatarisFullInfo: MandatarisFullInfo) {
     return;
   }
   await copyMembership(mandatarisFullInfo);
-  await fixLidmaatschapTijdsinterval(
-    mandatarisFullInfo.mandatarisUri,
-    mandatarisFullInfo.graph,
-  );
 }
 
 const checkForFractionsThatDontExist = async (
@@ -115,8 +110,8 @@ const checkForDuplicateMemberships = async (
     }
   `;
   const result = await querySudo(query);
-  const hasUnknownFractions = getBooleanSparqlResult(result);
-  if (hasUnknownFractions) {
+  const hasDuplicateFraction = getBooleanSparqlResult(result);
+  if (hasDuplicateFraction) {
     await createMandatarisBesluitNotification({
       title: 'Dubbele fractie',
       description:
@@ -151,14 +146,11 @@ const hasMembershipsWithDifferences = async (
     ASK WHERE {
       GRAPH ${sparqlEscapeUri(BESLUIT_STAGING_GRAPH)} {
         ${mandatarisUri} org:hasMembership ?subject .
-        ?subject ?predicate ?fractie .
-        VALUES ?predicate {
-          org:organisation
-        }
+        ?subject org:organisation ?fractie .
       }
       FILTER NOT EXISTS {
         GRAPH ${sparqlEscapeUri(mandatarisFullInfo.graph)} {
-          ?subject ?predicate ?fractie .
+          ?subject org:organisation ?fractie .
         }
       }
     }
@@ -198,6 +190,9 @@ const addNewMemberships = async (mandatarisFullInfo: MandatarisFullInfo) => {
   );
   const mandatarisUri = sparqlEscapeUri(mandatarisFullInfo.mandatarisUri);
   const graph = sparqlEscapeUri(mandatarisFullInfo.graph);
+  if (!membershipUri) {
+    return;
+  }
   const id = await getUuidForUri(membershipUri, {
     allowCheckingUri: true,
     allowGenerateUuid: true,
@@ -235,6 +230,6 @@ const getMembershipUri = async (mandatarisUri: string) => {
     }
   `;
   const result = await querySudo(query);
-  const results = getSparqlResults(result);
-  return results[0]?.membership?.value;
+  const results = findFirstSparqlResult(result);
+  return results?.membership?.value;
 };

@@ -2,7 +2,7 @@ import { fractie } from '../data-access/fractie';
 import {
   bulkBekrachtigMandatarissen,
   bulkSetPublicationStatusEffectief,
-  findDecisionForMandataris,
+  findDecisionAndLinkForMandataris,
   mandataris,
 } from '../data-access/mandataris';
 import { persoon } from '../data-access/persoon';
@@ -158,17 +158,17 @@ async function copyOverNonResourceDomainPredicates(
   };
 }
 
-async function findDecision(mandatarisUri: string): Promise<string | null> {
-  const isMandataris = await mandataris.isValidId(mandatarisUri);
+async function findDecision(mandatarisId: string): Promise<string | null> {
+  const isMandataris = await mandataris.isValidId(mandatarisId);
   if (!isMandataris) {
     throw new HttpError(
-      `Mandataris with id ${mandatarisUri} not found.`,
+      `Mandataris with id ${mandatarisId} not found.`,
       STATUS_CODE.BAD_REQUEST,
     );
   }
-  const decision = await findDecisionForMandataris(mandatarisUri);
+  const result = await findDecisionAndLinkForMandataris(mandatarisId);
 
-  return decision ? decision.besluit : null;
+  return result.besluit || null;
 }
 
 export async function handleBulkSetPublicationStatus(
