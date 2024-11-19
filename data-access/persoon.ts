@@ -457,3 +457,48 @@ export async function getDestinationGraphPerson(
   const result = findFirstSparqlResult(queryResult);
   return result?.target.value;
 }
+
+export async function copyPersonToGraph(personId: string, graph: string) {
+  const escaped = {
+    graph: sparqlEscapeUri(graph),
+    person: sparqlEscapeString(personId),
+  };
+
+  const q = `
+  PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+  PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
+  PREFIX adms: <http://www.w3.org/ns/adms#>
+  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+
+  INSERT {
+    GRAPH ${escaped.graph} {
+      ?person ?pp ?po .
+      ?identifier ?ip ?io .
+      ?geboorte ?gp ?go .
+    }
+  }
+  WHERE {
+    GRAPH ?g {
+      ?person mu:uuid ${escaped.person} ;
+        adms:identifier ?identifier ;
+        ?pp ?po .
+      OPTIONAL {
+        ?persoon persoon:heeftGeboorte ?geboorte .
+        ?geboorte ?gp ?go .
+      }
+      ?identifier a adms:Identifier;
+        ?ip ?io .
+    }
+    ?g ext:ownedBy ?bestuurseenheid .
+    FILTER (BOUND(?bestuurseenheid))
+  }`;
+
+  try {
+    await updateSudo(q);
+    console.log(
+      `|> Copied person with id ${escaped.person} to graph ${escaped.graph}.`,
+    );
+  } catch (error) {
+    throw Error(`Could not copy person with id: ${escaped.person}`);
+  }
+}

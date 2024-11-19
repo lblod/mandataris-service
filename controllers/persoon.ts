@@ -1,5 +1,6 @@
 import {
   checkIfPersonInCorrectGraph,
+  copyPersonToGraph,
   getDestinationGraphPerson,
   persoon,
 } from '../data-access/persoon';
@@ -90,4 +91,5 @@ export async function putPersonInRightGraph(
   }
 
   // Copy person to destination graph
+  await copyPersonToGraph(personId, destinationGraph);
 }
