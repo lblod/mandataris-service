@@ -33,7 +33,6 @@ import { HttpError } from '../util/http-error';
 import { TERM_MANDATARIS_TYPE } from './mandatees-decisions';
 
 export const mandataris = {
-  isValidId,
   isOnafhankelijk,
   findCurrentFractieForPerson,
   getPersonWithBestuursperiode,
@@ -42,25 +41,6 @@ export const mandataris = {
   getMandatarisFracties,
   generateMandatarissen,
 };
-
-async function isValidId(id?: string, sudo: boolean = false): Promise<boolean> {
-  if (!id) {
-    return false;
-  }
-
-  const askQuery = `
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-
-    ASK {
-      ?mandataris a mandaat:Mandataris;
-        mu:uuid ${sparqlEscapeString(id)}.
-    }
-  `;
-  const result = sudo ? await querySudo(askQuery) : await query(askQuery);
-
-  return getBooleanSparqlResult(result);
-}
 
 async function isOnafhankelijk(mandatarisId: string): Promise<boolean> {
   const getQuery = `
