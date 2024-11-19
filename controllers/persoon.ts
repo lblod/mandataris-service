@@ -1,5 +1,5 @@
 import {
-  checkIfPersonInCorrectGraph,
+  shouldPersonBeCopied,
   copyPersonToGraph,
   getDestinationGraphPerson,
   persoon,
@@ -72,16 +72,11 @@ export async function putPersonInRightGraph(
     );
   }
 
-  // Check if person in the correct bestuurseenheid
-  const personInCorrectGraph = await checkIfPersonInCorrectGraph(
-    personId,
-    orgaanId,
-  );
-  if (personInCorrectGraph) {
+  const personShouldBeCopied = await shouldPersonBeCopied(personId, orgaanId);
+  if (!personShouldBeCopied) {
     return;
   }
 
-  // Find destination graph
   const destinationGraph = await getDestinationGraphPerson(personId, orgaanId);
   if (!destinationGraph) {
     throw new HttpError(
@@ -90,6 +85,5 @@ export async function putPersonInRightGraph(
     );
   }
 
-  // Copy person to destination graph
   await copyPersonToGraph(personId, destinationGraph);
 }

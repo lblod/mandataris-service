@@ -50,7 +50,6 @@ personenRouter.put(
 personenRouter.post(
   '/:persoonID/put-person-in-right-graph/:orgaanID',
   async (req: Request, res: Response) => {
-    console.log('Triggered transfer person');
     const personId = req.params.persoonID;
     const orgaanId = req.params.orgaanID;
 

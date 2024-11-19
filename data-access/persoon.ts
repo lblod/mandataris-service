@@ -385,7 +385,7 @@ async function setEndDateOfActiveMandatarissen(
   await query(updateQuery);
 }
 
-export async function checkIfPersonInCorrectGraph(
+export async function shouldPersonBeCopied(
   persoonID: string,
   orgaanID: string,
 ): Promise<boolean> {
@@ -417,7 +417,7 @@ export async function checkIfPersonInCorrectGraph(
   `;
   const result = await querySudo(personInCorrectGraph);
 
-  return !getBooleanSparqlResult(result);
+  return getBooleanSparqlResult(result);
 }
 
 export async function getDestinationGraphPerson(
@@ -495,9 +495,6 @@ export async function copyPersonToGraph(personId: string, graph: string) {
 
   try {
     await updateSudo(q);
-    console.log(
-      `|> Copied person with id ${escaped.person} to graph ${escaped.graph}.`,
-    );
   } catch (error) {
     throw Error(`Could not copy person with id: ${escaped.person}`);
   }
