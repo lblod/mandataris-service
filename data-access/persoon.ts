@@ -384,3 +384,38 @@ async function setEndDateOfActiveMandatarissen(
   `;
   await query(updateQuery);
 }
+
+export async function checkIfPersonInCorrectGraph(
+  persoonID: string,
+  orgaanID: string,
+): Promise<boolean> {
+  const escaped = {
+    person: sparqlEscapeString(persoonID),
+    orgaanIT: sparqlEscapeString(orgaanID),
+  };
+
+  const personInCorrectGraph = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX person: <http://www.w3.org/ns/person#>
+    PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    prefix ext: <http://mu.semte.ch/vocabularies/ext/>
+
+    ASK {
+      GRAPH ?g {
+        ?persoon a person:Person ;
+          mu:uuid ${escaped.person} .
+        ?orgaanIT a besluit:Bestuursorgaan ;
+          mu:uuid ${escaped.orgaanIT} ;
+          mandaat:isTijdspecialisatieVan ?orgaan .
+        ?orgaan ?p ?bestuurseenheid .
+        VALUES ?p { besluit:bestuurt ext:origineleBestuurseenheid }
+      }
+      ?g ext:ownedBy ?betuurseenheid2 .
+      FILTER ( ?bestuurseenheid != ?bestuurseenheid2 )
+    }
+  `;
+  const result = await query(personInCorrectGraph);
+
+  return getBooleanSparqlResult(result);
+}

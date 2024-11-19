@@ -1,4 +1,4 @@
-import { persoon } from '../data-access/persoon';
+import { checkIfPersonInCorrectGraph, persoon } from '../data-access/persoon';
 
 import { areIdsValid, isValidId, RDF_TYPE } from '../util/valid-id';
 import { STATUS_CODE } from '../util/constants';
@@ -49,8 +49,8 @@ async function setEndDateOfActiveMandatarissen(id: string): Promise<void> {
 }
 
 export async function putPersonInRightGraph(
-  personId?: string,
-  orgaanId?: string,
+  personId: string,
+  orgaanId: string,
 ): Promise<void> {
   const isValidPerson = await isValidId(RDF_TYPE.PERSON, personId);
   if (!isValidPerson) {
@@ -68,6 +68,13 @@ export async function putPersonInRightGraph(
   }
 
   // Check if person in the correct bestuurseenheid
+  const personInCorrectGraph = await checkIfPersonInCorrectGraph(
+    personId,
+    orgaanId,
+  );
+  if (personInCorrectGraph) {
+    return;
+  }
 
   // Find destination graph
 
