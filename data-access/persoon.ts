@@ -483,7 +483,7 @@ export async function copyPersonToGraph(personId: string, graph: string) {
         adms:identifier ?identifier ;
         ?pp ?po .
       OPTIONAL {
-        ?persoon persoon:heeftGeboorte ?geboorte .
+        ?person persoon:heeftGeboorte ?geboorte .
         ?geboorte ?gp ?go .
       }
       ?identifier a adms:Identifier;
