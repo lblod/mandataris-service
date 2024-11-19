@@ -411,13 +411,13 @@ export async function checkIfPersonInCorrectGraph(
         ?orgaan ?p ?bestuurseenheid .
         VALUES ?p { besluit:bestuurt ext:origineleBestuurseenheid }
       }
-      ?g ext:ownedBy ?betuurseenheid2 .
+      ?g ext:ownedBy ?bestuurseenheid2 .
       FILTER ( ?bestuurseenheid != ?bestuurseenheid2 )
     }
   `;
-  const result = await query(personInCorrectGraph);
+  const result = await querySudo(personInCorrectGraph);
 
-  return getBooleanSparqlResult(result);
+  return !getBooleanSparqlResult(result);
 }
 
 export async function getDestinationGraphPerson(
@@ -447,12 +447,12 @@ export async function getDestinationGraphPerson(
         ?orgaan ?p ?bestuurseenheid2 .
         VALUES ?p { besluit:bestuurt ext:origineleBestuurseenheid }
       }
-      ?g ext:ownedBy ?betuurseenheid .
-      ?target ext:ownedBy ?betuurseenheid2 .
+      ?g ext:ownedBy ?bestuurseenheid .
+      ?target ext:ownedBy ?bestuurseenheid2 .
       FILTER ( ?bestuurseenheid != ?bestuurseenheid2 )
     }
   `;
-  const queryResult = await query(getDestinationGraph);
+  const queryResult = await querySudo(getDestinationGraph);
 
   const result = findFirstSparqlResult(queryResult);
   return result?.target.value;
