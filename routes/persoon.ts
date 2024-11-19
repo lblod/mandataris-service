@@ -3,7 +3,7 @@ import Router from 'express-promise-router';
 import { Request, Response } from 'express';
 
 import { STATUS_CODE } from '../util/constants';
-import { persoonUsecase } from '../controllers/persoon';
+import { persoonUsecase, putPersonInRightGraph } from '../controllers/persoon';
 
 export const personenRouter = Router();
 
@@ -41,6 +41,26 @@ personenRouter.put(
       const message =
         error.message ??
         `Something went wrong while setting the end dates of active mandatarissen for person with id: ${personId} to today.`;
+      const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
+      return res.status(statusCode).send({ message });
+    }
+  },
+);
+
+personenRouter.post(
+  '/:persoonID/put-person-in-right-graph/:orgaanID',
+  async (req: Request, res: Response) => {
+    console.log('Triggered transfer person');
+    const personId = req.params.persoonID;
+    const orgaanId = req.params.orgaanID;
+
+    try {
+      await putPersonInRightGraph(personId, orgaanId);
+      return res.status(STATUS_CODE.OK).send({});
+    } catch (error) {
+      const message =
+        error.message ??
+        `Something went wrong while checking if the person with id ${personId} needs to be written to another graph as well.`;
       const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
       return res.status(statusCode).send({ message });
     }

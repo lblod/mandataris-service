@@ -1,6 +1,6 @@
 import { persoon } from '../data-access/persoon';
 
-import { areIdsValid, RDF_TYPE } from '../util/valid-id';
+import { areIdsValid, isValidId, RDF_TYPE } from '../util/valid-id';
 import { STATUS_CODE } from '../util/constants';
 import { HttpError } from '../util/http-error';
 
@@ -46,4 +46,30 @@ async function setEndDateOfActiveMandatarissen(id: string): Promise<void> {
   }
 
   await persoon.setEndDateOfActiveMandatarissen(id, new Date());
+}
+
+export async function putPersonInRightGraph(
+  personId?: string,
+  orgaanId?: string,
+): Promise<void> {
+  const isValidPerson = await isValidId(RDF_TYPE.PERSON, personId);
+  if (!isValidPerson) {
+    throw new HttpError(
+      `Person with id ${personId} not found.`,
+      STATUS_CODE.BAD_REQUEST,
+    );
+  }
+  const isValidOrgaan = await isValidId(RDF_TYPE.BESTUURSORGAAN, orgaanId);
+  if (!isValidOrgaan) {
+    throw new HttpError(
+      `Organ with id ${orgaanId} not found.`,
+      STATUS_CODE.BAD_REQUEST,
+    );
+  }
+
+  // Check if person in the correct bestuurseenheid
+
+  // Find destination graph
+
+  // Copy person to destination graph
 }
