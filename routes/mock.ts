@@ -13,6 +13,7 @@ mockRouter.get('/add-decision', async (req: Request, res: Response) => {
   let action = createDecisionForKnownMandatarisAndPerson;
 
   if (req.query.new) {
+    // this mandataris has no status, which will be flagged
     action = createDecisionForNewMandatarisAndPerson;
   } else if (req.query.fraction) {
     action = createDecisionForUnknownFraction;
@@ -24,6 +25,9 @@ mockRouter.get('/add-decision', async (req: Request, res: Response) => {
     action = createDecisionForKnownMandatarisChangeFractionName;
   } else if (req.query.newBeleidsdomein) {
     action = createDecisionForKnownMandatarisNewBeleidsdomein;
+  } else if (req.query.minimal) {
+    // likely to only get minimal info from GN at first
+    action = createMinimalDecision;
   }
   try {
     await action();
@@ -387,6 +391,30 @@ const createDecisionForIncompleteNewPerson = async () => {
       ${persoon} a person:Person;
         foaf:name "Johnny" .
 
+    }
+  }
+  `;
+  await updateSudo(insertQuery);
+};
+
+const createMinimalDecision = async () => {
+  const id = uuidv4();
+  const mandatarisId = '5FF2DC1278A81C0009000A15';
+  const mandataris = `<http://data.lblod.info/id/mandatarissen/${mandatarisId}>`;
+
+  const insertQuery = `
+  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+  PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+  PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+  PREFIX org: <http://www.w3.org/ns/org#>
+  PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+  PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+  INSERT DATA {
+    GRAPH <http://mu.semte.ch/graphs/besluiten-consumed> {
+      <http://data.lblod.info/id/besluiten/${id}> a besluit:Besluit;
+        mu:uuid """${id}""";
+        mandaat:bekrachtigtAanstellingVan ${mandataris}.
     }
   }
   `;
