@@ -1,7 +1,7 @@
 import Router from 'express-promise-router';
 
 import { Request, Response } from 'express';
-import { sparqlEscapeDateTime } from 'mu';
+import { sparqlEscapeDateTime, sparqlEscapeUri } from 'mu';
 import { updateSudo } from '@lblod/mu-auth-sudo';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -51,6 +51,20 @@ mockRouter.get('/clear-decisions', async (_req: Request, res: Response) => {
     }
   }`;
   await updateSudo(query);
+
+  const mandatarisUri =
+    'http://data.lblod.info/id/mandatarissen/5FF2DC1278A81C0009000A15';
+  await updateSudo(`
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+    DELETE {
+      GRAPH ?g {
+        ${sparqlEscapeUri(mandatarisUri)} lmb:hasPublicationStatus ?o.
+      }
+    }WHERE {
+      GRAPH ?g {
+        ${sparqlEscapeUri(mandatarisUri)} lmb:hasPublicationStatus ?o.
+      }
+    }`);
   res.status(200).send({ status: 'ok' });
 });
 

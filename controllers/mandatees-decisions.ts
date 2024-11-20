@@ -1,5 +1,5 @@
 import {
-  findDecisionForMandataris,
+  findDecisionAndLinkForMandataris,
   updatePublicationStatusOfMandataris,
 } from '../data-access/mandataris';
 import {
@@ -49,7 +49,7 @@ async function isValidMandatarisWithBesluit(mandatarisUri: string) {
 
   // The decision can also be a besluit:Artikel this
   // because the besluit does not have a direct relation to the mandataris yet
-  const result = await findDecisionForMandataris(mandatarisUri);
+  const result = await findDecisionAndLinkForMandataris(mandatarisUri);
   if (!result) {
     console.log(
       `|> Could not find a decision for mandataris: ${mandatarisUri}`,
@@ -60,7 +60,7 @@ async function isValidMandatarisWithBesluit(mandatarisUri: string) {
     valid: true,
     besluitUri: result.besluit,
     type:
-      result.link.toLocaleLowerCase().indexOf('ontslag') >= 0
+      result.link && result.link.toLocaleLowerCase().indexOf('ontslag') >= 0
         ? ('ontslag' as const)
         : ('aanstelling' as const),
   };

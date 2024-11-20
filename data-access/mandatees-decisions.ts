@@ -77,6 +77,26 @@ export async function checkIfMinimalMandatarisInfoAvailable(
   const mandataris = mandatarisBesluitInfo.mandatarisUri;
   const besluitUri = mandatarisBesluitInfo.besluitUri;
 
+  const mandatarisExistsInStagingGraphQuery = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    SELECT * {
+      GRAPH ${sparqlEscapeUri(BESLUIT_STAGING_GRAPH)} {
+        VALUES ?m {
+          ${sparqlEscapeUri(mandataris)}
+        }
+        ?m a mandaat:Mandataris .
+      }
+    } LIMIT 1
+  `;
+
+  const mandatarisExistsInStagingGraphResult = await querySudo(
+    mandatarisExistsInStagingGraphQuery,
+  );
+
+  if (!getSparqlResults(mandatarisExistsInStagingGraphResult).length) {
+    return { minimalInfoAvailable: false, graph: null };
+  }
+
   const query = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>

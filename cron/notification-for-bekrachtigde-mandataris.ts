@@ -118,6 +118,7 @@ async function fetchEffectiveMandatarissenWithoutBesluit() {
     PREFIX foaf: <http://xmlns.com/foaf/0.1/>
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     SELECT DISTINCT ?mandataris ?fName ?lName ?bestuursfunctieName ?graph
       WHERE {
