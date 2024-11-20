@@ -15,7 +15,6 @@ import {
   sparqlEscapeUri,
 } from '../util/mu';
 import { createNotification } from '../util/create-notification';
-import { bestuurseenheid_sudo } from '../data-access/bestuurseenheid';
 import { SEND_EMAILS, sendMailTo } from '../util/create-email';
 
 const SUBJECT = 'Mandataris zonder besluit';
