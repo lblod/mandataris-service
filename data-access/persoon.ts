@@ -1,4 +1,4 @@
-import { querySudo } from '@lblod/mu-auth-sudo';
+import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
 import {
   query,
   sparqlEscapeDateTime,
