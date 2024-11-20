@@ -65,6 +65,29 @@ const checkForFractionsThatDontExist = async (
 const updateFractionName = async (mandatarisFullInfo: MandatarisFullInfo) => {
   const mandatarisUri = sparqlEscapeUri(mandatarisFullInfo.mandatarisUri);
   const graph = sparqlEscapeUri(mandatarisFullInfo.graph);
+
+  const queryCheckIfDifferentName = `
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX regorg: <https://www.w3.org/ns/regorg#>
+    ASK WHERE {
+      GRAPH ${sparqlEscapeUri(BESLUIT_STAGING_GRAPH)} {
+        ${mandatarisUri} org:hasMembership ?membership .
+        ?membership org:organisation ?fractie .
+        ?fractie regorg:legalName ?name .
+      }
+      GRAPH ${graph} {
+        ?fractie regorg:legalName ?oldName .
+      }
+      FILTER(?oldName != ?name)
+    }
+  `;
+
+  const result = await querySudo(queryCheckIfDifferentName);
+  const hasDifferentName = getBooleanSparqlResult(result);
+  if (!hasDifferentName) {
+    return;
+  }
+
   const query = `
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -93,6 +116,14 @@ const updateFractionName = async (mandatarisFullInfo: MandatarisFullInfo) => {
     }
   `;
   await querySudo(query);
+
+  await createMandatarisBesluitNotification({
+    title: 'Naam fractie aangepast',
+    description:
+      'De fractie van deze mandataris werd aangepast. De nieuwe naam is overgenomen uit het besluit dat deze mandataris bekrachtigt.',
+    type: 'warning',
+    info: mandatarisFullInfo,
+  });
 };
 
 const checkForDuplicateMemberships = async (
