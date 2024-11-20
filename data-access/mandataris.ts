@@ -30,7 +30,10 @@ import {
 } from '../util/sparql-result';
 import { HttpError } from '../util/http-error';
 
-import { TERM_MANDATARIS_TYPE } from './mandatees-decisions';
+import {
+  BESLUIT_STAGING_GRAPH,
+  TERM_MANDATARIS_TYPE,
+} from './mandatees-decisions';
 
 export const mandataris = {
   isValidId,
@@ -520,58 +523,45 @@ export async function endExistingMandataris(
   }
 }
 
-export async function findStartDateOfMandataris(
-  mandataris: Term,
-): Promise<Date | null> {
-  const startDateQuery = `
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-
-    SELECT ?startDate
-    WHERE {
-      ${sparqlEscapeTermValue(mandataris)} mandaat:start ?startDate .
-    }
-  `;
-
-  const dateResult = await querySudo(startDateQuery);
-  const result = findFirstSparqlResult(dateResult);
-
-  if (result) {
-    return new Date(result.startDate.value);
-  }
-
-  return null;
-}
-
-export async function findDecisionForMandataris(
-  mandataris: Term,
-): Promise<Term | null> {
-  const mandatarisSubject = sparqlEscapeTermValue(mandataris);
+export async function findDecisionAndLinkForMandataris(
+  mandatarisUri: string,
+): Promise<{ besluit: string | undefined; link: string | undefined }> {
+  const mandatarisSubject = sparqlEscapeUri(mandatarisUri);
   const besluiteQuery = `
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
-   SELECT ?artikel
+   SELECT ?artikel ?link
    WHERE {
-      OPTIONAL { ?artikel mandaat:bekrachtigtAanstellingVan ${mandatarisSubject}. }
-      OPTIONAL { ?artikel mandaat:bekrachtigtOntslagVan ${mandatarisSubject}. }
+      GRAPH ?g {
+        VALUES ?link {
+          mandaat:bekrachtigtAanstellingVan
+          mandaat:bekrachtigtOntslagVan
+        }
+        ?artikel ?link ${mandatarisSubject}.
+      }
+      OPTIONAL {
+        ?g ext:ownedBy ?eenheid.
+      }
+      FILTER(BOUND(?eenheid) || ?g = ${sparqlEscapeUri(BESLUIT_STAGING_GRAPH)})
     }
   `;
 
-  const result = await updateSudo(besluiteQuery);
+  const result = await querySudo(besluiteQuery);
   const sparqlresult = findFirstSparqlResult(result);
 
-  if (sparqlresult?.artikel) {
-    return sparqlresult.artikel;
-  }
-
-  return null;
+  return {
+    besluit: sparqlresult?.artikel?.value,
+    link: sparqlresult?.link?.value,
+  };
 }
 
 export async function updatePublicationStatusOfMandataris(
-  mandataris: Term,
+  mandataris: string,
   status: PUBLICATION_STATUS,
 ): Promise<void> {
   const escaped = {
-    mandataris: sparqlEscapeTermValue(mandataris),
+    mandataris: sparqlEscapeUri(mandataris),
     status: sparqlEscapeUri(status),
     mandatarisType: sparqlEscapeTermValue(TERM_MANDATARIS_TYPE),
   };
@@ -601,11 +591,11 @@ export async function updatePublicationStatusOfMandataris(
   try {
     await updateSudo(updateStatusQuery);
     console.log(
-      `|> Updated status to ${status} for mandataris: ${mandataris.value}.`,
+      `|> Updated status to ${status} for mandataris: ${mandataris}.`,
     );
   } catch (error) {
     console.log(
-      `|> Could not update mandataris: ${mandataris.value} status to ${status}`,
+      `|> Could not update mandataris: ${mandataris} status to ${status}`,
     );
   }
 }
@@ -892,7 +882,7 @@ async function generateMandatarissen(
     }
     WHERE {
       VALUES ( ?uri ?id ?rangorde ) { ${uriAndIdValues} }
-    }  
+    }
     `;
 
   try {
