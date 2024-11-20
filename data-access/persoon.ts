@@ -1,4 +1,4 @@
-import { querySudo } from '@lblod/mu-auth-sudo';
+import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
 import {
   query,
   sparqlEscapeDateTime,
@@ -256,4 +256,119 @@ async function setEndDateOfActiveMandatarissen(
     }
   `;
   await query(updateQuery);
+}
+
+export async function shouldPersonBeCopied(
+  persoonID: string,
+  orgaanID: string,
+): Promise<boolean> {
+  const escaped = {
+    person: sparqlEscapeString(persoonID),
+    orgaanIT: sparqlEscapeString(orgaanID),
+  };
+
+  const personInCorrectGraph = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX person: <http://www.w3.org/ns/person#>
+    PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    prefix ext: <http://mu.semte.ch/vocabularies/ext/>
+
+    ASK {
+      GRAPH ?g {
+        ?persoon a person:Person ;
+          mu:uuid ${escaped.person} .
+        ?orgaanIT a besluit:Bestuursorgaan ;
+          mu:uuid ${escaped.orgaanIT} ;
+          mandaat:isTijdspecialisatieVan ?orgaan .
+        ?orgaan ?p ?bestuurseenheid .
+        VALUES ?p { besluit:bestuurt ext:origineleBestuurseenheid }
+      }
+      ?g ext:ownedBy ?bestuurseenheid2 .
+      FILTER ( ?bestuurseenheid != ?bestuurseenheid2 )
+    }
+  `;
+  const result = await querySudo(personInCorrectGraph);
+
+  return getBooleanSparqlResult(result);
+}
+
+export async function getDestinationGraphPerson(
+  persoonID: string,
+  orgaanID: string,
+): Promise<string | undefined> {
+  const escaped = {
+    person: sparqlEscapeString(persoonID),
+    orgaanIT: sparqlEscapeString(orgaanID),
+  };
+
+  const getDestinationGraph = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX person: <http://www.w3.org/ns/person#>
+    PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    prefix ext: <http://mu.semte.ch/vocabularies/ext/>
+
+    SELECT DISTINCT ?target
+    WHERE {
+      GRAPH ?g {
+        ?persoon a person:Person ;
+          mu:uuid ${escaped.person} .
+        ?orgaanIT a besluit:Bestuursorgaan ;
+          mu:uuid ${escaped.orgaanIT} ;
+          mandaat:isTijdspecialisatieVan ?orgaan .
+        ?orgaan ?p ?bestuurseenheid2 .
+        VALUES ?p { besluit:bestuurt ext:origineleBestuurseenheid }
+      }
+      ?g ext:ownedBy ?bestuurseenheid .
+      ?target ext:ownedBy ?bestuurseenheid2 .
+      FILTER ( ?bestuurseenheid != ?bestuurseenheid2 )
+    }
+  `;
+  const queryResult = await querySudo(getDestinationGraph);
+
+  const result = findFirstSparqlResult(queryResult);
+  return result?.target.value;
+}
+
+export async function copyPersonToGraph(personId: string, graph: string) {
+  const escaped = {
+    graph: sparqlEscapeUri(graph),
+    person: sparqlEscapeString(personId),
+  };
+
+  const q = `
+  PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+  PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
+  PREFIX adms: <http://www.w3.org/ns/adms#>
+  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+
+  INSERT {
+    GRAPH ${escaped.graph} {
+      ?person ?pp ?po .
+      ?identifier ?ip ?io .
+      ?geboorte ?gp ?go .
+    }
+  }
+  WHERE {
+    GRAPH ?g {
+      ?person mu:uuid ${escaped.person} ;
+        adms:identifier ?identifier ;
+        ?pp ?po .
+      OPTIONAL {
+        ?person persoon:heeftGeboorte ?geboorte .
+        ?geboorte ?gp ?go .
+      }
+      ?identifier a adms:Identifier;
+        ?ip ?io .
+    }
+    ?g ext:ownedBy ?bestuurseenheid .
+    FILTER (BOUND(?bestuurseenheid))
+  }`;
+
+  try {
+    await updateSudo(q);
+  } catch (error) {
+    throw Error(`Could not copy person with id: ${escaped.person}`);
+  }
 }

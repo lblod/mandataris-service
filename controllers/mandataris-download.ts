@@ -3,7 +3,7 @@ import { STATUS_CODE } from '../util/constants';
 import { jsonToCsv } from '../util/json-to-csv';
 
 import { downloadMandatarissen } from '../data-access/mandataris-download';
-import { areIdsValid, RDF_TYPE } from '../util/are-ids-valid';
+import { areIdsValid, RDF_TYPE } from '../util/valid-id';
 
 import moment from 'moment';
 

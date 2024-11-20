@@ -14,6 +14,7 @@ import { HttpError } from '../util/http-error';
 import { createRangorde } from '../util/rangorde';
 
 import { v4 as uuidv4 } from 'uuid';
+import { isValidId, RDF_TYPE } from '../util/valid-id';
 
 export const mandatarisUsecase = {
   getMandatarisFracties,
@@ -27,7 +28,7 @@ export const mandatarisUsecase = {
 async function getMandatarisFracties(
   mandatarisId: string,
 ): Promise<Array<string>> {
-  const isMandataris = await mandataris.isValidId(mandatarisId);
+  const isMandataris = await isValidId(RDF_TYPE.MANDATARIS, mandatarisId);
   if (!isMandataris) {
     throw new HttpError(
       `Mandataris with id ${mandatarisId} not found.`,
@@ -41,7 +42,7 @@ async function getMandatarisFracties(
 }
 
 async function updateCurrentFractie(mandatarisId: string): Promise<void> {
-  const isMandataris = await mandataris.isValidId(mandatarisId);
+  const isMandataris = await isValidId(RDF_TYPE.MANDATARIS, mandatarisId);
   if (!isMandataris) {
     throw new HttpError(
       `Mandataris with id ${mandatarisId} not found.`,
@@ -78,7 +79,7 @@ async function updateCurrentFractieSudo(
   mandatarisId: string,
   graph: Term,
 ): Promise<void> {
-  const isMandataris = await mandataris.isValidId(mandatarisId, true);
+  const isMandataris = await isValidId(RDF_TYPE.MANDATARIS, mandatarisId, true);
   if (!isMandataris) {
     throw new HttpError(
       `Mandataris with id ${mandatarisId} not found.`,
@@ -122,14 +123,14 @@ async function copyOverNonResourceDomainPredicates(
   mandatarisId: string,
   newMandatarisId: string,
 ): Promise<{ mandatarisId: string; itemsAdded: number }> {
-  const isMandataris = await mandataris.isValidId(mandatarisId);
+  const isMandataris = await isValidId(RDF_TYPE.MANDATARIS, mandatarisId);
   if (!isMandataris) {
     throw new HttpError(
       `Mandataris with id ${mandatarisId} not found.`,
       STATUS_CODE.BAD_REQUEST,
     );
   }
-  const isNewMandataris = await mandataris.isValidId(newMandatarisId);
+  const isNewMandataris = await isValidId(RDF_TYPE.MANDATARIS, newMandatarisId);
   if (!isNewMandataris) {
     throw new HttpError(
       `New mandataris with id ${mandatarisId} not found.`,
@@ -159,7 +160,7 @@ async function copyOverNonResourceDomainPredicates(
 }
 
 async function findDecision(mandatarisId: string): Promise<string | null> {
-  const isMandataris = await mandataris.isValidId(mandatarisId);
+  const isMandataris = await isValidId(RDF_TYPE.MANDATARIS, mandatarisId);
   if (!isMandataris) {
     throw new HttpError(
       `Mandataris with id ${mandatarisId} not found.`,
@@ -181,7 +182,10 @@ export async function handleBulkSetPublicationStatus(
   }
 
   // We just check access to the first mandataris
-  const isMandataris = await mandataris.isValidId(mandatarissen.at(0));
+  const isMandataris = await isValidId(
+    RDF_TYPE.MANDATARIS,
+    mandatarissen.at(0),
+  );
   if (!isMandataris) {
     throw new HttpError('Unauthorized', 401);
   }
