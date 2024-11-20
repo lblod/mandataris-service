@@ -3,13 +3,15 @@ import { app } from 'mu';
 import express, { Request, ErrorRequestHandler } from 'express';
 import bodyParser from 'body-parser';
 
-import { deltaRouter } from './routes/delta';
+import { deltaRouter } from './routes/delta-decisions';
 import { mandatarissenRouter } from './routes/mandatarissen';
 import { fractiesRouter } from './routes/fractie';
 import { personenRouter } from './routes/persoon';
 import { burgemeesterRouter } from './routes/burgemeester-benoeming';
 import { installatievergaderingRouter } from './routes/installatievergadering';
 import { mandatenRouter } from './routes/mandaten';
+import { mockRouter } from './routes/mock';
+import { cronjob } from './cron/handle-decision-queue';
 
 import { cronjob as notificationBekrachtigdMandataris } from './cron/notification-for-bekrachtigde-mandataris';
 import { electionResultsRouter } from './routes/verkiezingsresultaten';
@@ -37,6 +39,7 @@ app.use('/mandaten', mandatenRouter);
 app.use('/burgemeester-benoeming', burgemeesterRouter);
 app.use('/installatievergadering-api', installatievergaderingRouter);
 app.use('/election-results-api', electionResultsRouter);
+app.use('/mock', mockRouter);
 
 const errorHandler: ErrorRequestHandler = function (err, _req, res, _next) {
   // custom error handler to have a default 500 error code instead of 400 as in the template
@@ -49,3 +52,4 @@ const errorHandler: ErrorRequestHandler = function (err, _req, res, _next) {
 app.use(errorHandler);
 
 notificationBekrachtigdMandataris.start();
+cronjob.start();
