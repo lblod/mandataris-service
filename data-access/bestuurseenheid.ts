@@ -74,5 +74,5 @@ async function getContactEmailFromMandataris(mandatarisUri: string) {
   const sparqlResult = await querySudo(query);
   const result = findFirstSparqlResult(sparqlResult);
 
-  return result?.email.value;
+  return result?.email?.value;
 }
