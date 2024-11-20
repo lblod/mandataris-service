@@ -2,7 +2,6 @@ import { fractie } from '../data-access/fractie';
 import {
   bulkBekrachtigMandatarissen,
   bulkSetPublicationStatusEffectief,
-  findDecisionAndLinkForMandataris,
   mandataris,
 } from '../data-access/mandataris';
 import { persoon } from '../data-access/persoon';
