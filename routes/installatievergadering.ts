@@ -641,6 +641,7 @@ async function clearMandatarisInstancesFromOrgaan(orgaanIt: string) {
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX astreams: <http://www.w3.org/ns/activitystreams#>
+    PREFIX dct: <http://purl.org/dc/terms/>
     DELETE {
         ?mandataris ?p ?o.
         ?membership ?mp ?mo.
@@ -648,9 +649,11 @@ async function clearMandatarisInstancesFromOrgaan(orgaanIt: string) {
     INSERT {
       ?mandataris a astreams:Tombstone;
         astreams:deleted ${sparqlEscapeDateTime(now)} ;
+        dct:modified ${sparqlEscapeDateTime(now)} ;
         astreams:formerType mandaat:Mandataris .
       ?membership a astreams:Tombstone;
         astreams:deleted ${sparqlEscapeDateTime(now)} ;
+        dct:modified ${sparqlEscapeDateTime(now)} ;
         astreams:formerType org:Membership .
     }
      WHERE {
