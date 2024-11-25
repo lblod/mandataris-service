@@ -33,12 +33,12 @@ export const cronjob = CronJob.from({
       return;
     }
     running = true;
-    await HandleEffectieveMandatarissen();
+    await handleEffectieveMandatarissen();
     running = false;
   },
 });
 
-async function HandleEffectieveMandatarissen() {
+async function handleEffectieveMandatarissen() {
   const mandatarissen = await fetchEffectiveMandatarissenWithoutBesluit();
   const bufferTime = 1000;
   for (const mandataris of mandatarissen) {
