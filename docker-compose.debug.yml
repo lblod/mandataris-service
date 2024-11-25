@@ -3,17 +3,17 @@ services:
     image: local-js-template
     #build: ./
     #image: semtech/mu-javascript-template:1.8.0
-    restart: 'no'
+    restart: no
     labels:
-      - 'logging=true'
+      - logging=true
     environment:
       NODE_ENV: development
       NO_BABEL_NODE: true
-      EMAIL_FROM_MANDATARIS_EFFECTIEF: 'email@address.com'
-      NOTIFICATION_CRON_PATTERN: '* * * * *' # Every minute
-      WELL_KNOWN_SERVICE: "test"
+      EMAIL_FROM_MANDATARIS_EFFECTIEF: email@address.com
+      WELL_KNOWN_SERVICE: test
+      NOTIFICATION_CRON_PATTERN: 0 0 * * * # Every day at 12AM
       SEND_EMAIL_FOR_MANDATARIS_EFFECTIEF: false
-      BESLUIT_CRON_PATTERN: '*/5 * * * * *'
+      BESLUIT_CRON_PATTERN: 0 0 * * * # Every day at 12AM
       BESLUIT_BUFFER_TIME: 10000
     ports:
       - '8082:80'
