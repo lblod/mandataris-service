@@ -267,7 +267,7 @@ export async function shouldPersonBeCopied(
     orgaanIT: sparqlEscapeString(orgaanID),
   };
 
-  const personInCorrectGraph = `
+  const query = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX person: <http://www.w3.org/ns/person#>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
@@ -281,14 +281,13 @@ export async function shouldPersonBeCopied(
         ?orgaanIT a besluit:Bestuursorgaan ;
           mu:uuid ${escaped.orgaanIT} ;
           mandaat:isTijdspecialisatieVan ?orgaan .
-        ?orgaan ?p ?bestuurseenheid .
-        VALUES ?p { besluit:bestuurt ext:origineleBestuurseenheid }
+        ?orgaan ext:origineleBestuurseenheid ?bestuurseenheid .
       }
       ?g ext:ownedBy ?bestuurseenheid2 .
       FILTER ( ?bestuurseenheid != ?bestuurseenheid2 )
     }
   `;
-  const result = await querySudo(personInCorrectGraph);
+  const result = await querySudo(query);
 
   return getBooleanSparqlResult(result);
 }
@@ -317,8 +316,7 @@ export async function getDestinationGraphPerson(
         ?orgaanIT a besluit:Bestuursorgaan ;
           mu:uuid ${escaped.orgaanIT} ;
           mandaat:isTijdspecialisatieVan ?orgaan .
-        ?orgaan ?p ?bestuurseenheid2 .
-        VALUES ?p { besluit:bestuurt ext:origineleBestuurseenheid }
+        ?orgaan ext:origineleBestuurseenheid ?bestuurseenheid2 .
       }
       ?g ext:ownedBy ?bestuurseenheid .
       ?target ext:ownedBy ?bestuurseenheid2 .
