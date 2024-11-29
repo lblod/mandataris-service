@@ -267,7 +267,7 @@ export async function shouldPersonBeCopied(
     orgaanIT: sparqlEscapeString(orgaanID),
   };
 
-  const personInCorrectGraph = `
+  const query = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX person: <http://www.w3.org/ns/person#>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
@@ -287,7 +287,7 @@ export async function shouldPersonBeCopied(
       FILTER ( ?bestuurseenheid != ?bestuurseenheid2 )
     }
   `;
-  const result = await querySudo(personInCorrectGraph);
+  const result = await querySudo(query);
 
   return getBooleanSparqlResult(result);
 }
