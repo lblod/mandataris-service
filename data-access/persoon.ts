@@ -281,8 +281,7 @@ export async function shouldPersonBeCopied(
         ?orgaanIT a besluit:Bestuursorgaan ;
           mu:uuid ${escaped.orgaanIT} ;
           mandaat:isTijdspecialisatieVan ?orgaan .
-        ?orgaan ?p ?bestuurseenheid .
-        VALUES ?p { besluit:bestuurt ext:origineleBestuurseenheid }
+        ?orgaan ext:origineleBestuurseenheid ?bestuurseenheid .
       }
       ?g ext:ownedBy ?bestuurseenheid2 .
       FILTER ( ?bestuurseenheid != ?bestuurseenheid2 )
@@ -317,8 +316,7 @@ export async function getDestinationGraphPerson(
         ?orgaanIT a besluit:Bestuursorgaan ;
           mu:uuid ${escaped.orgaanIT} ;
           mandaat:isTijdspecialisatieVan ?orgaan .
-        ?orgaan ?p ?bestuurseenheid2 .
-        VALUES ?p { besluit:bestuurt ext:origineleBestuurseenheid }
+        ?orgaan ext:origineleBestuurseenheid ?bestuurseenheid2 .
       }
       ?g ext:ownedBy ?bestuurseenheid .
       ?target ext:ownedBy ?bestuurseenheid2 .
