@@ -2,7 +2,6 @@ import { fractie } from '../data-access/fractie';
 import {
   bulkBekrachtigMandatarissen,
   bulkSetPublicationStatusEffectief,
-  findDecisionAndLinkForMandataris,
   mandataris,
 } from '../data-access/mandataris';
 import { persoon } from '../data-access/persoon';
@@ -21,7 +20,6 @@ export const mandatarisUsecase = {
   updateCurrentFractie,
   updateCurrentFractieSudo,
   copyOverNonResourceDomainPredicates,
-  findDecision,
   generateRows,
 };
 
@@ -157,19 +155,6 @@ async function copyOverNonResourceDomainPredicates(
     mandatarisId: newMandatarisId,
     itemsAdded: nonDomainResourceProperties.length,
   };
-}
-
-async function findDecision(mandatarisId: string): Promise<string | null> {
-  const isMandataris = await isValidId(RDF_TYPE.MANDATARIS, mandatarisId);
-  if (!isMandataris) {
-    throw new HttpError(
-      `Mandataris with id ${mandatarisId} not found.`,
-      STATUS_CODE.BAD_REQUEST,
-    );
-  }
-  const result = await findDecisionAndLinkForMandataris(mandatarisId);
-
-  return result.besluit || null;
 }
 
 export async function handleBulkSetPublicationStatus(
