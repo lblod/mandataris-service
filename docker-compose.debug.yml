@@ -3,17 +3,17 @@ services:
     image: local-js-template
     #build: ./
     #image: semtech/mu-javascript-template:1.8.0
-    restart: 'no'
+    restart: no
     labels:
-      - 'logging=true'
+      - logging=true
     environment:
       NODE_ENV: development
       NO_BABEL_NODE: true
-      EMAIL_FROM_MANDATARIS_EFFECTIEF: 'email@address.com'
-      NOTIFICATION_CRON_PATTERN: '* * * * *' # Every minute
-      WELL_KNOWN_SERVICE: "test"
+      EMAIL_FROM_MANDATARIS_EFFECTIEF: email@address.com
+      WELL_KNOWN_SERVICE: test
+      NOTIFICATION_CRON_PATTERN: 0 0 * * * # Every day at 12AM
       SEND_EMAIL_FOR_MANDATARIS_EFFECTIEF: false
-      BESLUIT_CRON_PATTERN: '*/5 * * * * *'
+      BESLUIT_CRON_PATTERN: 0 0 * * * # Every day at 12AM
       BESLUIT_BUFFER_TIME: 10000
     ports:
       - '8082:80'
@@ -27,38 +27,7 @@ services:
       - ./dist:/build/
     networks:
       - debug
-  mandatees-decisions:
-    image: lblod/delta-consumer:0.0.24
-    profiles:
-      - decision-consumer
-    volumes:
-      - ./config/custom-dispatching:/config/triples-dispatching/custom-dispatching
-      - ./data/files/mandatees-decisions:/consumer-files
-    environment:
-      DCR_SERVICE_NAME: 'mandatees-decisions'
-      DCR_SYNC_BASE_URL: 'http://producer-identifier'
-      DCR_JOB_CREATOR_URI: 'http://lblod.data.gift/services/delta-producer-background-jobs-initiator-mandatees-decisions'
-      DCR_SYNC_DATASET_SUBJECT: 'http://data.lblod.info/datasets/delta-producer/dumps/Mandatees-DecisionsCacheGraphDump'
-      DCR_INITIAL_SYNC_JOB_OPERATION: 'http://redpencil.data.gift/id/jobs/concept/JobOperation/deltas/initialPublicationGraphSyncing/mandatees-decisions'
-      DCR_DELTA_SYNC_JOB_OPERATION: 'http://redpencil.data.gift/id/jobs/concept/JobOperation/deltas/deltaDumpFileCreation/mandatees-decisions'
-      DCR_START_FROM_DELTA_TIMESTAMP: '2024-01-12T15:51:23.478Z'
-      DCR_SYNC_FILES_PATH: '/sync/mandatees-decisions/files'
-      DCR_KEEP_DELTA_FILES: true
-      DCR_DELTA_FILE_FOLDER: '/deltas/mandatees-decisions/files'
-      DCR_CRON_PATTERN_DELTA_SYNC: '0 * * * *	' # Every hour
-      BESLUITEN_CRON_PATTERN: '*/5 * * * * *' # every 5 seconds
-      DCR_DISABLE_INITIAL_SYNC: false
-      SLEEP_BETWEEN_BATCHES: 1
-      BATCH_SIZE: 100
-      PARALLEL_CALLS: 20
-      DCR_WAIT_FOR_INITIAL_SYNC: false
-      DIRECT_DATABASE_ENDPOINT: http://database:8890
-    networks:
-      - debug
-      - deltas-sync
 
 networks:
   debug:
-    external: true
-  deltas-sync:
     external: true
