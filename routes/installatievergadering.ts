@@ -442,9 +442,7 @@ async function setMandatarisenToEffectief(installatievergaderingId) {
       ?mandataris dct:modified ?now.
     }
   } WHERE {
-    ?installatieVergadering mu:uuid ${sparqlEscapeString(
-      installatievergaderingId,
-    )} .
+    ?installatieVergadering mu:uuid ${escapedId} .
     ?installatieVergadering lmb:heeftBestuursperiode ?period .
     ?installatieVergadering lmb:heeftBestuurseenheid ?eenheid .
     { {
