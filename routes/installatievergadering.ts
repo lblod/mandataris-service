@@ -448,8 +448,13 @@ async function setMandatarisenToEffectief(installatievergaderingId) {
     ?installatieVergadering lmb:heeftBestuursperiode ?period .
     ?installatieVergadering lmb:heeftBestuurseenheid ?eenheid .
     { {
+      # ocmw mandataris in real
       ?bestuursorgaanT ^ext:origineleBestuursorgaan / mandaat:isTijdspecialisatieVan / ext:isTijdelijkOrgaanIn ?eenheid .
     } UNION {
+      # ocmw mandataris in fake
+      ?bestuursorgaanT mandaat:isTijdspecialisatieVan / ext:isTijdelijkOrgaanIn ?eenheid .
+    } UNION {
+      # gemeente mandataris
       ?bestuursorgaanT mandaat:isTijdspecialisatieVan / besluit:bestuurt ?eenheid.
     } }
     ?bestuursorgaanT lmb:heeftBestuursperiode ?period.
