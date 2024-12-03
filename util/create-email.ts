@@ -1,5 +1,5 @@
 import { v4 as uuid } from 'uuid';
-import { sparqlEscapeDateTime, sparqlEscapeString } from './mu';
+import { sparqlEscapeDateTime, sparqlEscapeString } from 'mu';
 import { updateSudo } from '@lblod/mu-auth-sudo';
 
 const EMAIL_FROM_MANDATARIS_EFFECTIEF =

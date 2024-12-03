@@ -9,11 +9,7 @@ import {
   getSparqlResults,
 } from '../util/sparql-result';
 import { PUBLICATION_STATUS } from '../util/constants';
-import {
-  sparqlEscapeDateTime,
-  sparqlEscapeString,
-  sparqlEscapeUri,
-} from '../util/mu';
+import { sparqlEscapeDateTime, sparqlEscapeString, sparqlEscapeUri } from 'mu';
 import { createNotification } from '../util/create-notification';
 import { SEND_EMAILS, sendMailTo } from '../util/create-email';
 
@@ -100,9 +96,8 @@ async function getContactEmailFromMandataris(mandatarisUri: string) {
     } LIMIT 1
   `;
   const sparqlResult = await querySudo(query);
-  const result = findFirstSparqlResult(sparqlResult);
 
-  return result?.email.value;
+  return findFirstSparqlResult(sparqlResult)?.email.value;
 }
 
 async function fetchEffectiveMandatarissenWithoutBesluit() {

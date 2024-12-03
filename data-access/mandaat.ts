@@ -1,5 +1,4 @@
-import { query, sparqlEscapeString } from 'mu';
-import { sparqlEscapeDateTime } from '../util/mu';
+import { query, sparqlEscapeString, sparqlEscapeDateTime } from 'mu';
 
 export const getNbActiveMandatarissen = async (mandaatId: string) => {
   const now = sparqlEscapeDateTime(new Date());
