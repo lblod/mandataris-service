@@ -52,6 +52,7 @@ installatievergaderingRouter.post(
     await moveOcmwOrgans(installatievergaderingId);
     await movePersons(installatievergaderingId);
     await setLinkedIVToBehandeld(installatievergaderingId);
+    await setMandatarisenToEffectief(installatievergaderingId);
     return res.status(200).send({ status: 'ok' });
   },
 );
@@ -406,6 +407,71 @@ async function movePersons(installatievergaderingId: string) {
     }
     ?origin ext:ownedBy ?owningEenheid.
     ?target ext:ownedBy ?owningEenheid2.
+  }`;
+  await updateSudo(sparql);
+}
+
+async function setMandatarisenToEffectief(installatievergaderingId) {
+  const escapedId = sparqlEscapeString(installatievergaderingId);
+  const sparql = `
+
+  PREFIX mandaat:     <http://data.vlaanderen.be/ns/mandaat#>
+  PREFIX besluit:     <http://data.vlaanderen.be/ns/besluit#>
+  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+  PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+  PREFIX bestuurseenheidscode: <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/>
+  PREFIX org: <http://www.w3.org/ns/org#>
+  PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+  PREFIX regorg: <https://www.w3.org/ns/regorg#>
+  PREFIX adms: <http://www.w3.org/ns/adms#>
+  PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
+  PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+  PREFIX dct: <http://purl.org/dc/terms/>
+
+  DELETE {
+    GRAPH ?target {
+      ?mandataris lmb:hasPublicationStatus ?old.
+      ?mandataris lmb:effectiefAt ?oldDate.
+      ?mandataris dct:modified ?oldMod.
+    }
+  }
+  INSERT {
+    GRAPH ?target {
+      ?mandataris lmb:hasPublicationStatus <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/d3b12468-3720-4cb0-95b4-6aa2996ab188>.
+      ?mandataris lmb:effectiefAt ?now.
+      ?mandataris dct:modified ?now.
+    }
+  } WHERE {
+    ?installatieVergadering mu:uuid ${escapedId} .
+    ?installatieVergadering lmb:heeftBestuursperiode ?period .
+    ?installatieVergadering lmb:heeftBestuurseenheid ?eenheid .
+    { {
+      # ocmw mandataris in real
+      ?bestuursorgaanT ^ext:origineleBestuursorgaan / mandaat:isTijdspecialisatieVan / ext:isTijdelijkOrgaanIn ?eenheid .
+    } UNION {
+      # ocmw mandataris in fake
+      ?bestuursorgaanT mandaat:isTijdspecialisatieVan / ext:isTijdelijkOrgaanIn ?eenheid .
+    } UNION {
+      # gemeente mandataris
+      ?bestuursorgaanT mandaat:isTijdspecialisatieVan / besluit:bestuurt ?eenheid.
+    } }
+    ?bestuursorgaanT lmb:heeftBestuursperiode ?period.
+    GRAPH ?target {
+      ?bestuursorgaanT org:hasPost ?mandaat.
+      ?mandataris org:holds ?mandaat.
+
+      OPTIONAL {
+        ?mandataris lmb:hasPublicationStatus ?old.
+      }
+      OPTIONAL {
+        ?mandataris lmb:effectiefAt ?oldDate.
+      }
+      OPTIONAL {
+        ?mandataris dct:modified ?oldMod.
+      }
+    }
+    BIND(NOW() AS ?now)
+    ?target ext:ownedBy ?owner.
   }`;
   await updateSudo(sparql);
 }
