@@ -92,9 +92,9 @@ export const createBurgemeesterBenoeming = async (
   status: string,
   date: Date,
   file,
-  orgGraphUri: string,
+  orgGraph: string,
 ) => {
-  const fileUri = await storeFile(file, orgGraphUri);
+  const fileUri = await storeFile(file, orgGraph);
   const uuid = uuidv4();
   const benoemingUri = `http://mu.semte.ch/vocabularies/ext/burgemeester-benoemingen/${uuid}`;
   await updateSudo(`
@@ -104,7 +104,7 @@ export const createBurgemeesterBenoeming = async (
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
     INSERT DATA {
-      GRAPH ${sparqlEscapeUri(orgGraphUri)} {
+      GRAPH ${sparqlEscapeUri(orgGraph)} {
         ${sparqlEscapeUri(benoemingUri)} a ext:BurgemeesterBenoeming ;
           mu:uuid ${sparqlEscapeString(uuid)} ;
           ext:status ${sparqlEscapeString(status)} ;
@@ -114,6 +114,7 @@ export const createBurgemeesterBenoeming = async (
           ext:file ${sparqlEscapeUri(fileUri)} .
       }
     }`);
+
   return benoemingUri;
 };
 
@@ -154,12 +155,12 @@ export const createBurgemeesterFromScratch = async (
   burgemeesterUri: string,
   burgemeesterMandaatUri: string,
   date: Date,
-  benoeming: string,
+  benoemingUri: string,
 ) => {
   const uuid = uuidv4();
   const newMandatarisUri = `http://mu.semte.ch/vocabularies/ext/mandatarissen/${uuid}`;
   const formattedNewMandatarisUri = sparqlEscapeUri(newMandatarisUri);
-  const benoemingUri = sparqlEscapeUri(benoeming);
+  const escapedBenoemingUri = sparqlEscapeUri(benoemingUri);
   await updateSudo(`
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
@@ -177,7 +178,7 @@ export const createBurgemeesterFromScratch = async (
           mandaat:start ${sparqlEscapeDateTime(date)} ;
           mandaat:status <http://data.vlaanderen.be/id/concept/MandatarisStatusCode/21063a5b-912c-4241-841c-cc7fb3c73e75> ;
           lmb:hasPublicationStatus mps:9d8fd14d-95d0-4f5e-b3a5-a56a126227b6 .
-        ${benoemingUri} ext:approves ${formattedNewMandatarisUri} .
+        ${escapedBenoemingUri} ext:approves ${formattedNewMandatarisUri} .
       }
     }`);
   return newMandatarisUri;

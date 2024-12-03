@@ -2,7 +2,7 @@ import { updateSudo } from '@lblod/mu-auth-sudo';
 import { sparqlEscapeDateTime, sparqlEscapeUri } from 'mu';
 import { v4 as uuidv4 } from 'uuid';
 
-export const storeFile = async (file, orgGraphUri: string) => {
+export const storeFile = async (file, orgGraph: string) => {
   const originalFileName = file.originalname;
   const generatedName = file.filename;
   const format = file.mimetype;
@@ -14,7 +14,7 @@ export const storeFile = async (file, orgGraphUri: string) => {
   const fileUri = `http://mu.semte.ch/services/file-service/files/${uuid}`;
   await updateSudo(`
     INSERT DATA {
-      GRAPH ${sparqlEscapeUri(orgGraphUri)} {
+      GRAPH ${sparqlEscapeUri(orgGraph)} {
         <${fileUri}> a <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#FileDataObject> ;
           <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#fileName> "${originalFileName}" ;
           <http://mu.semte.ch/vocabularies/core/uuid> "${uuid}" ;
