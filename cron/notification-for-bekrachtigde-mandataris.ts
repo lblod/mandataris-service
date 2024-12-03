@@ -92,21 +92,20 @@ async function getContactEmailFromMandataris(mandatarisUri: string) {
       ?bestuursorgaan besluit:bestuurt ?bestuurseenheid .
       ?bestuursorgaanInTijd mandaat:isTijdspecialisatieVan ?bestuursorgaan .
       ?bestuursorgaanInTijd org:hasPost ?mandaat .
-      OPTIONAL {
-        ?contact a ext:BestuurseenheidContact ;
-          ext:contactVoor ?bestuurseenheid ;
-          schema:email ?email .
-      }
+      
+      ?contact a ext:BestuurseenheidContact ;
+        ext:contactVoor ?bestuurseenheid ;
+        schema:email ?email .
+      
     } LIMIT 1
   `;
   const sparqlResult = await querySudo(query);
-  const result = findFirstSparqlResult(sparqlResult);
 
-  return result?.email.value;
+  return findFirstSparqlResult(sparqlResult)?.email?.value;
 }
 
 async function fetchEffectiveMandatarissenWithoutBesluit() {
-  const momentTenDaysAgo = moment(new Date()).subtract(10, 'days');
+  const momentTenDaysAgo = moment(new Date()).subtract(0, 'days');
   const escapedTenDaysBefore = sparqlEscapeDateTime(momentTenDaysAgo.toDate());
   const query = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
