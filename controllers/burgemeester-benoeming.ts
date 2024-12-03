@@ -79,7 +79,7 @@ const validateAndParseRequest = async (req: Request) => {
     );
   }
 
-  const { orgGraph, burgemeesterMandaat, aangewezenBurgemeesterMandaat } =
+  const { orgGraph, burgemeesterMandaatUri, aangewezenBurgemeesterMandaatUri } =
     await findBurgemeesterMandates(bestuurseenheidUri, date);
 
   const personExists = await personExistsInGraph(burgemeesterUri, orgGraph);
@@ -94,8 +94,8 @@ const validateAndParseRequest = async (req: Request) => {
     date,
     file: req.file,
     orgGraph,
-    burgemeesterMandaat,
-    aangewezenBurgemeesterMandaat,
+    burgemeesterMandaatUri,
+    aangewezenBurgemeesterMandaatUri,
   };
 };
 
@@ -107,11 +107,11 @@ const onBurgemeesterBenoemingSafe = async (req: Request) => {
     date,
     file,
     orgGraph,
-    burgemeesterMandaat,
-    aangewezenBurgemeesterMandaat,
+    burgemeesterMandaatUri,
+    aangewezenBurgemeesterMandaatUri,
   } = await validateAndParseRequest(req);
 
-  const benoeming = await createBurgemeesterBenoeming(
+  const benoemingUri = await createBurgemeesterBenoeming(
     bestuurseenheidUri,
     burgemeesterUri,
     status,
@@ -119,27 +119,27 @@ const onBurgemeesterBenoemingSafe = async (req: Request) => {
     file,
     orgGraph,
   );
-  const originalMandataris = await findExistingMandatarisOfPerson(
+  const originalMandatarisUri = await findExistingMandatarisOfPerson(
     orgGraph,
-    aangewezenBurgemeesterMandaat,
+    aangewezenBurgemeesterMandaatUri,
     burgemeesterUri,
   );
   if (status === BENOEMING_STATUS.BENOEMD) {
     await benoemBurgemeester(
       orgGraph,
       burgemeesterUri,
-      burgemeesterMandaat,
+      burgemeesterMandaatUri,
       date,
-      benoeming,
-      originalMandataris,
+      benoemingUri,
+      originalMandatarisUri,
     );
   } else if (status === BENOEMING_STATUS.AFGEWEZEN) {
     await markCurrentBurgemeesterAsRejected(
       orgGraph,
       burgemeesterUri,
       date,
-      benoeming,
-      originalMandataris,
+      benoemingUri,
+      originalMandatarisUri,
     );
   } else {
     // this was already checked during validation, just for clarity

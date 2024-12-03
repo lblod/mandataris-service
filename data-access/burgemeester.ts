@@ -1,9 +1,5 @@
 import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
-import {
-  sparqlEscapeUri,
-  sparqlEscapeString,
-  sparqlEscapeDateTime,
-} from '../util/mu';
+import { sparqlEscapeUri, sparqlEscapeString, sparqlEscapeDateTime } from 'mu';
 import { v4 as uuidv4 } from 'uuid';
 import { HttpError } from '../util/http-error';
 import { storeFile } from './file';
@@ -11,8 +7,6 @@ import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
 } from '../util/sparql-result';
-import { Term } from '../types';
-import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import {
   copyFromPreviousMandataris,
   endExistingMandataris,
@@ -85,9 +79,10 @@ export const findBurgemeesterMandates = async (
     );
   }
   return {
-    orgGraph: result.orgGraph,
-    burgemeesterMandaat: result.burgemeesterMandaat,
-    aangewezenBurgemeesterMandaat: result.aangewezenBurgemeesterMandaat,
+    orgGraph: result.orgGraph.value,
+    burgemeesterMandaatUri: result.burgemeesterMandaat.value,
+    aangewezenBurgemeesterMandaatUri:
+      result.aangewezenBurgemeesterMandaat.value,
   };
 };
 
@@ -97,9 +92,9 @@ export const createBurgemeesterBenoeming = async (
   status: string,
   date: Date,
   file,
-  orgGraph: Term,
+  orgGraphUri: string,
 ) => {
-  const fileUri = await storeFile(file, orgGraph);
+  const fileUri = await storeFile(file, orgGraphUri);
   const uuid = uuidv4();
   const benoemingUri = `http://mu.semte.ch/vocabularies/ext/burgemeester-benoemingen/${uuid}`;
   await updateSudo(`
@@ -109,7 +104,7 @@ export const createBurgemeesterBenoeming = async (
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
     INSERT DATA {
-      GRAPH ${sparqlEscapeTermValue(orgGraph)} {
+      GRAPH ${sparqlEscapeUri(orgGraphUri)} {
         ${sparqlEscapeUri(benoemingUri)} a ext:BurgemeesterBenoeming ;
           mu:uuid ${sparqlEscapeString(uuid)} ;
           ext:status ${sparqlEscapeString(status)} ;
@@ -123,31 +118,31 @@ export const createBurgemeesterBenoeming = async (
 };
 
 export const markCurrentBurgemeesterAsRejected = async (
-  orgGraph: Term,
+  orgGraph: string,
   burgemeesterUri: string,
   date: Date,
   benoeming: string,
-  existingMandataris: Term | undefined,
+  existingMandatarisUri: string | undefined,
 ) => {
-  if (!existingMandataris) {
+  if (!existingMandatarisUri) {
     throw new HttpError(
       `No existing mandataris found for burgemeester(${burgemeesterUri})`,
       400,
     );
   }
 
-  await endExistingMandataris(orgGraph, existingMandataris, date, benoeming);
+  await endExistingMandataris(orgGraph, existingMandatarisUri, date, benoeming);
 
   // TODO: check use case if mandataris is waarnemend -> should something happen to the verhindering?
 
-  const mandatarisUri = sparqlEscapeTermValue(existingMandataris);
+  const mandatarisUri = sparqlEscapeUri(existingMandatarisUri);
   const benoemingUri = sparqlEscapeUri(benoeming);
 
   const sparql = `
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     INSERT DATA {
-      GRAPH ${sparqlEscapeTermValue(orgGraph)} {
+      GRAPH ${sparqlEscapeUri(orgGraph)} {
         ${benoemingUri} ext:rejects ${mandatarisUri} .
       }
     }`;
@@ -155,9 +150,9 @@ export const markCurrentBurgemeesterAsRejected = async (
 };
 
 export const createBurgemeesterFromScratch = async (
-  orgGraph: Term,
+  orgGraph: string,
   burgemeesterUri: string,
-  burgemeesterMandaat: Term,
+  burgemeesterMandaatUri: string,
   date: Date,
   benoeming: string,
 ) => {
@@ -174,10 +169,10 @@ export const createBurgemeesterFromScratch = async (
     PREFIX org: <http://www.w3.org/ns/org#>
 
     INSERT DATA {
-      GRAPH ${sparqlEscapeTermValue(orgGraph)} {
+      GRAPH ${sparqlEscapeUri(orgGraph)} {
         ${sparqlEscapeUri(newMandatarisUri)} a mandaat:Mandataris ;
           mu:uuid ${sparqlEscapeString(uuid)} ;
-          org:holds ${sparqlEscapeTermValue(burgemeesterMandaat)} ;
+          org:holds ${sparqlEscapeUri(burgemeesterMandaatUri)} ;
           mandaat:isBestuurlijkeAliasVan ${sparqlEscapeUri(burgemeesterUri)} ;
           mandaat:start ${sparqlEscapeDateTime(date)} ;
           mandaat:status <http://data.vlaanderen.be/id/concept/MandatarisStatusCode/21063a5b-912c-4241-841c-cc7fb3c73e75> ;
@@ -189,12 +184,12 @@ export const createBurgemeesterFromScratch = async (
 };
 
 export const benoemBurgemeester = async (
-  orgGraph: Term,
+  orgGraph: string,
   burgemeesterUri: string,
-  burgemeesterMandaat: Term,
+  burgemeesterMandaatUri: string,
   date: Date,
-  benoeming: string,
-  existingMandataris: Term | undefined | null,
+  benoemingUri: string,
+  existingMandataris: string | undefined | null,
 ) => {
   let newMandatarisUri;
   if (existingMandataris) {
@@ -203,27 +198,32 @@ export const benoemBurgemeester = async (
       orgGraph,
       existingMandataris,
       date,
-      burgemeesterMandaat,
+      burgemeesterMandaatUri,
     );
 
-    await endExistingMandataris(orgGraph, existingMandataris, date, benoeming);
+    await endExistingMandataris(
+      orgGraph,
+      existingMandataris,
+      date,
+      benoemingUri,
+    );
   } else {
     // we need to create a new mandataris from scratch
     newMandatarisUri = await createBurgemeesterFromScratch(
       orgGraph,
       burgemeesterUri,
-      burgemeesterMandaat,
+      burgemeesterMandaatUri,
       date,
-      benoeming,
+      benoemingUri,
     );
   }
-  const benoemingUri = sparqlEscapeUri(benoeming);
+  const benoeming = sparqlEscapeUri(benoemingUri);
   await updateSudo(`
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     INSERT DATA {
-      GRAPH ${sparqlEscapeTermValue(orgGraph)} {
-        ${benoemingUri} ext:approves ${sparqlEscapeUri(newMandatarisUri)} .
+      GRAPH ${sparqlEscapeUri(orgGraph)} {
+        ${benoeming} ext:approves ${sparqlEscapeUri(newMandatarisUri)} .
       }
     }`);
 };
