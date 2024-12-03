@@ -171,7 +171,7 @@ export async function isOnafhankelijkInPeriod(
 
 async function removeFractieFromCurrent(
   persoonId: string,
-  fractieUris: string,
+  fractieUri: string,
 ): Promise<void> {
   const deleteQuery = `
     PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
@@ -179,7 +179,7 @@ async function removeFractieFromCurrent(
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
     DELETE {
-      ?persoon extlmb:currentFracties ${sparqlEscapeUri(fractieUris)}.
+      ?persoon extlmb:currentFracties ${sparqlEscapeUri(fractieUri)}.
     }
     WHERE {
       ?persoon a person:Person;
