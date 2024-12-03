@@ -7,8 +7,6 @@ import {
   update,
 } from 'mu';
 import { v4 as uuidv4 } from 'uuid';
-import { Term, TermProperty } from '../types';
-import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
@@ -96,11 +94,11 @@ export const createPerson = async (
 
 export const personExistsInGraph = async (
   personUri: string,
-  orgGraph: Term,
+  orgGraph: string,
 ): Promise<boolean> => {
   const result = await querySudo(`
     ASK {
-      GRAPH ${sparqlEscapeTermValue(orgGraph)} {
+      GRAPH ${sparqlEscapeUri(orgGraph)} {
         ${sparqlEscapeUri(personUri)} a <http://www.w3.org/ns/person#Person> .
       }
     }
@@ -112,7 +110,7 @@ async function getFractie(
   id: string,
   bestuursperiodeId: string,
   sudo: boolean = false,
-): Promise<TermProperty | null> {
+): Promise<string | undefined> {
   const getQuery = `
     PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -135,13 +133,13 @@ async function getFractie(
 
   const sparqlResult = sudo ? await querySudo(getQuery) : await query(getQuery);
 
-  return findFirstSparqlResult(sparqlResult);
+  return findFirstSparqlResult(sparqlResult)?.fractie?.value;
 }
 
 export async function isOnafhankelijkInPeriod(
   id: string,
   bestuursperiodeId: string,
-  graph: Term,
+  graph: string,
 ): Promise<string | undefined> {
   const q = `
     PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
@@ -153,7 +151,7 @@ export async function isOnafhankelijkInPeriod(
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     SELECT DISTINCT ?fractie {
-      GRAPH ${sparqlEscapeTermValue(graph)}{
+      GRAPH ${sparqlEscapeUri(graph)}{
         ?persoon a person:Person ;
           mu:uuid ${sparqlEscapeString(id)} ;
           extlmb:currentFracties ?fractie .
@@ -168,13 +166,12 @@ export async function isOnafhankelijkInPeriod(
 
   const queryResult = await querySudo(q);
 
-  const result = findFirstSparqlResult(queryResult);
-  return result?.fractie.value;
+  return findFirstSparqlResult(queryResult)?.fractie?.value;
 }
 
 async function removeFractieFromCurrent(
   persoonId: string,
-  fractieUris: string,
+  fractieUri: string,
 ): Promise<void> {
   const deleteQuery = `
     PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
@@ -182,7 +179,7 @@ async function removeFractieFromCurrent(
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
     DELETE {
-      ?persoon extlmb:currentFracties ${sparqlEscapeUri(fractieUris)}.
+      ?persoon extlmb:currentFracties ${sparqlEscapeUri(fractieUri)}.
     }
     WHERE {
       ?persoon a person:Person;
@@ -195,8 +192,8 @@ async function removeFractieFromCurrent(
 
 async function removeFractieFromCurrentWithGraph(
   persoonId: string,
-  fractieUris: string,
-  graph: Term,
+  fractieUri: string,
+  graph: string,
 ): Promise<void> {
   const deleteQuery = `
     PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
@@ -204,12 +201,12 @@ async function removeFractieFromCurrentWithGraph(
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
     DELETE {
-      GRAPH ${sparqlEscapeTermValue(graph)} {
-        ?persoon extlmb:currentFracties ${sparqlEscapeUri(fractieUris)}.
+      GRAPH ${sparqlEscapeUri(graph)} {
+        ?persoon extlmb:currentFracties ${sparqlEscapeUri(fractieUri)}.
       }
     }
     WHERE {
-      GRAPH ${sparqlEscapeTermValue(graph)} {
+      GRAPH ${sparqlEscapeUri(graph)} {
         ?persoon a person:Person;
           mu:uuid ${sparqlEscapeString(persoonId)}.
       }
@@ -325,8 +322,7 @@ export async function getDestinationGraphPerson(
   `;
   const queryResult = await querySudo(getDestinationGraph);
 
-  const result = findFirstSparqlResult(queryResult);
-  return result?.target.value;
+  return findFirstSparqlResult(queryResult)?.target.value;
 }
 
 export async function copyPersonToGraph(personId: string, graph: string) {

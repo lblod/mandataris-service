@@ -9,13 +9,7 @@ import {
 import moment from 'moment';
 import { v4 as uuidv4 } from 'uuid';
 
-import {
-  CSVRow,
-  CsvUploadState,
-  MandateHit,
-  Term,
-  TermProperty,
-} from '../types';
+import { CSVRow, CsvUploadState, MandateHit, TermProperty } from '../types';
 
 import {
   MANDATARIS_STATUS,
@@ -70,7 +64,7 @@ async function findCurrentFractieForPerson(
   mandatarisId: string,
   graph?: string,
   sudo: boolean = false,
-): Promise<TermProperty | null> {
+): Promise<string | undefined> {
   const graphInsert = graph ? `GRAPH ${sparqlEscapeUri(graph)} {` : '';
   const getQuery = `
     PREFIX person: <http://www.w3.org/ns/person#>
@@ -109,7 +103,7 @@ async function findCurrentFractieForPerson(
   `;
   const sparqlResult = sudo ? await querySudo(getQuery) : await query(getQuery);
 
-  return findFirstSparqlResult(sparqlResult);
+  return findFirstSparqlResult(sparqlResult)?.fractie?.value;
 }
 
 export async function findOnafhankelijkeFractieForPerson(
@@ -139,6 +133,7 @@ export async function findOnafhankelijkeFractieForPerson(
     } LIMIT 1`;
 
   const result = await query(getQuery);
+
   return findFirstSparqlResult(result)?.fractie?.value;
 }
 
@@ -389,42 +384,42 @@ export const validateNoOverlappingMandate = async (
 };
 
 export const findExistingMandatarisOfPerson = async (
-  orgGraph: Term,
-  mandaat: Term,
+  orgGraph: string,
+  mandaatUri: string,
   persoonUri: string,
-): Promise<Term | undefined> => {
+): Promise<string | undefined> => {
   const sparql = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
 
     SELECT ?mandataris WHERE {
-      GRAPH ${sparqlEscapeTermValue(orgGraph)} {
+      GRAPH ${sparqlEscapeUri(orgGraph)} {
         ?mandataris a mandaat:Mandataris ;
           org:holds ?mandaatUri ;
           mandaat:start ?start ;
           mandaat:isBestuurlijkeAliasVan ${sparqlEscapeUri(persoonUri)}.
       }
-      VALUES ?mandaatUri { ${sparqlEscapeTermValue(mandaat)} }
+      VALUES ?mandaatUri { ${sparqlEscapeUri(mandaatUri)} }
 
     } ORDER BY DESC(?start) LIMIT 1
   `;
 
   const result = await querySudo(sparql);
-  const sparqlresult = findFirstSparqlResult(result);
-  return sparqlresult?.mandataris;
+
+  return findFirstSparqlResult(result)?.mandataris?.value;
 };
 
 export const copyFromPreviousMandataris = async (
-  orgGraph: Term,
-  existingMandataris: Term,
+  orgGraph: string,
+  existingMandatarisUri: string,
   date: Date,
-  mandate?: Term,
+  mandateUri?: string,
 ) => {
   const uuid = uuidv4();
   const newMandatarisUri = `http://mu.semte.ch/vocabularies/ext/mandatarissen/${uuid}`;
 
   const filter = `FILTER (?p NOT IN (mandaat:start, lmb:hasPublicationStatus, mu:uuid
-    ${mandate ? ', org:holds' : ''}))`;
+    ${mandateUri ? ', org:holds' : ''}))`;
 
   await updateSudo(`
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -434,20 +429,20 @@ export const copyFromPreviousMandataris = async (
     PREFIX org: <http://www.w3.org/ns/org#>
 
     INSERT {
-      GRAPH ${sparqlEscapeTermValue(orgGraph)} {
+      GRAPH ${sparqlEscapeUri(orgGraph)} {
         ${sparqlEscapeUri(newMandatarisUri)} a mandaat:Mandataris ;
           # copy other properties the mandataris might have but not the ones that need editing
           # this is safe because the mandataris is for the same person and mandate
           ?p ?o ;
-          ${mandate ? `org:holds ${sparqlEscapeTermValue(mandate)}; \n` : ''}
+          ${mandateUri ? `org:holds ${sparqlEscapeUri(mandateUri)}; \n` : ''}
           mu:uuid ${sparqlEscapeString(uuid)} ;
           mandaat:start ${sparqlEscapeDateTime(date)} ;
           # immediately make this status bekrachtigd
           lmb:hasPublicationStatus mps:9d8fd14d-95d0-4f5e-b3a5-a56a126227b6.
       }
     } WHERE {
-      GRAPH ${sparqlEscapeTermValue(orgGraph)} {
-        ${sparqlEscapeTermValue(existingMandataris)} a mandaat:Mandataris ;
+      GRAPH ${sparqlEscapeUri(orgGraph)} {
+        ${sparqlEscapeUri(existingMandatarisUri)} a mandaat:Mandataris ;
           ?p ?o .
         ${filter}
       }
@@ -456,8 +451,8 @@ export const copyFromPreviousMandataris = async (
 };
 
 export async function endExistingMandataris(
-  graph: Term,
-  mandataris: Term,
+  graph: string,
+  mandatarisUri: string,
   endDate: Date,
   benoemingUri?: string,
 ): Promise<void> {
@@ -472,21 +467,21 @@ export async function endExistingMandataris(
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     DELETE {
-      GRAPH ${sparqlEscapeTermValue(graph)} {
+      GRAPH ${sparqlEscapeUri(graph)} {
         ?mandataris mandaat:einde ?einde .
       }
     }
     INSERT {
-      GRAPH ${sparqlEscapeTermValue(graph)} {
+      GRAPH ${sparqlEscapeUri(graph)} {
         ?mandataris mandaat:einde ${sparqlEscapeDateTime(endDate)} .
         ${extraTriples}
       }
     }
     WHERE {
-      GRAPH ${sparqlEscapeTermValue(graph)} {
+      GRAPH ${sparqlEscapeUri(graph)} {
         ?mandataris a mandaat:Mandataris .
         VALUES ?mandataris {
-          ${sparqlEscapeTermValue(mandataris)}
+          ${sparqlEscapeUri(mandatarisUri)}
         }
         OPTIONAL {
           ?mandataris mandaat:einde ?einde .
@@ -497,9 +492,9 @@ export async function endExistingMandataris(
 
   try {
     await updateSudo(terminateQuery, {}, { mayRetry: true });
-    console.log(`|> Terminated mandataris with uri: ${mandataris.value}.`);
+    console.log(`|> Terminated mandataris with uri: ${mandatarisUri}.`);
   } catch (error) {
-    throw Error(`Could not terminate mandataris with uri: ${mandataris.value}`);
+    throw Error(`Could not terminate mandataris with uri: ${mandatarisUri}`);
   }
 }
 
@@ -528,11 +523,11 @@ export async function findDecisionAndLinkForMandataris(
   `;
 
   const result = await querySudo(besluiteQuery);
-  const sparqlresult = findFirstSparqlResult(result);
+  const sparqlResult = findFirstSparqlResult(result);
 
   return {
-    besluit: sparqlresult?.artikel?.value,
-    link: sparqlresult?.link?.value,
+    besluit: sparqlResult?.artikel?.value,
+    link: sparqlResult?.link?.value,
   };
 }
 

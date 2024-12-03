@@ -1,6 +1,10 @@
-import { query, sparqlEscapeString } from 'mu';
+import {
+  query,
+  sparqlEscapeString,
+  sparqlEscapeDateTime,
+  sparqlEscapeUri,
+} from 'mu';
 import { getSparqlResults } from '../util/sparql-result';
-import { sparqlEscapeDateTime, sparqlEscapeUri } from '../util/mu';
 import { queryResultToJson } from '../util/json-to-csv';
 
 export const downloadMandatarissen = {

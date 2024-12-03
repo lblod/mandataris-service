@@ -297,7 +297,10 @@ const preliminaryChecksLinkedMandataris = async (req) => {
   return userId;
 };
 
-export const getOrCreateOCMWFractie = async (mandatarisId, graph) => {
+export const getOrCreateOCMWFractie = async (
+  mandatarisId: string,
+  graph: string,
+) => {
   const isOnafhankelijk = await mandataris.isOnafhankelijk(mandatarisId);
 
   let fractie;
@@ -309,7 +312,10 @@ export const getOrCreateOCMWFractie = async (mandatarisId, graph) => {
   return fractie;
 };
 
-export const getOrCreateOnafhankelijkeFractie = async (mandatarisId, graph) => {
+export const getOrCreateOnafhankelijkeFractie = async (
+  mandatarisId: string,
+  graph: string,
+) => {
   const { persoonId, bestuursperiodeId } =
     await mandataris.getPersonWithBestuursperiode(mandatarisId);
   const onafhankelijk = await isOnafhankelijkInPeriod(
