@@ -105,7 +105,7 @@ async function getContactEmailFromMandataris(mandatarisUri: string) {
 }
 
 async function fetchEffectiveMandatarissenWithoutBesluit() {
-  const momentTenDaysAgo = moment(new Date()).subtract(0, 'days');
+  const momentTenDaysAgo = moment(new Date()).subtract(10, 'days');
   const escapedTenDaysBefore = sparqlEscapeDateTime(momentTenDaysAgo.toDate());
   const query = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
