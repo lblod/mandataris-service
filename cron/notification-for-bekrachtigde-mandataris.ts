@@ -3,11 +3,7 @@ import { CronJob } from 'cron';
 import moment from 'moment';
 import { querySudo } from '@lblod/mu-auth-sudo';
 
-import {
-  findFirstSparqlResult,
-  getBooleanSparqlResult,
-  getSparqlResults,
-} from '../util/sparql-result';
+import { findFirstSparqlResult, getSparqlResults } from '../util/sparql-result';
 import { PUBLICATION_STATUS } from '../util/constants';
 import {
   sparqlEscapeDateTime,
@@ -42,14 +38,6 @@ async function handleEffectieveMandatarissen() {
   const mandatarissen = await fetchEffectiveMandatarissenWithoutBesluit();
   const bufferTime = 1000;
   for (const mandataris of mandatarissen) {
-    const hasNotification = await hasNotificationForMandataris(
-      mandataris.uri,
-      mandataris.graph,
-    );
-    if (hasNotification) {
-      continue;
-    }
-
     setTimeout(async () => {
       await createNotification({
         title: SUBJECT,
@@ -137,8 +125,14 @@ async function fetchEffectiveMandatarissenWithoutBesluit() {
           ?graph a <http://mu.semte.ch/graphs/public>
         }
 
-        FILTER(${escapedTenDaysBefore} >= ?saveEffectiefAt)
         BIND(IF(BOUND(?effectiefAt), ?effectiefAt, ${escapedTenDaysBefore}) AS ?saveEffectiefAt).
+        FILTER(${escapedTenDaysBefore} >= ?saveEffectiefAt)
+        FILTER NOT EXISTS {
+          ?notification a ext:SystemNotification;
+            dct:subject ${sparqlEscapeString(SUBJECT)};
+            ext:notificationLink ?notificationLink.
+          ?notificationLink ext:linkedTo ?mandataris.
+        }
       }
   `;
 
@@ -153,28 +147,4 @@ async function fetchEffectiveMandatarissenWithoutBesluit() {
       graph: term.graph.value,
     };
   });
-}
-
-async function hasNotificationForMandataris(
-  mandataris: string,
-  graph: string,
-): Promise<boolean> {
-  const query = `
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-    PREFIX dct: <http://purl.org/dc/terms/>
-
-    ASK {
-      GRAPH ${sparqlEscapeUri(graph)} {
-        ?notification a ext:SystemNotification;
-          dct:subject ${sparqlEscapeString(SUBJECT)};
-          ext:notificationLink ?notificationLink.
-
-        ?notificationLink ext:linkedTo ${sparqlEscapeUri(mandataris)}.
-      }
-    }
-  `;
-
-  const sparqlResult = await querySudo(query);
-
-  return getBooleanSparqlResult(sparqlResult);
 }
