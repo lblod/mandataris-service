@@ -110,7 +110,7 @@ async function fetchEffectiveMandatarissenWithoutBesluit() {
       WHERE {
         GRAPH ?graph {
           ?mandataris a mandaat:Mandataris ;
-            lmb:hasPublicationStatus <${PUBLICATION_STATUS.EFECTIEF}> ;
+            lmb:hasPublicationStatus <${PUBLICATION_STATUS.EFFECTIEF}> ;
             mandaat:isBestuurlijkeAliasVan ?person ;
             org:holds / org:role ?bestuursfunctie .
           ?person persoon:gebruikteVoornaam ?fName ;
