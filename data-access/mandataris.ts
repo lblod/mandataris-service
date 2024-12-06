@@ -587,7 +587,7 @@ export async function bulkSetPublicationStatusEffectief(
     mandatarissenUuids: mandatarissen
       .map((uri) => sparqlEscapeString(uri))
       .join(' '),
-    effectief: sparqlEscapeUri(PUBLICATION_STATUS.EFECTIEF),
+    effectief: sparqlEscapeUri(PUBLICATION_STATUS.EFFECTIEF),
     bekrachtigd: sparqlEscapeUri(PUBLICATION_STATUS.BEKRACHTIGD),
     todaysDate: sparqlEscapeDateTime(new Date()),
   };

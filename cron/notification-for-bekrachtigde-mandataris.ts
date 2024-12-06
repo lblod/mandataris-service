@@ -3,11 +3,7 @@ import { CronJob } from 'cron';
 import moment from 'moment';
 import { querySudo } from '@lblod/mu-auth-sudo';
 
-import {
-  findFirstSparqlResult,
-  getBooleanSparqlResult,
-  getSparqlResults,
-} from '../util/sparql-result';
+import { findFirstSparqlResult, getSparqlResults } from '../util/sparql-result';
 import { PUBLICATION_STATUS } from '../util/constants';
 import {
   sparqlEscapeDateTime,
@@ -39,17 +35,9 @@ export const cronjob = CronJob.from({
 });
 
 async function handleEffectieveMandatarissen() {
-  const mandatarissen = await fetchEffectiveMandatarissenWithoutBesluit();
+  const mandatarissen = await fetchMandatarissenWithoutBesluit();
   const bufferTime = 1000;
   for (const mandataris of mandatarissen) {
-    const hasNotification = await hasNotificationForMandataris(
-      mandataris.uri,
-      mandataris.graph,
-    );
-    if (hasNotification) {
-      continue;
-    }
-
     setTimeout(async () => {
       await createNotification({
         title: SUBJECT,
@@ -92,20 +80,19 @@ async function getContactEmailFromMandataris(mandatarisUri: string) {
       ?bestuursorgaan besluit:bestuurt ?bestuurseenheid .
       ?bestuursorgaanInTijd mandaat:isTijdspecialisatieVan ?bestuursorgaan .
       ?bestuursorgaanInTijd org:hasPost ?mandaat .
-      OPTIONAL {
-        ?contact a ext:BestuurseenheidContact ;
-          ext:contactVoor ?bestuurseenheid ;
-          schema:email ?email .
-      }
+      
+      ?contact a ext:BestuurseenheidContact ;
+        ext:contactVoor ?bestuurseenheid ;
+        schema:email ?email .
+      
     } LIMIT 1
   `;
   const sparqlResult = await querySudo(query);
-  const result = findFirstSparqlResult(sparqlResult);
 
-  return result?.email.value;
+  return findFirstSparqlResult(sparqlResult)?.email?.value;
 }
 
-async function fetchEffectiveMandatarissenWithoutBesluit() {
+async function fetchMandatarissenWithoutBesluit() {
   const momentTenDaysAgo = moment(new Date()).subtract(10, 'days');
   const escapedTenDaysBefore = sparqlEscapeDateTime(momentTenDaysAgo.toDate());
   const query = `
@@ -123,7 +110,7 @@ async function fetchEffectiveMandatarissenWithoutBesluit() {
       WHERE {
         GRAPH ?graph {
           ?mandataris a mandaat:Mandataris ;
-            lmb:hasPublicationStatus <${PUBLICATION_STATUS.EFECTIEF}> ;
+            lmb:hasPublicationStatus <${PUBLICATION_STATUS.EFFECTIEF}> ;
             mandaat:isBestuurlijkeAliasVan ?person ;
             org:holds / org:role ?bestuursfunctie .
           ?person persoon:gebruikteVoornaam ?fName ;
@@ -138,8 +125,14 @@ async function fetchEffectiveMandatarissenWithoutBesluit() {
           ?graph a <http://mu.semte.ch/graphs/public>
         }
 
-        FILTER(${escapedTenDaysBefore} >= ?saveEffectiefAt)
         BIND(IF(BOUND(?effectiefAt), ?effectiefAt, ${escapedTenDaysBefore}) AS ?saveEffectiefAt).
+        FILTER(${escapedTenDaysBefore} >= ?saveEffectiefAt)
+        FILTER NOT EXISTS {
+          ?notification a ext:SystemNotification;
+            dct:subject ${sparqlEscapeString(SUBJECT)};
+            ext:notificationLink ?notificationLink.
+          ?notificationLink ext:linkedTo ?mandataris.
+        }
       }
   `;
 
@@ -154,28 +147,4 @@ async function fetchEffectiveMandatarissenWithoutBesluit() {
       graph: term.graph.value,
     };
   });
-}
-
-async function hasNotificationForMandataris(
-  mandataris: string,
-  graph: string,
-): Promise<boolean> {
-  const query = `
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-    PREFIX dct: <http://purl.org/dc/terms/>
-
-    ASK {
-      GRAPH ${sparqlEscapeUri(graph)} {
-        ?notification a ext:SystemNotification;
-          dct:subject ${sparqlEscapeString(SUBJECT)};
-          ext:notificationLink ?notificationLink.
-
-        ?notificationLink ext:linkedTo ${sparqlEscapeUri(mandataris)}.
-      }
-    }
-  `;
-
-  const sparqlResult = await querySudo(query);
-
-  return getBooleanSparqlResult(sparqlResult);
 }
