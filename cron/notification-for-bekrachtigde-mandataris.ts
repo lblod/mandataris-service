@@ -35,7 +35,7 @@ export const cronjob = CronJob.from({
 });
 
 async function handleEffectieveMandatarissen() {
-  const mandatarissen = await fetchEffectiveMandatarissenWithoutBesluit();
+  const mandatarissen = await fetchMandatarissenWithoutBesluit();
   const bufferTime = 1000;
   for (const mandataris of mandatarissen) {
     setTimeout(async () => {
@@ -92,7 +92,7 @@ async function getContactEmailFromMandataris(mandatarisUri: string) {
   return findFirstSparqlResult(sparqlResult)?.email?.value;
 }
 
-async function fetchEffectiveMandatarissenWithoutBesluit() {
+async function fetchMandatarissenWithoutBesluit() {
   const momentTenDaysAgo = moment(new Date()).subtract(10, 'days');
   const escapedTenDaysBefore = sparqlEscapeDateTime(momentTenDaysAgo.toDate());
   const query = `
