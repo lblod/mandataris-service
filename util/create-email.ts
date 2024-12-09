@@ -15,12 +15,35 @@ console.log(
 );
 console.log(`SEND_EMAIL_FOR_MANDATARIS_EFFECTIEF SET TO: ${SEND_EMAILS}`);
 
-export async function sendMailTo(emailTo: string, mandataris) {
+export async function sendMissingBekrachtigingsmail(
+  emailTo: string,
+  mandatarissen,
+) {
+  if (mandatarissen.length == 0) {
+    return;
+  }
+  let mandatarisTable = '';
+  for (const mandataris of mandatarissen) {
+    mandatarisTable += `
+      <tr>
+        <td>${mandataris.name}</td>
+        <td>${mandataris.mandate}</td>
+      </tr>
+    `;
+  }
   const from = sparqlEscapeString(EMAIL_FROM_MANDATARIS_EFFECTIEF as string);
   const to = sparqlEscapeString(emailTo);
   const htmlMessage = `
     <p>Beste,</p>
-    <p>De mandataris ${mandataris.name} met mandaat ${mandataris.mandate} heeft al meer dan 10 dagen de publicatiestatus ‘Effectief’ zonder koppeling met een besluit.</p>
+    <p>Er zijn een aantal mandatarissen die al meer dan 10 dagen de publicatiestatus ‘Effectief’ hebben zonder koppeling met een besluit. Voor uw gemeente zijn dit er ${mandatarissen.length}.</p>
+    <p> Hieronder vindt u een overzicht van al deze mandatarissen: <p>
+    <table>
+      <tr>
+        <th>Naam</th>
+        <th>Mandaat</th>
+      </tr>
+      ${mandatarisTable}
+    </table>
     <p>Gelieve het besluit te koppelen.</p>
     <br/>
     <p>Met vriendelijke groeten,</p>

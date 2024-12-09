@@ -11,7 +11,10 @@ import {
   sparqlEscapeUri,
 } from '../util/mu';
 import { createNotification } from '../util/create-notification';
-import { SEND_EMAILS, sendMailTo } from '../util/create-email';
+import {
+  SEND_EMAILS,
+  sendMissingBekrachtigingsmail,
+} from '../util/create-email';
 
 const SUBJECT = 'Mandataris zonder besluit';
 const NOTIFICATION_CRON_PATTERN =
@@ -37,6 +40,13 @@ export const cronjob = CronJob.from({
 async function handleEffectieveMandatarissen() {
   const mandatarissen = await fetchMandatarissenWithoutBesluit();
   const bufferTime = 1000;
+
+  const mandatarissenWithoutNotification: {
+    uri: string;
+    name: string;
+    mandate: string;
+    graph: string;
+  }[] = [];
   for (const mandataris of mandatarissen) {
     setTimeout(async () => {
       await createNotification({
@@ -52,18 +62,27 @@ async function handleEffectieveMandatarissen() {
         ],
       });
 
-      if (SEND_EMAILS) {
-        const email = await getContactEmailFromMandataris(mandataris.uri);
-        if (email) {
-          await sendMailTo(email, mandataris);
-        }
-      }
+      mandatarissenWithoutNotification.push(mandataris);
     }, bufferTime);
+  }
+  if (SEND_EMAILS) {
+    const email = await getContactEmailForMandataris(
+      mandatarissenWithoutNotification.at(0)?.uri,
+    );
+    if (email) {
+      await sendMissingBekrachtigingsmail(
+        email,
+        mandatarissenWithoutNotification,
+      );
+    }
   }
   running = false;
 }
 
-async function getContactEmailFromMandataris(mandatarisUri: string) {
+async function getContactEmailForMandataris(mandatarisUri?: string) {
+  if (!mandatarisUri) {
+    return null;
+  }
   const query = `
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
