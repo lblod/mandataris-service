@@ -51,14 +51,16 @@ async function handleEffectieveMandatarissen() {
     mandate: string;
     graph: string;
   }[] = [];
-  for (const mandataris of mandatarissen) {
+  const promises = mandatarissen.map(async (mandataris) => {
     const hasNotification = await hasNotificationForMandataris(
       mandataris.uri,
       mandataris.graph,
     );
     if (hasNotification) {
-      continue;
+      return Promise.resolve();
     }
+
+    mandatarissenWithoutNotification.push(mandataris);
 
     setTimeout(async () => {
       await createNotification({
@@ -73,10 +75,11 @@ async function handleEffectieveMandatarissen() {
           },
         ],
       });
-
-      mandatarissenWithoutNotification.push(mandataris);
     }, bufferTime);
-  }
+  });
+
+  await Promise.all(promises);
+
   if (SEND_EMAILS) {
     const email = await getContactEmailForMandataris(
       mandatarissenWithoutNotification.at(0)?.uri,
