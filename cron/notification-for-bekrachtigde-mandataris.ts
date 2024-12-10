@@ -143,6 +143,7 @@ async function fetchEffectiveMandatarissenWithoutBesluitAndNotification() {
         BIND(IF(BOUND(?effectiefAt), ?effectiefAt, ${escapedTenDaysBefore}) AS ?saveEffectiefAt).
         FILTER(${escapedTenDaysBefore} >= ?saveEffectiefAt)
       }
+      ORDER BY ?bestuursfunctieName ?lName
   `;
 
   const sparqlResult = await querySudo(query);
