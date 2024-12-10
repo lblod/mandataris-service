@@ -37,7 +37,7 @@ const parseBody = (body) => {
   }
   const date = body.datum;
   const parsedDate = new Date(date);
-  const minAllowedDate = new Date('2024-10-15T00:00:00.000Z');
+  const minAllowedDate = new Date('2024-12-01T00:00:00.000Z');
   if (
     !date ||
     parsedDate.getTime() < minAllowedDate.getTime() ||
