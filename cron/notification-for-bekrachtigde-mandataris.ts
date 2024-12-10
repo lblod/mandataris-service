@@ -136,11 +136,12 @@ async function fetchEffectiveMandatarissenWithoutBesluitAndNotification() {
             ?mandataris lmb:effectiefAt ?effectiefAt .
           }
 
-          ?notification a ext:SystemNotification;
-            dct:subject ${sparqlEscapeString(SUBJECT)};
-            ext:notificationLink ?notificationLink.
-
-          ?notificationLink ext:linkedTo ?mandataris.
+          FILTER NOT EXISTS {
+            ?notification a ext:SystemNotification;
+              dct:subject ${sparqlEscapeString(SUBJECT)};
+              ext:notificationLink ?notificationLink.
+            ?notificationLink ext:linkedTo ?mandataris.
+          }
         }
         ?bestuursfunctie skos:prefLabel ?bestuursfunctieName .
         ?graph ext:ownedBy ?owningEenheid.
