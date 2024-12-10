@@ -113,3 +113,54 @@ export async function getMandatarisNotificationGraph(mandataris: string) {
   }
   return result.results.bindings[0].graph.value;
 }
+
+export async function createBulkNotificationMandatarissenWithoutBesluit(
+  title: string,
+  mandatarissen,
+) {
+  console.log(
+    `Bulk notification created for mandatarissen: ${title}, ${mandatarissen
+      .map((mandataris) => mandataris.uri)
+      .join(', ')}`,
+  );
+
+  const data = mandatarissen
+    .map((mandataris) => {
+      const notificationId = uuid();
+      const notification = sparqlEscapeUri(
+        `http://data.lblod.info/id/SystemNotification/${notificationId}`,
+      );
+      const linkId = uuid();
+      const link = sparqlEscapeUri(
+        `http://data.lblod.info/id/SystemNotificationLink/${linkId}`,
+      );
+      const description = `De publicatie status van ${mandataris.name} met mandaat ${mandataris.mandate} staat al 10 dagen of meer op effectief zonder dat er een besluit is toegevoegd. Gelieve deze mandataris manueel te bekrachtigen en een besluit toe te voegen of publiceer het besluit van de installatievergadering via een notuleringspakket.`;
+
+      return `
+        GRAPH ${sparqlEscapeUri(mandataris.graph)} {
+          ${notification} a ext:SystemNotification ;
+            mu:uuid ${sparqlEscapeString(notificationId)} ;
+            dct:subject ${sparqlEscapeString(title)} ;
+            schema:description ${sparqlEscapeString(description)} ;
+            dct:created ${sparqlEscapeDateTime(new Date())} ;
+            dct:type ${sparqlEscapeUri(notificationTypes['warning'])} ;
+            ext:notificationLink ${link} .
+          ${link} a ext:SystemNotificationLink ;
+            mu:uuid ${sparqlEscapeString(linkId)} ;
+            ext:linkedType ${sparqlEscapeString('mandataris')} ;
+            ext:linkedTo ${sparqlEscapeUri(mandataris.uri)} .
+        }
+      `;
+    })
+    .join('\n');
+
+  const query = `
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX schema: <http://schema.org/>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    INSERT DATA {
+      ${data}
+    }`;
+  await updateSudo(query);
+}

@@ -3,18 +3,14 @@ import { CronJob } from 'cron';
 import moment from 'moment';
 import { querySudo } from '@lblod/mu-auth-sudo';
 
-import {
-  findFirstSparqlResult,
-  getBooleanSparqlResult,
-  getSparqlResults,
-} from '../util/sparql-result';
+import { findFirstSparqlResult, getSparqlResults } from '../util/sparql-result';
 import { PUBLICATION_STATUS } from '../util/constants';
 import {
   sparqlEscapeDateTime,
   sparqlEscapeString,
   sparqlEscapeUri,
 } from '../util/mu';
-import { createNotification } from '../util/create-notification';
+import { createBulkNotificationMandatarissenWithoutBesluit } from '../util/create-notification';
 import {
   SEND_EMAILS,
   sendMissingBekrachtigingsmail,
@@ -45,21 +41,10 @@ async function handleEffectieveMandatarissen() {
   const mandatarissen =
     await fetchEffectiveMandatarissenWithoutBesluitAndNotification();
 
-  // TODO Create notification for all mandatarissen
-  // setTimeout(async () => {
-  //   await createNotification({
-  //     title: SUBJECT,
-  //     description: `De publicatie status van ${mandataris.name} met mandaat ${mandataris.mandate} staat al 10 dagen of meer op effectief zonder dat er een besluit is toegevoegd. Gelieve deze mandataris manueel te bekrachtigen en een besluit toe te voegen of publiceer het besluit van de installatievergadering via een notuleringspakket.`,
-  //     type: 'warning',
-  //     graph: mandataris.graph,
-  //     links: [
-  //       {
-  //         type: 'mandataris',
-  //         uri: mandataris.uri,
-  //       },
-  //     ],
-  //   });
-  // }, bufferTime);
+  await createBulkNotificationMandatarissenWithoutBesluit(
+    SUBJECT,
+    mandatarissen,
+  );
 
   // TODO send emails per bestuurseenheid
   // if (SEND_EMAILS) {
