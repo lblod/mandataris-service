@@ -42,55 +42,37 @@ export const cronjob = CronJob.from({
 });
 
 async function handleEffectieveMandatarissen() {
-  const mandatarissen = await fetchEffectiveMandatarissenWithoutBesluit();
-  const bufferTime = 1000;
+  const mandatarissen =
+    await fetchEffectiveMandatarissenWithoutBesluitAndNotification();
 
-  const mandatarissenWithoutNotification: {
-    uri: string;
-    name: string;
-    mandate: string;
-    graph: string;
-  }[] = [];
-  const promises = mandatarissen.map(async (mandataris) => {
-    const hasNotification = await hasNotificationForMandataris(
-      mandataris.uri,
-      mandataris.graph,
-    );
-    if (hasNotification) {
-      return Promise.resolve();
-    }
+  // TODO Create notification for all mandatarissen
+  // setTimeout(async () => {
+  //   await createNotification({
+  //     title: SUBJECT,
+  //     description: `De publicatie status van ${mandataris.name} met mandaat ${mandataris.mandate} staat al 10 dagen of meer op effectief zonder dat er een besluit is toegevoegd. Gelieve deze mandataris manueel te bekrachtigen en een besluit toe te voegen of publiceer het besluit van de installatievergadering via een notuleringspakket.`,
+  //     type: 'warning',
+  //     graph: mandataris.graph,
+  //     links: [
+  //       {
+  //         type: 'mandataris',
+  //         uri: mandataris.uri,
+  //       },
+  //     ],
+  //   });
+  // }, bufferTime);
 
-    mandatarissenWithoutNotification.push(mandataris);
-
-    setTimeout(async () => {
-      await createNotification({
-        title: SUBJECT,
-        description: `De publicatie status van ${mandataris.name} met mandaat ${mandataris.mandate} staat al 10 dagen of meer op effectief zonder dat er een besluit is toegevoegd. Gelieve deze mandataris manueel te bekrachtigen en een besluit toe te voegen of publiceer het besluit van de installatievergadering via een notuleringspakket.`,
-        type: 'warning',
-        graph: mandataris.graph,
-        links: [
-          {
-            type: 'mandataris',
-            uri: mandataris.uri,
-          },
-        ],
-      });
-    }, bufferTime);
-  });
-
-  await Promise.all(promises);
-
-  if (SEND_EMAILS) {
-    const email = await getContactEmailForMandataris(
-      mandatarissenWithoutNotification.at(0)?.uri,
-    );
-    if (email) {
-      await sendMissingBekrachtigingsmail(
-        email,
-        mandatarissenWithoutNotification,
-      );
-    }
-  }
+  // TODO send emails per bestuurseenheid
+  // if (SEND_EMAILS) {
+  //   const email = await getContactEmailForMandataris(
+  //     mandatarissenWithoutNotification.at(0)?.uri,
+  //   );
+  //   if (email) {
+  //     await sendMissingBekrachtigingsmail(
+  //       email,
+  //       mandatarissenWithoutNotification,
+  //     );
+  //   }
+  // }
   running = false;
 }
 
@@ -127,7 +109,7 @@ async function getContactEmailForMandataris(mandatarisUri?: string) {
   return result?.email.value;
 }
 
-async function fetchEffectiveMandatarissenWithoutBesluit() {
+async function fetchEffectiveMandatarissenWithoutBesluitAndNotification() {
   const momentTenDaysAgo = moment(new Date()).subtract(10, 'days');
   const escapedTenDaysBefore = sparqlEscapeDateTime(momentTenDaysAgo.toDate());
   const query = `
@@ -153,6 +135,12 @@ async function fetchEffectiveMandatarissenWithoutBesluit() {
           OPTIONAL {
             ?mandataris lmb:effectiefAt ?effectiefAt .
           }
+
+          ?notification a ext:SystemNotification;
+            dct:subject ${sparqlEscapeString(SUBJECT)};
+            ext:notificationLink ?notificationLink.
+
+          ?notificationLink ext:linkedTo ?mandataris.
         }
         ?bestuursfunctie skos:prefLabel ?bestuursfunctieName .
         ?graph ext:ownedBy ?owningEenheid.
@@ -176,28 +164,4 @@ async function fetchEffectiveMandatarissenWithoutBesluit() {
       graph: term.graph.value,
     };
   });
-}
-
-async function hasNotificationForMandataris(
-  mandataris: string,
-  graph: string,
-): Promise<boolean> {
-  const query = `
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-    PREFIX dct: <http://purl.org/dc/terms/>
-
-    ASK {
-      GRAPH ${sparqlEscapeUri(graph)} {
-        ?notification a ext:SystemNotification;
-          dct:subject ${sparqlEscapeString(SUBJECT)};
-          ext:notificationLink ?notificationLink.
-
-        ?notificationLink ext:linkedTo ${sparqlEscapeUri(mandataris)}.
-      }
-    }
-  `;
-
-  const sparqlResult = await querySudo(query);
-
-  return getBooleanSparqlResult(sparqlResult);
 }
