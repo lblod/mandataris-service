@@ -46,18 +46,25 @@ async function handleEffectieveMandatarissen() {
     mandatarissen,
   );
 
-  // TODO send emails per bestuurseenheid
-  // if (SEND_EMAILS) {
-  //   const email = await getContactEmailForMandataris(
-  //     mandatarissenWithoutNotification.at(0)?.uri,
-  //   );
-  //   if (email) {
-  //     await sendMissingBekrachtigingsmail(
-  //       email,
-  //       mandatarissenWithoutNotification,
-  //     );
-  //   }
-  // }
+  if (SEND_EMAILS) {
+    const grouped_mandatarissen = mandatarissen.reduce((acc, mandataris) => {
+      const { graph } = mandataris;
+      if (!acc[graph]) {
+        acc[graph] = [];
+      }
+      acc[graph].push(mandataris);
+      return acc;
+    }, {});
+    for (const key in grouped_mandatarissen) {
+      const mandataris_group = grouped_mandatarissen[key];
+      const email = await getContactEmailForMandataris(
+        mandataris_group.at(0)?.uri,
+      );
+      if (email) {
+        await sendMissingBekrachtigingsmail(email, mandataris_group);
+      }
+    }
+  }
   running = false;
 }
 
