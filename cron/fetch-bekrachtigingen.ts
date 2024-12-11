@@ -67,6 +67,8 @@ async function fetchBekrachtigingenForHarvester(harvester: string) {
 }
 
 async function processCurrentBekrachtigingen() {
+  // weirdly doing this in one query is too heavy for virtuoso when filtering on startdate
+  // splitting in two
   await update(`
   PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
   PREFIX org: <http://www.w3.org/ns/org#>
@@ -74,6 +76,35 @@ async function processCurrentBekrachtigingen() {
   PREFIX dct: <http://purl.org/dc/terms/>
   PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
   PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+  INSERT {
+    GRAPH ${sparqlEscapeUri(receiverGraph)} {
+      ?besluit ext:targets ?mandataris.
+    }
+  } WHERE {
+    GRAPH ${sparqlEscapeUri(receiverGraph)} {
+      ?besluit ext:forRole ?role.
+      ?besluit ext:bekrachtigtMandatarissenVoor ?orgInT.
+    }
+    GRAPH ?g {
+      ?mandataris a mandaat:Mandataris.
+      ?mandataris org:holds / org:role ?role.
+      ?mandataris org:holds / ^org:hasPost ?trueOrgInT.
+      ?orgInT lmb:heeftBestuursperiode ?periode.
+      ?trueOrgInT lmb:heeftBestuursperiode ?periode.
+      ?orgInT mandaat:isTijdspecialisatieVan / besluit:bestuurt / ^besluit:bestuurt / ^mandaat:isTijdspecialisatieVan ?trueOrgInT.
+    }
+    ?g ext:ownedBy ?someone.
+  }
+  `);
+
+  await update(`
+  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+  PREFIX org: <http://www.w3.org/ns/org#>
+  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+  PREFIX dct: <http://purl.org/dc/terms/>
+  PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+  PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+  PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
   DELETE {
     GRAPH ?g {
       ?mandataris lmb:hasPublicationStatus ?status.
@@ -91,19 +122,15 @@ async function processCurrentBekrachtigingen() {
     }
   } WHERE {
     GRAPH ${sparqlEscapeUri(receiverGraph)} {
-      ?besluit ext:forRole ?role.
-      ?besluit ext:bekrachtigtMandatarissenVoor ?orgInT.
+      ?besluit ext:targets ?mandataris.
     }
     GRAPH ?g {
       ?mandataris a mandaat:Mandataris.
-      ?mandataris org:holds / org:role ?role.
-      ?mandataris org:holds / ^org:hasPost ?trueOrgInT.
-      ?orgInT lmb:heeftBestuursperiode ?periode.
-      ?trueOrgInT lmb:heeftBestuursperiode ?periode.
-      ?orgInT mandaat:isTijdspecialisatieVan / besluit:bestuurt / ^besluit:bestuurt / ^mandaat:isTijdspecialisatieVan ?trueOrgInT.
       FILTER NOT EXISTS {
         ?mandataris lmb:hasPublicationStatus <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/9d8fd14d-95d0-4f5e-b3a5-a56a126227b6> .
       }
+      ?mandataris mandaat:start ?start.
+      FILTER (?start < "2024-12-31T23:59:59.999"^^xsd:dateTime)
       OPTIONAL {
         ?mandataris dct:modified ?modified.
       }
