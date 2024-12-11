@@ -114,6 +114,7 @@ async function processCurrentBekrachtigingen() {
   INSERT {
     GRAPH ${sparqlEscapeUri(bekrachtigingGraph)} {
       ?besluit mandaat:bekrachtigtAanstellingVan ?mandataris.
+      ?besluit <http://www.w3.org/ns/prov#wasDerivedFrom> ?besluitOrigin.
       ?besluit ext:autoHarvested ?true.
     }
     GRAPH ?g {
@@ -123,6 +124,7 @@ async function processCurrentBekrachtigingen() {
   } WHERE {
     GRAPH ${sparqlEscapeUri(receiverGraph)} {
       ?besluit ext:targets ?mandataris.
+      ?besluit <http://www.w3.org/ns/prov#wasDerivedFrom> ?besluitOrigin.
     }
     GRAPH ?g {
       ?mandataris a mandaat:Mandataris.
