@@ -27,7 +27,6 @@ export async function createNotification({
   graph: string;
   links: notificationLink[];
 }) {
-  console.log(`Notification created: ${title}, ${JSON.stringify(links)}`);
   const id = uuid();
   const uri = sparqlEscapeUri(
     `http://data.lblod.info/id/SystemNotification/${id}`,
@@ -63,6 +62,7 @@ export async function createNotification({
       }
     }`;
   await updateSudo(query);
+  console.log(`Notification created: ${title}, ${JSON.stringify(links)}`);
 }
 
 export const createMandatarisBesluitNotification = async ({
@@ -118,12 +118,6 @@ export async function createBulkNotificationMandatarissenWithoutBesluit(
   title: string,
   mandatarissen,
 ) {
-  console.log(
-    `Bulk notification created for mandatarissen: ${title}, ${mandatarissen
-      .map((mandataris) => mandataris.uri)
-      .join(', ')}`,
-  );
-
   const data = mandatarissen
     .map((mandataris) => {
       const notificationId = uuid();
@@ -163,4 +157,9 @@ export async function createBulkNotificationMandatarissenWithoutBesluit(
       ${data}
     }`;
   await updateSudo(query);
+  console.log(
+    `Bulk notification created for mandatarissen: ${title}, ${mandatarissen
+      .map((mandataris) => mandataris.uri)
+      .join(', ')}`,
+  );
 }
