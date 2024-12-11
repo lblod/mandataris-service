@@ -51,5 +51,6 @@ const errorHandler: ErrorRequestHandler = function (err, _req, res, _next) {
 
 app.use(errorHandler);
 
-notificationBekrachtigdMandataris.start();
+//FIXME disable notifications for now
+//notificationBekrachtigdMandataris.start();
 cronjob.start();
