@@ -26,8 +26,8 @@ export async function sendMissingBekrachtigingsmail(
   for (const mandataris of mandatarissen) {
     mandatarisTable += `
       <tr>
-        <td>${mandataris.name}</td>
-        <td>${mandataris.mandate}</td>
+        <td style="padding: 8px">${mandataris.name}</td>
+        <td style="padding: 8px">${mandataris.mandate}</td>
       </tr>
     `;
   }
@@ -39,8 +39,8 @@ export async function sendMissingBekrachtigingsmail(
     <p> Hieronder vindt u een overzicht van al deze mandatarissen: <p>
     <table>
       <tr>
-        <th>Naam</th>
-        <th>Mandaat</th>
+        <th style="text-align:left;padding:8px">Naam</th>
+        <th style="text-align:left;padding:8px">Mandaat</th>
       </tr>
       ${mandatarisTable}
     </table>
