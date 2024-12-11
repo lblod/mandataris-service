@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { sparqlEscapeUri } from 'mu';
 import { querySudo } from '@lblod/mu-auth-sudo';
 
-function getIdentifierFromUri(uri: string) {
+export function getIdentifierFromUri(uri: string) {
   const uuid = uri.split('/').pop();
   if (
     uuid &&

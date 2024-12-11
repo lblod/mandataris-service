@@ -11,9 +11,9 @@ import { burgemeesterRouter } from './routes/burgemeester-benoeming';
 import { installatievergaderingRouter } from './routes/installatievergadering';
 import { mandatenRouter } from './routes/mandaten';
 import { mockRouter } from './routes/mock';
-import { cronjob } from './cron/handle-decision-queue';
 
 import { cronjob as notificationBekrachtigdMandataris } from './cron/notification-for-bekrachtigde-mandataris';
+import { cronjob as harvestBekrachtigingenCron } from './cron/fetch-bekrachtigingen';
 import { electionResultsRouter } from './routes/verkiezingsresultaten';
 
 app.use(
@@ -53,4 +53,5 @@ app.use(errorHandler);
 
 //FIXME disable notifications for now
 //notificationBekrachtigdMandataris.start();
-cronjob.start();
+// FIXME disabled handling of decision queue because the publications are broken right now. Reactivate when we have decent publications again
+harvestBekrachtigingenCron.start();
