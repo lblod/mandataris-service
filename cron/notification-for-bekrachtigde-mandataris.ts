@@ -10,8 +10,11 @@ import {
   sparqlEscapeString,
   sparqlEscapeUri,
 } from '../util/mu';
-import { createNotification } from '../util/create-notification';
-import { SEND_EMAILS, sendMailTo } from '../util/create-email';
+import { createBulkNotificationMandatarissenWithoutBesluit } from '../util/create-notification';
+import {
+  SEND_EMAILS,
+  sendMissingBekrachtigingsmail,
+} from '../util/create-email';
 
 const SUBJECT = 'Mandataris zonder besluit';
 const NOTIFICATION_CRON_PATTERN =
@@ -35,35 +38,40 @@ export const cronjob = CronJob.from({
 });
 
 async function handleEffectieveMandatarissen() {
-  const mandatarissen = await fetchMandatarissenWithoutBesluit();
-  const bufferTime = 1000;
-  for (const mandataris of mandatarissen) {
-    setTimeout(async () => {
-      await createNotification({
-        title: SUBJECT,
-        description: `De publicatie status van ${mandataris.name} met mandaat ${mandataris.mandate} staat al 10 dagen of meer op effectief zonder dat er een besluit is toegevoegd. Gelieve deze mandataris manueel te bekrachtigen en een besluit toe te voegen of publiceer het besluit van de installatievergadering via een notuleringspakket.`,
-        type: 'warning',
-        graph: mandataris.graph,
-        links: [
-          {
-            type: 'mandataris',
-            uri: mandataris.uri,
-          },
-        ],
-      });
+  const mandatarissen =
+    await fetchEffectiveMandatarissenWithoutBesluitAndNotification();
 
-      if (SEND_EMAILS) {
-        const email = await getContactEmailFromMandataris(mandataris.uri);
-        if (email) {
-          await sendMailTo(email, mandataris);
-        }
+  await createBulkNotificationMandatarissenWithoutBesluit(
+    SUBJECT,
+    mandatarissen,
+  );
+
+  if (SEND_EMAILS) {
+    const grouped_mandatarissen = mandatarissen.reduce((acc, mandataris) => {
+      const { graph } = mandataris;
+      if (!acc[graph]) {
+        acc[graph] = [];
       }
-    }, bufferTime);
+      acc[graph].push(mandataris);
+      return acc;
+    }, {});
+    for (const key in grouped_mandatarissen) {
+      const mandataris_group = grouped_mandatarissen[key];
+      const email = await getContactEmailForMandataris(
+        mandataris_group.at(0)?.uri,
+      );
+      if (email) {
+        await sendMissingBekrachtigingsmail(email, mandataris_group);
+      }
+    }
   }
   running = false;
 }
 
-async function getContactEmailFromMandataris(mandatarisUri: string) {
+async function getContactEmailForMandataris(mandatarisUri?: string) {
+  if (!mandatarisUri) {
+    return null;
+  }
   const query = `
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
@@ -92,7 +100,7 @@ async function getContactEmailFromMandataris(mandatarisUri: string) {
   return findFirstSparqlResult(sparqlResult)?.email?.value;
 }
 
-async function fetchMandatarissenWithoutBesluit() {
+async function fetchEffectiveMandatarissenWithoutBesluitAndNotification() {
   const momentTenDaysAgo = moment(new Date()).subtract(10, 'days');
   const escapedTenDaysBefore = sparqlEscapeDateTime(momentTenDaysAgo.toDate());
   const query = `
@@ -118,6 +126,13 @@ async function fetchMandatarissenWithoutBesluit() {
           OPTIONAL {
             ?mandataris lmb:effectiefAt ?effectiefAt .
           }
+
+          FILTER NOT EXISTS {
+            ?notification a ext:SystemNotification;
+              dct:subject ${sparqlEscapeString(SUBJECT)};
+              ext:notificationLink ?notificationLink.
+            ?notificationLink ext:linkedTo ?mandataris.
+          }
         }
         ?bestuursfunctie skos:prefLabel ?bestuursfunctieName .
         ?graph ext:ownedBy ?owningEenheid.
@@ -127,13 +142,8 @@ async function fetchMandatarissenWithoutBesluit() {
 
         BIND(IF(BOUND(?effectiefAt), ?effectiefAt, ${escapedTenDaysBefore}) AS ?saveEffectiefAt).
         FILTER(${escapedTenDaysBefore} >= ?saveEffectiefAt)
-        FILTER NOT EXISTS {
-          ?notification a ext:SystemNotification;
-            dct:subject ${sparqlEscapeString(SUBJECT)};
-            ext:notificationLink ?notificationLink.
-          ?notificationLink ext:linkedTo ?mandataris.
-        }
       }
+      ORDER BY ?bestuursfunctieName ?lName
   `;
 
   const sparqlResult = await querySudo(query);
