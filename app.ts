@@ -12,7 +12,6 @@ import { installatievergaderingRouter } from './routes/installatievergadering';
 import { mandatenRouter } from './routes/mandaten';
 import { mockRouter } from './routes/mock';
 
-import { cronjob as notificationBekrachtigdMandataris } from './cron/notification-for-bekrachtigde-mandataris';
 import { cronjob as harvestBekrachtigingenCron } from './cron/fetch-bekrachtigingen';
 import { electionResultsRouter } from './routes/verkiezingsresultaten';
 
