@@ -19,12 +19,12 @@ export async function sendMissingBekrachtigingsmail(
   emailTo: string,
   mandatarissen,
 ) {
-  if (mandatarissen.length == 0) {
+  if (mandatarissen.length === 0) {
     return;
   }
-  let mandatarisTable = '';
+  let mandatarisRows = '';
   for (const mandataris of mandatarissen) {
-    mandatarisTable += `
+    mandatarisRows += `
       <tr>
         <td style="padding: 8px">${mandataris.name}</td>
         <td style="padding: 8px">${mandataris.mandate}</td>
@@ -42,7 +42,7 @@ export async function sendMissingBekrachtigingsmail(
         <th style="text-align:left;padding:8px">Naam</th>
         <th style="text-align:left;padding:8px">Mandaat</th>
       </tr>
-      ${mandatarisTable}
+      ${mandatarisRows}
     </table>
     <p>Gelieve het besluit te koppelen.</p>
     <br/>
