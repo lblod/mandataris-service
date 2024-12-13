@@ -37,6 +37,10 @@ async function handleEffectieveMandatarissen() {
   const mandatarissen =
     await fetchEffectiveMandatarissenWithoutBesluitAndNotification();
 
+  if (mandatarissen.length == 0) {
+    return;
+  }
+
   await createBulkNotificationMandatarissenWithoutBesluit(
     SUBJECT,
     mandatarissen,
