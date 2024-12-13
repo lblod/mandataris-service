@@ -47,8 +47,8 @@ installatievergaderingRouter.post(
         .status(404)
         .send({ error: 'Installatievergadering not found' });
     }
-    await fixMemberOfLinksForOCMWFracties();
     await moveFracties(installatievergaderingId);
+    await fixMemberOfLinksForOCMWFracties();
     await moveOcmwOrgans(installatievergaderingId);
     await movePersons(installatievergaderingId);
     await setLinkedIVToBehandeld(installatievergaderingId);
@@ -78,34 +78,7 @@ async function moveFracties(installatievergaderingId: string) {
     );
     return;
   }
-  const existingFractionsGemeente = await getExistingGemeenteFractions(
-    installatievergaderingId,
-  );
-
-  const newFractions = existingFractionsGemeente.map((fraction) => {
-    const uuid = uuidv4();
-    const uri = `http://data.lblod.info/fracties/${uuid}`;
-    return {
-      uri,
-      uuid,
-      type:
-        fraction.type ||
-        'http://data.vlaanderen.be/id/concept/Fractietype/Samenwerkingsverband',
-      name: fraction.name,
-    };
-  });
-
   const escapedId = sparqlEscapeString(installatievergaderingId);
-  const valueBindings = newFractions
-    .map(
-      (fraction) =>
-        `(${sparqlEscapeUri(fraction.uri)} ${sparqlEscapeString(
-          fraction.uuid,
-        )} ${sparqlEscapeUri(fraction.type)} ${sparqlEscapeString(
-          fraction.name,
-        )})`,
-    )
-    .join('\n');
   const insertSparql = `
   PREFIX mandaat:	<http://data.vlaanderen.be/ns/mandaat#>
   PREFIX besluit:	<http://data.vlaanderen.be/ns/besluit#>
@@ -118,9 +91,7 @@ async function moveFracties(installatievergaderingId: string) {
   INSERT {
     GRAPH ?target {
       ?fractie a mandaat:Fractie.
-      ?fractie mu:uuid ?uuid.
-      ?fractie ext:isFractietype ?type.
-      ?fractie regorg:legalName ?name.
+      ?fractie ?p ?o.
       ?fractie org:memberOf ?realOrgT.
       ?fractie org:linkedTo ?realEenheid.
     }
@@ -131,13 +102,13 @@ async function moveFracties(installatievergaderingId: string) {
       ?installatieVergadering lmb:heeftBestuurseenheid ?eenheid .
       ?bestuursorgaan mandaat:isTijdspecialisatieVan / ext:isTijdelijkOrgaanIn ?eenheid .
       ?bestuursorgaan ext:origineleBestuursorgaan ?realOrgT.
+      ?fractie org:memberOf / lmb:heeftBestuursperiode ?period.
+      ?fractie org:linkedTo ?eenheid.
+      ?fractie ?p ?o.
     }
     GRAPH ?target {
         ?realOrgT mandaat:isTijdspecialisatieVan ?realOrg.
         ?realOrg besluit:bestuurt ?realEenheid.
-    }
-    VALUES (?fractie ?uuid ?type ?name) {
-      ${valueBindings}
     }
     FILTER(?target != ?origin)
     ?origin ext:ownedBy ?owningEenheid.
@@ -180,45 +151,6 @@ async function ocmwHasFractions(installatievergaderingId: string) {
   } LIMIT 1`;
   const result = await querySudo(sparql);
   return result.results.bindings.length > 0;
-}
-
-async function getExistingGemeenteFractions(installatieVergaderingId: string) {
-  const escapedId = sparqlEscapeString(installatieVergaderingId);
-  const sparql = `PREFIX mandaat:	<http://data.vlaanderen.be/ns/mandaat#>
-  PREFIX besluit:	<http://data.vlaanderen.be/ns/besluit#>
-  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-  PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-  PREFIX bestuurseenheidscode: <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/>
-  PREFIX org: <http://www.w3.org/ns/org#>
-  PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-  PREFIX regorg: <https://www.w3.org/ns/regorg#>
-  PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
-
-  SELECT DISTINCT ?fractie ?name ?type WHERE {
-    GRAPH ?origin {
-      ?installatieVergadering lmb:heeftBestuursperiode ?period.
-      ?installatieVergadering mu:uuid ${escapedId} .
-      ?installatieVergadering lmb:heeftBestuurseenheid ?eenheid .
-      ?org besluit:bestuurt ?eenheid .
-      ?bestuursorgaan mandaat:isTijdspecialisatieVan ?org.
-      ?bestuursorgaan lmb:heeftBestuursperiode ?period.
-      ?fractie org:memberOf ?bestuursorgaan.
-      ?fractie regorg:legalName ?name.
-      OPTIONAL {
-        ?fractie ext:isFractietype ?type.
-      }
-    }
-    ?origin ext:ownedBy ?owningEenheid.
-  }`;
-
-  const result = await querySudo(sparql);
-  return result.results.bindings.map((binding) => {
-    return {
-      uri: binding.fractie.value,
-      name: binding.name.value,
-      type: binding.type?.value,
-    };
-  });
 }
 
 async function moveOcmwOrgans(installatievergaderingId: string) {
