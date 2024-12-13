@@ -1,5 +1,5 @@
 import { querySudo } from '@lblod/mu-auth-sudo';
-import { sparqlEscapeUri, sparqlEscapeString } from '../util/mu';
+import { sparqlEscapeUri, sparqlEscapeString } from 'mu';
 import { Request } from 'express';
 import { HttpError } from '../util/http-error';
 

@@ -5,16 +5,12 @@ import { querySudo } from '@lblod/mu-auth-sudo';
 
 import { findFirstSparqlResult, getSparqlResults } from '../util/sparql-result';
 import { PUBLICATION_STATUS } from '../util/constants';
-import {
-  sparqlEscapeDateTime,
-  sparqlEscapeString,
-  sparqlEscapeUri,
-} from '../util/mu';
 import { createBulkNotificationMandatarissenWithoutBesluit } from '../util/create-notification';
 import {
   SEND_EMAILS,
   sendMissingBekrachtigingsmail,
 } from '../util/create-email';
+import { sparqlEscapeDateTime, sparqlEscapeString, sparqlEscapeUri } from 'mu';
 
 const SUBJECT = 'Mandataris zonder besluit';
 const NOTIFICATION_CRON_PATTERN =
@@ -88,11 +84,11 @@ async function getContactEmailForMandataris(mandatarisUri?: string) {
       ?bestuursorgaan besluit:bestuurt ?bestuurseenheid .
       ?bestuursorgaanInTijd mandaat:isTijdspecialisatieVan ?bestuursorgaan .
       ?bestuursorgaanInTijd org:hasPost ?mandaat .
-      
+
       ?contact a ext:BestuurseenheidContact ;
         ext:contactVoor ?bestuurseenheid ;
         schema:email ?email .
-      
+
     } LIMIT 1
   `;
   const sparqlResult = await querySudo(query);

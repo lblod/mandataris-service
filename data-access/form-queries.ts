@@ -1,6 +1,5 @@
 import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
-import { sparqlEscapeUri } from 'mu';
-import { sparqlEscapeDateTime, sparqlEscapeString } from '../util/mu';
+import { sparqlEscapeUri, sparqlEscapeDateTime, sparqlEscapeString } from 'mu';
 import { v4 as uuid } from 'uuid';
 import { findFirstSparqlResult } from '../util/sparql-result';
 
@@ -17,8 +16,7 @@ export const fetchUserIdFromSession = async (sessionUri: string) => {
     } LIMIT 1
   `);
 
-  const result = findFirstSparqlResult(queryResult);
-  return result?.user.value;
+  return findFirstSparqlResult(queryResult)?.user.value;
 };
 
 export const saveHistoryItem = async (

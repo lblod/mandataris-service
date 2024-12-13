@@ -54,7 +54,7 @@ export const checkLinkedMandataris = async (req) => {
 
   return {
     ...linkedMandates,
-    hasDouble: linkedMandataris?.id.value,
+    hasDouble: linkedMandataris?.id,
   };
 };
 
@@ -193,7 +193,7 @@ export const correctMistakesLinkedMandataris = async (req) => {
 
     // Update current fractie on person
     await mandatarisUsecase.updateCurrentFractieSudo(
-      linkedMandataris.id.value,
+      linkedMandataris.id,
       destinationGraph,
     );
   }
@@ -201,7 +201,7 @@ export const correctMistakesLinkedMandataris = async (req) => {
   await correctLinkedMandataris(mandatarisId, linkedMandataris.uri);
 
   await saveHistoryItem(
-    linkedMandataris.uri.value,
+    linkedMandataris.uri,
     userId,
     'Corrected by gemeente - ocmw mirror',
   );
@@ -297,7 +297,10 @@ const preliminaryChecksLinkedMandataris = async (req) => {
   return userId;
 };
 
-export const getOrCreateOCMWFractie = async (mandatarisId, graph) => {
+export const getOrCreateOCMWFractie = async (
+  mandatarisId: string,
+  graph: string,
+) => {
   const isOnafhankelijk = await mandataris.isOnafhankelijk(mandatarisId);
 
   let fractie;
@@ -309,7 +312,10 @@ export const getOrCreateOCMWFractie = async (mandatarisId, graph) => {
   return fractie;
 };
 
-export const getOrCreateOnafhankelijkeFractie = async (mandatarisId, graph) => {
+export const getOrCreateOnafhankelijkeFractie = async (
+  mandatarisId: string,
+  graph: string,
+) => {
   const { persoonId, bestuursperiodeId } =
     await mandataris.getPersonWithBestuursperiode(mandatarisId);
   const onafhankelijk = await isOnafhankelijkInPeriod(

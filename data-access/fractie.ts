@@ -9,8 +9,7 @@ import { updateSudo } from '@lblod/mu-auth-sudo';
 
 import { getSparqlResults } from '../util/sparql-result';
 import { FRACTIE_TYPE } from '../util/constants';
-import { sparqlEscapeTermValue } from '../util/sparql-escape';
-import { Term, TermProperty } from '../types';
+import { TermProperty } from '../types';
 
 export const fractie = {
   forBestuursperiode,
@@ -77,7 +76,7 @@ async function addFractieOnPerson(
 async function addFractieOnPersonWithGraph(
   personId: string,
   fractieUri: string,
-  graph: Term,
+  graph: string,
 ): Promise<void> {
   const escapedFractie = sparqlEscapeUri(fractieUri);
   const insertQuery = `
@@ -86,12 +85,12 @@ async function addFractieOnPersonWithGraph(
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
     INSERT {
-      GRAPH ${sparqlEscapeTermValue(graph)} {
+      GRAPH ${sparqlEscapeUri(graph)} {
         ?persoon extlmb:currentFracties ${escapedFractie} .
       }
     }
     WHERE {
-      GRAPH ${sparqlEscapeTermValue(graph)} {
+      GRAPH ${sparqlEscapeUri(graph)} {
         ?persoon a person:Person;
           mu:uuid ${sparqlEscapeString(personId)}.
       }

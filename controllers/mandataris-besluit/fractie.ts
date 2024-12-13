@@ -1,9 +1,8 @@
 import { querySudo } from '@lblod/mu-auth-sudo';
-import { sparqlEscapeUri } from 'mu';
+import { sparqlEscapeUri, sparqlEscapeString } from 'mu';
 import { BESLUIT_STAGING_GRAPH } from '../../data-access/mandatees-decisions';
 import { MandatarisFullInfo } from '../../types';
 import { createMandatarisBesluitNotification } from '../../util/create-notification';
-import { sparqlEscapeString } from '../../util/mu';
 import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
@@ -261,6 +260,6 @@ const getMembershipUri = async (mandatarisUri: string) => {
     }
   `;
   const result = await querySudo(query);
-  const results = findFirstSparqlResult(result);
-  return results?.membership?.value;
+
+  return findFirstSparqlResult(result)?.membership?.value;
 };

@@ -17,7 +17,7 @@ export const persoonUsecase = {
 async function getFractie(
   id: string,
   bestuursperiodeId: string,
-): Promise<string | null> {
+): Promise<string | undefined> {
   const isPersoon = await areIdsValid(RDF_TYPE.PERSON, [id]);
   if (!isPersoon) {
     throw new HttpError(
@@ -36,9 +36,7 @@ async function getFractie(
     );
   }
 
-  const result = await persoon.getFractie(id, bestuursperiodeId);
-
-  return result ? result.fractie.value : null;
+  return await persoon.getFractie(id, bestuursperiodeId);
 }
 
 async function setEndDateOfActiveMandatarissen(id: string): Promise<void> {

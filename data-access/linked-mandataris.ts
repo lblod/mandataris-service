@@ -1,10 +1,11 @@
 import { HttpError } from '../util/http-error';
 import { query, sparqlEscapeString, sparqlEscapeUri } from 'mu';
 import { updateSudo, querySudo } from '@lblod/mu-auth-sudo';
-import { getBooleanSparqlResult } from '../util/sparql-result';
+import {
+  findFirstSparqlResult,
+  getBooleanSparqlResult,
+} from '../util/sparql-result';
 import { v4 as uuidv4 } from 'uuid';
-import { sparqlEscapeTermValue } from '../util/sparql-escape';
-import { Term } from '../types';
 
 export async function canAccessMandataris(id: string) {
   const sparql = `
@@ -57,9 +58,9 @@ export async function findLinkedMandate(mandatarisId, valueBindings) {
 }
 
 export async function getDestinationGraphLinkedMandataris(
-  mandatarisId,
+  mandatarisId: string,
   valueBindings,
-): Promise<Term | null> {
+): Promise<string | undefined> {
   const q = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
@@ -103,15 +104,13 @@ export async function getDestinationGraphLinkedMandataris(
   `;
 
   const result = await querySudo(q);
-  if (result.results.bindings.length == 0) {
-    return null;
-  }
-  return result.results.bindings[0].dest;
+
+  return findFirstSparqlResult(result)?.dest?.value;
 }
 
 export async function linkedMandateAlreadyExists(
-  mandatarisId,
-  graph,
+  mandatarisId: string,
+  graph: string,
   valueBindings,
 ) {
   const q = `
@@ -133,7 +132,7 @@ export async function linkedMandateAlreadyExists(
         ?currentBestuursOrgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
       }
 
-      GRAPH ${sparqlEscapeTermValue(graph)} {
+      GRAPH ${sparqlEscapeUri(graph)} {
         ?linkedMandataris a mandaat:Mandataris ;
           org:holds ?linkedMandaat ;
           mandaat:isBestuurlijkeAliasVan ?person .
@@ -150,6 +149,7 @@ export async function linkedMandateAlreadyExists(
     `;
 
   const result = await querySudo(q);
+
   return getBooleanSparqlResult(result);
 }
 
@@ -174,7 +174,10 @@ export async function findPersonForMandataris(mandatarisId) {
   return result.results.bindings[0].person.value;
 }
 
-export async function personOfMandatarisExistsInGraph(mandatarisId, graph) {
+export async function personOfMandatarisExistsInGraph(
+  mandatarisId: string,
+  graph: string,
+) {
   const q = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX person: <http://www.w3.org/ns/person#>
@@ -187,7 +190,7 @@ export async function personOfMandatarisExistsInGraph(mandatarisId, graph) {
           mandaat:isBestuurlijkeAliasVan ?persoon.
       }
 
-      GRAPH ${sparqlEscapeTermValue(graph)} {
+      GRAPH ${sparqlEscapeUri(graph)} {
         ?persoon a person:Person .
       }
     }
@@ -197,7 +200,10 @@ export async function personOfMandatarisExistsInGraph(mandatarisId, graph) {
   return getBooleanSparqlResult(result);
 }
 
-export async function copyPersonOfMandataris(mandatarisId, graph) {
+export async function copyPersonOfMandataris(
+  mandatarisId: string,
+  graph: string,
+) {
   const q = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -206,7 +212,7 @@ export async function copyPersonOfMandataris(mandatarisId, graph) {
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     INSERT {
-      GRAPH ${sparqlEscapeTermValue(graph)} {
+      GRAPH ${sparqlEscapeUri(graph)} {
         ?person ?p ?o .
         ?geboorte ?geboortep ?geboorteo .
         ?id ?idp ?ido .
@@ -240,7 +246,10 @@ export async function copyPersonOfMandataris(mandatarisId, graph) {
   }
 }
 
-export async function isFractieNameEqual(ogMandatarisId, linkedMandataris) {
+export async function isFractieNameEqual(
+  ogMandatarisId: string,
+  linkedMandatarisUri: string,
+) {
   const q = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -258,7 +267,7 @@ export async function isFractieNameEqual(ogMandatarisId, linkedMandataris) {
       }
 
       GRAPH ?dest {
-        ${sparqlEscapeTermValue(linkedMandataris)} a mandaat:Mandataris ;
+        ${sparqlEscapeUri(linkedMandatarisUri)} a mandaat:Mandataris ;
           org:hasMembership ?linkedLidmaatschap .
         ?linkedLidmaatschap org:organisation ?linkedFractie .
         ?linkedFractie regorg:legalName ?fractieNaam .
@@ -271,7 +280,10 @@ export async function isFractieNameEqual(ogMandatarisId, linkedMandataris) {
   return getBooleanSparqlResult(result);
 }
 
-export async function getFractieOfMandatarisInGraph(mandatarisId, graph) {
+export async function getFractieOfMandatarisInGraph(
+  mandatarisId: string,
+  graph: string,
+) {
   const q = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -289,7 +301,7 @@ export async function getFractieOfMandatarisInGraph(mandatarisId, graph) {
           ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Samenwerkingsverband>
       }
 
-      GRAPH ${sparqlEscapeTermValue(graph)} {
+      GRAPH ${sparqlEscapeUri(graph)} {
         ?doelFractie a mandaat:Fractie ;
           regorg:legalName ?fractieNaam .
       }
@@ -305,8 +317,8 @@ export async function getFractieOfMandatarisInGraph(mandatarisId, graph) {
 }
 
 export async function copyOnafhankelijkeFractieOfMandataris(
-  mandatarisId,
-  graph,
+  mandatarisId: string,
+  graph: string,
 ) {
   const fractieUuid = uuidv4();
   const fractieUri = `http://data.lblod.info/id/fracties/${fractieUuid}`;
@@ -320,7 +332,7 @@ export async function copyOnafhankelijkeFractieOfMandataris(
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     INSERT {
-      GRAPH ${sparqlEscapeTermValue(graph)} {
+      GRAPH ${sparqlEscapeUri(graph)} {
         ${sparqlEscapeUri(fractieUri)} a mandaat:Fractie ;
           mu:uuid ${sparqlEscapeString(fractieUuid)} ;
           ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk> ;
@@ -336,7 +348,7 @@ export async function copyOnafhankelijkeFractieOfMandataris(
           org:hasMembership / org:organisation / org:memberOf / lmb:heeftBestuursperiode ?bestuursperiode .
       }
 
-      GRAPH ${sparqlEscapeTermValue(graph)} {
+      GRAPH ${sparqlEscapeUri(graph)} {
         ?linkedBestuursorgaanIT lmb:heeftBestuursperiode ?bestuursperiode ;
           mandaat:isTijdspecialisatieVan / besluit:bestuurt ?linkedBestuurseenheid .
       }
@@ -348,7 +360,7 @@ export async function copyOnafhankelijkeFractieOfMandataris(
     await updateSudo(q);
   } catch (error) {
     throw new HttpError(
-      `Error occurred while trying to copy fractie of mandataris ${mandatarisId} to graph ${graph.value}`,
+      `Error occurred while trying to copy fractie of mandataris ${mandatarisId} to graph ${graph}`,
       500,
     );
   }
@@ -356,24 +368,24 @@ export async function copyOnafhankelijkeFractieOfMandataris(
 }
 
 export async function replaceFractieOfMandataris(
-  mandatarisId,
-  linkedMandataris,
-  fractie,
-  graph,
+  mandatarisId: string,
+  linkedMandatarisUri: string,
+  fractieUri: string,
+  graph: string,
 ) {
   const escaped = {
     current: sparqlEscapeString(mandatarisId),
-    linked: sparqlEscapeTermValue(linkedMandataris),
-    graph: sparqlEscapeTermValue(graph),
+    linked: sparqlEscapeUri(linkedMandatarisUri),
+    graph: sparqlEscapeUri(graph),
   };
 
   let insertFractieTriples = '';
-  if (fractie) {
+  if (fractieUri) {
     const membershipUuid = uuidv4();
     const membershipUri = `http://data.lblod.info/id/lidmaatschappen/${membershipUuid}`;
 
     const escaped2 = {
-      fractie: sparqlEscapeUri(fractie),
+      fractie: sparqlEscapeUri(fractieUri),
       membershipUri: sparqlEscapeUri(membershipUri),
       membershipId: sparqlEscapeString(membershipUuid),
     };
@@ -423,16 +435,16 @@ export async function replaceFractieOfMandataris(
     await updateSudo(q);
   } catch (error) {
     throw new HttpError(
-      `Error occurred while trying to copy fractie of mandataris ${mandatarisId} to mandataris ${linkedMandataris.value}`,
+      `Error occurred while trying to copy fractie of mandataris ${mandatarisId} to mandataris ${linkedMandatarisUri}`,
       500,
     );
   }
 }
 
 export async function createNewLinkedMandataris(
-  mandatarisId,
-  fractie,
-  graph,
+  mandatarisId: string,
+  fractieUri: string,
+  graph: string,
   valueBindings,
 ) {
   const newMandatarisUuid = uuidv4();
@@ -441,16 +453,16 @@ export async function createNewLinkedMandataris(
     mandatarisId: sparqlEscapeString(mandatarisId),
     newMandatarisUuid: sparqlEscapeString(newMandatarisUuid),
     newMandataris: sparqlEscapeUri(newMandatarisUri),
-    graph: sparqlEscapeTermValue(graph),
+    graph: sparqlEscapeUri(graph),
   };
   let fractieTriples = '';
-  if (fractie) {
+  if (fractieUri) {
     const membershipUuid = uuidv4();
     const membershipUri = `http://data.lblod.info/id/lidmaatschappen/${membershipUuid}`;
     const escaped2 = {
       membershipUuid: sparqlEscapeString(membershipUuid),
       membership: sparqlEscapeUri(membershipUri),
-      fractie: sparqlEscapeUri(fractie),
+      fractie: sparqlEscapeUri(fractieUri),
     };
     fractieTriples = `
       ${escaped.newMandataris} org:hasMembership ${escaped2.membership} .
@@ -518,10 +530,13 @@ export async function createNewLinkedMandataris(
   return { uri: newMandatarisUri, id: newMandatarisUuid };
 }
 
-export async function correctLinkedMandataris(mandatarisId, linkedMandataris) {
+export async function correctLinkedMandataris(
+  mandatarisId: string,
+  linkedMandatarisUri: string,
+) {
   const escaped = {
     current: sparqlEscapeString(mandatarisId),
-    linked: sparqlEscapeTermValue(linkedMandataris),
+    linked: sparqlEscapeUri(linkedMandatarisUri),
   };
   const q = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -565,16 +580,19 @@ export async function correctLinkedMandataris(mandatarisId, linkedMandataris) {
     await updateSudo(q);
   } catch (error) {
     throw new HttpError(
-      `Error while trying to update linked mandataris ${linkedMandataris.value} with changes from mandataris ${mandatarisId}`,
+      `Error while trying to update linked mandataris ${linkedMandatarisUri} with changes from mandataris ${mandatarisId}`,
       500,
     );
   }
 }
 
-export async function copyExtraValues(oldMandataris, newMandataris) {
+export async function copyExtraValues(
+  oldMandatarisUri: string,
+  newMandatarisUri: string,
+) {
   const escaped = {
-    old: sparqlEscapeTermValue(oldMandataris),
-    new: sparqlEscapeUri(newMandataris),
+    old: sparqlEscapeUri(oldMandatarisUri),
+    new: sparqlEscapeUri(newMandatarisUri),
   };
   const q = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -685,7 +703,7 @@ export async function findLinkedInstance(instance1: string) {
     return null;
   }
   return {
-    uri: result.results.bindings[0].i2Uri,
-    id: result.results.bindings[0].i2Id,
+    uri: result.results.bindings[0].i2Uri.value as string,
+    id: result.results.bindings[0].i2Id.value as string,
   };
 }

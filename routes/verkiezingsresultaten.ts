@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import Router from 'express-promise-router';
-import { sparqlEscapeString } from '../util/mu';
-import { query } from 'mu';
+import { query, sparqlEscapeString } from 'mu';
 import { jsonToCsv, queryResultToJson } from '../util/json-to-csv';
 
 export const electionResultsRouter = Router();

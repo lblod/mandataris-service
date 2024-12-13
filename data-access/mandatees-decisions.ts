@@ -5,7 +5,7 @@ import {
   createNotification,
   getMandatarisNotificationGraph,
 } from '../util/create-notification';
-import { TERM_TYPE, sparqlEscapeTermValue } from '../util/sparql-escape';
+import { sparqlEscapeTermValue } from '../util/sparql-escape';
 import {
   getBooleanSparqlResult,
   getSparqlResults,
@@ -16,7 +16,7 @@ export const BESLUIT_STAGING_GRAPH =
   'http://mu.semte.ch/graphs/besluiten-consumed';
 
 export const TERM_MANDATARIS_TYPE = {
-  type: TERM_TYPE.URI,
+  type: 'uri',
   value: 'http://data.vlaanderen.be/ns/mandaat#Mandataris',
 } as Term;
 

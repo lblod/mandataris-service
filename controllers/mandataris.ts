@@ -6,8 +6,6 @@ import {
 } from '../data-access/mandataris';
 import { persoon } from '../data-access/persoon';
 
-import { Term } from '../types';
-
 import { STATUS_CODE } from '../util/constants';
 import { HttpError } from '../util/http-error';
 import { createRangorde } from '../util/rangorde';
@@ -48,34 +46,34 @@ async function updateCurrentFractie(mandatarisId: string): Promise<void> {
     );
   }
 
-  const currentFractie =
+  const currentFractieUri =
     await mandataris.findCurrentFractieForPerson(mandatarisId);
-  if (!currentFractie) {
+  if (!currentFractieUri) {
     return;
   }
 
   const personAndperiodIds =
     await mandataris.getPersonWithBestuursperiode(mandatarisId);
-  const existingFractieInBestuursperiode = await persoon.getFractie(
+  const persoonFractieUri = await persoon.getFractie(
     personAndperiodIds.persoonId,
     personAndperiodIds.bestuursperiodeId,
   );
-  if (existingFractieInBestuursperiode?.fractie) {
+  if (persoonFractieUri) {
     await persoon.removeFractieFromCurrent(
       personAndperiodIds.persoonId,
-      existingFractieInBestuursperiode.fractie.value,
+      persoonFractieUri,
     );
   }
 
   await fractie.addFractieOnPerson(
     personAndperiodIds.persoonId,
-    currentFractie.fractie.value,
+    currentFractieUri,
   );
 }
 
 async function updateCurrentFractieSudo(
   mandatarisId: string,
-  graph: Term,
+  graph: string,
 ): Promise<void> {
   const isMandataris = await isValidId(RDF_TYPE.MANDATARIS, mandatarisId, true);
   if (!isMandataris) {
@@ -87,7 +85,7 @@ async function updateCurrentFractieSudo(
 
   const currentFractie = await mandataris.findCurrentFractieForPerson(
     mandatarisId,
-    graph.value,
+    graph,
     true,
   );
   if (!currentFractie) {
@@ -98,21 +96,21 @@ async function updateCurrentFractieSudo(
     mandatarisId,
     true,
   );
-  const existingFractieInBestuursperiode = await persoon.getFractie(
+  const fractieUri = await persoon.getFractie(
     personAndperiodIds.persoonId,
     personAndperiodIds.bestuursperiodeId,
     true,
   );
-  if (existingFractieInBestuursperiode?.fractie) {
+  if (fractieUri) {
     await persoon.removeFractieFromCurrentWithGraph(
       personAndperiodIds.persoonId,
-      existingFractieInBestuursperiode.fractie.value,
+      fractieUri,
       graph,
     );
   }
   await fractie.addFractieOnPersonWithGraph(
     personAndperiodIds.persoonId,
-    currentFractie.fractie.value,
+    currentFractie,
     graph,
   );
 }
