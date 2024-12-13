@@ -248,7 +248,7 @@ export async function copyPersonOfMandataris(
 
 export async function isFractieNameEqual(
   ogMandatarisId: string,
-  linkedMandataris: string,
+  linkedMandatarisUri: string,
 ) {
   const q = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -267,7 +267,7 @@ export async function isFractieNameEqual(
       }
 
       GRAPH ?dest {
-        ${sparqlEscapeUri(linkedMandataris)} a mandaat:Mandataris ;
+        ${sparqlEscapeUri(linkedMandatarisUri)} a mandaat:Mandataris ;
           org:hasMembership ?linkedLidmaatschap .
         ?linkedLidmaatschap org:organisation ?linkedFractie .
         ?linkedFractie regorg:legalName ?fractieNaam .
@@ -703,7 +703,7 @@ export async function findLinkedInstance(instance1: string) {
     return null;
   }
   return {
-    uri: result.results.bindings[0].i2Uri,
-    id: result.results.bindings[0].i2Id,
+    uri: result.results.bindings[0].i2Uri.value as string,
+    id: result.results.bindings[0].i2Id.value as string,
   };
 }

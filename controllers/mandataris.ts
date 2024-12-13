@@ -110,7 +110,7 @@ async function updateCurrentFractieSudo(
   }
   await fractie.addFractieOnPersonWithGraph(
     personAndperiodIds.persoonId,
-    currentFractie.fractie.value,
+    currentFractie,
     graph,
   );
 }

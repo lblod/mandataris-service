@@ -54,7 +54,7 @@ export const checkLinkedMandataris = async (req) => {
 
   return {
     ...linkedMandates,
-    hasDouble: linkedMandataris?.id.value,
+    hasDouble: linkedMandataris?.id,
   };
 };
 
@@ -193,7 +193,7 @@ export const correctMistakesLinkedMandataris = async (req) => {
 
     // Update current fractie on person
     await mandatarisUsecase.updateCurrentFractieSudo(
-      linkedMandataris.id.value,
+      linkedMandataris.id,
       destinationGraph,
     );
   }
@@ -201,7 +201,7 @@ export const correctMistakesLinkedMandataris = async (req) => {
   await correctLinkedMandataris(mandatarisId, linkedMandataris.uri);
 
   await saveHistoryItem(
-    linkedMandataris.uri.value,
+    linkedMandataris.uri,
     userId,
     'Corrected by gemeente - ocmw mirror',
   );
