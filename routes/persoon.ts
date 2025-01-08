@@ -4,6 +4,8 @@ import { Request, Response } from 'express';
 
 import { STATUS_CODE } from '../util/constants';
 import { persoonUsecase, putPersonInRightGraph } from '../controllers/persoon';
+import { fetchUserIdFromSession } from '../data-access/form-queries';
+import { mandatarisUsecase } from '../controllers/mandataris';
 
 export const personenRouter = Router();
 
@@ -35,7 +37,14 @@ personenRouter.put(
     const personId = req.params.id;
 
     try {
-      await persoonUsecase.setEndDateOfActiveMandatarissen(personId);
+      const userId = await fetchUserIdFromSession(req.get('mu-session-id'));
+      if (!userId) {
+        return res
+          .status(STATUS_CODE.FORBIDDEN)
+          .send({ message: 'Not authenticated' });
+      }
+      await mandatarisUsecase.setEndDateOfActiveMandatarissen(personId, userId);
+
       return res.status(STATUS_CODE.OK).send({});
     } catch (error) {
       const message =

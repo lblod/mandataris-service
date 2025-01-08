@@ -56,3 +56,47 @@ export const saveHistoryItem = async (
 
   await updateSudo(insertQuery);
 };
+export const saveBulkHistoryItem = async (
+  instanceUris: Array<string>,
+  creatorUri: string,
+  description?: string,
+) => {
+  const instanceValues = instanceUris
+    .map((uri) => {
+      const historyGraphUri = `<http://mu.semte.ch/graphs/formHistory/${uuid()}>`;
+
+      return `( ${sparqlEscapeUri(uri)} ${historyGraphUri} )`;
+    })
+    .join('/n');
+
+  let descriptionInsert = '';
+  if (description && description.trim().length > 0) {
+    descriptionInsert = `; dct:description ${sparqlEscapeString(description)} `;
+  }
+
+  const insertQuery = `
+    PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+    INSERT {
+      GRAPH <http://mu.semte.ch/graphs/formHistory> {
+        ?historyGraph a <http://mu.semte.ch/vocabularies/ext/FormHistory> ;
+          dct:isVersionOf ?instanceUri ;
+          dct:issued ${sparqlEscapeDateTime(new Date())} ;
+          dct:creator ${sparqlEscapeUri(creatorUri)} ${descriptionInsert}.
+      }
+      GRAPH ?historyGraph {
+        ?instanceUri ?p ?o.
+      }
+    }
+    WHERE {
+      VALUES (?instanceUri ?historyGraph) { ${instanceValues} }
+      GRAPH ?g {
+        ?instanceUri ?p ?o.
+      }
+      FILTER (?p NOT IN (dct:modified))
+    }
+  `;
+
+  await updateSudo(insertQuery);
+};

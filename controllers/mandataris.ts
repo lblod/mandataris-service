@@ -5,13 +5,14 @@ import {
   mandataris,
 } from '../data-access/mandataris';
 import { persoon } from '../data-access/persoon';
+import { saveBulkHistoryItem } from '../data-access/form-queries';
 
 import { STATUS_CODE } from '../util/constants';
 import { HttpError } from '../util/http-error';
 import { createRangorde } from '../util/rangorde';
 
 import { v4 as uuidv4 } from 'uuid';
-import { isValidId, RDF_TYPE } from '../util/valid-id';
+import { areIdsValid, isValidId, RDF_TYPE } from '../util/valid-id';
 
 export const mandatarisUsecase = {
   getMandatarisFracties,
@@ -19,6 +20,7 @@ export const mandatarisUsecase = {
   updateCurrentFractieSudo,
   copyOverNonResourceDomainPredicates,
   generateRows,
+  setEndDateOfActiveMandatarissen,
 };
 
 async function getMandatarisFracties(
@@ -212,4 +214,27 @@ async function generateRows(config): Promise<Array<string>> {
   await mandataris.generateMandatarissen(valuesForQuery, config);
 
   return valuesForQuery.map((value) => value.id);
+}
+
+async function setEndDateOfActiveMandatarissen(
+  id: string,
+  userId: string,
+): Promise<void> {
+  const isPersoon = await areIdsValid(RDF_TYPE.PERSON, [id]);
+  if (!isPersoon) {
+    throw new HttpError(
+      `Person with id ${id} was not found.`,
+      STATUS_CODE.BAD_REQUEST,
+    );
+  }
+
+  const activeMandatarisUris =
+    await mandataris.getActiveMandatarissenForPerson(id);
+
+  await mandataris.bulkUpdateEndDate(activeMandatarisUris, new Date());
+  await saveBulkHistoryItem(
+    activeMandatarisUris,
+    userId,
+    'All person mandatarissen ended by user.',
+  );
 }

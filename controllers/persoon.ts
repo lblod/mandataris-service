@@ -11,7 +11,6 @@ import { HttpError } from '../util/http-error';
 
 export const persoonUsecase = {
   getFractie,
-  setEndDateOfActiveMandatarissen,
 };
 
 async function getFractie(
@@ -37,18 +36,6 @@ async function getFractie(
   }
 
   return await persoon.getFractie(id, bestuursperiodeId);
-}
-
-async function setEndDateOfActiveMandatarissen(id: string): Promise<void> {
-  const isPersoon = await areIdsValid(RDF_TYPE.PERSON, [id]);
-  if (!isPersoon) {
-    throw new HttpError(
-      `Person with id ${id} was not found.`,
-      STATUS_CODE.BAD_REQUEST,
-    );
-  }
-
-  await persoon.setEndDateOfActiveMandatarissen(id, new Date());
 }
 
 export async function putPersonInRightGraph(
