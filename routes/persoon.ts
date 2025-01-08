@@ -4,8 +4,9 @@ import { Request, Response } from 'express';
 
 import { STATUS_CODE } from '../util/constants';
 import { persoonUsecase, putPersonInRightGraph } from '../controllers/persoon';
-import { fetchUserIdFromSession } from '../data-access/form-queries';
 import { mandatarisUsecase } from '../controllers/mandataris';
+import { fetchUserIdFromSession } from '../data-access/form-queries';
+import { mandataris } from '../data-access/mandataris';
 
 export const personenRouter = Router();
 
@@ -25,6 +26,26 @@ personenRouter.get(
       const message =
         error.message ??
         `Something went wrong while getting current fractie in bestuursperiode: ${bestuursperiodeId} for person with id: ${personId}`;
+      const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
+      return res.status(statusCode).send({ message });
+    }
+  },
+);
+
+personenRouter.get(
+  '/:id/has-active-mandates',
+  async (req: Request, res: Response) => {
+    try {
+      const actieveMandatarissen =
+        await mandataris.getActiveMandatarissenForPerson(req.params.id);
+
+      return res
+        .status(STATUS_CODE.OK)
+        .send({ isTrue: actieveMandatarissen.length > 0 });
+    } catch (error) {
+      const message =
+        error.message ??
+        `Something went wrong while checking if person with id: ${req.params.id} has active mandates.`;
       const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
       return res.status(statusCode).send({ message });
     }
