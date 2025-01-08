@@ -67,7 +67,7 @@ export const saveBulkHistoryItem = async (
 
       return `( ${sparqlEscapeUri(uri)} ${historyGraphUri} )`;
     })
-    .join('/n');
+    .join('\n');
 
   let descriptionInsert = '';
   if (description && description.trim().length > 0) {
