@@ -10,9 +10,10 @@ import { saveBulkHistoryItem } from '../data-access/form-queries';
 import { STATUS_CODE } from '../util/constants';
 import { HttpError } from '../util/http-error';
 import { createRangorde } from '../util/rangorde';
+import { areIdsValid, isValidId, RDF_TYPE } from '../util/valid-id';
 
 import { v4 as uuidv4 } from 'uuid';
-import { areIdsValid, isValidId, RDF_TYPE } from '../util/valid-id';
+import moment from 'moment';
 
 export const mandatarisUsecase = {
   getMandatarisFracties,
@@ -230,8 +231,9 @@ async function setEndDateOfActiveMandatarissen(
 
   const activeMandatarisUris =
     await mandataris.getActiveMandatarissenForPerson(id);
+  const tomorrowAtMidnight = moment().add(1, 'days').startOf('day').toDate();
 
-  await mandataris.bulkUpdateEndDate(activeMandatarisUris, new Date());
+  await mandataris.bulkUpdateEndDate(activeMandatarisUris, tomorrowAtMidnight);
   await saveBulkHistoryItem(
     activeMandatarisUris,
     userId,
