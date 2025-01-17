@@ -1,16 +1,10 @@
-import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
-import {
-  query,
-  update,
-  sparqlEscapeString,
-  sparqlEscapeDateTime,
-  sparqlEscapeUri,
-} from 'mu';
+import { sparqlEscapeString, sparqlEscapeDateTime, sparqlEscapeUri } from 'mu';
 import moment from 'moment';
 import { v4 as uuidv4 } from 'uuid';
 
 import { CSVRow, CsvUploadState, MandateHit, TermProperty } from '../types';
 
+import { query, update, querySudo, updateSudo } from '../util/mu/query-sparql';
 import {
   FRACTIE_TYPE,
   MANDATARIS_STATUS,
@@ -43,11 +37,6 @@ export const mandataris = {
 async function isOnafhankelijk(mandatarisId: string): Promise<boolean> {
   const fractieTypeOnafhankelijk = sparqlEscapeUri(FRACTIE_TYPE.ONAFHANKELIJK);
   const getQuery = `
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-    PREFIX org: <http://www.w3.org/ns/org#>
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-
     ASK {
       ?currentMandataris a mandaat:Mandataris ;
         mu:uuid ${sparqlEscapeString(mandatarisId)} ;
@@ -69,15 +58,6 @@ async function findCurrentFractieForPerson(
 ): Promise<string | undefined> {
   const graphInsert = graph ? `GRAPH ${sparqlEscapeUri(graph)} {` : '';
   const getQuery = `
-    PREFIX person: <http://www.w3.org/ns/person#>
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX org: <http://www.w3.org/ns/org#>
-    PREFIX dct: <http://purl.org/dc/terms/>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-    PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
-    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
-
     SELECT DISTINCT ?fractie
     WHERE {
       ${graphInsert}
@@ -114,10 +94,6 @@ export async function findOnafhankelijkeFractieForPerson(
 ) {
   const fractieTypeOnafhankelijk = sparqlEscapeUri(FRACTIE_TYPE.ONAFHANKELIJK);
   const getQuery = `
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-    PREFIX org: <http://www.w3.org/ns/org#>
-
     SELECT DISTINCT ?fractie WHERE {
       ?fractie a mandaat:Fractie .
       ?fractie ext:isFractietype ${fractieTypeOnafhankelijk} .
@@ -145,13 +121,6 @@ export async function createOnafhankelijkeFractie(mandateUris: string[]) {
   const uri = `http://data.lblod.info/id/fracties/${uuid}`;
 
   const updateQuery = `
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX org: <http://www.w3.org/ns/org#>
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-    PREFIX regorg: <https://www.w3.org/ns/regorg#>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-    PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
-
     INSERT {
       GRAPH ?g {
         ${sparqlEscapeUri(uri)} a mandaat:Fractie ;
@@ -184,8 +153,6 @@ export const findGraphAndMandates = async (row: CSVRow) => {
   }
 
   const q = `
-  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-
   SELECT ?g ?mandate WHERE {
     GRAPH ?g {
       ?mandate a mandaat:Mandaat .
@@ -222,12 +189,6 @@ const findMandatesByName = async (row: CSVRow) => {
   }
 
   const q = `
-  PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-  PREFIX org: <http://www.w3.org/ns/org#>
-  PREFIX regorg: <https://www.w3.org/ns/regorg#>
-  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-
   SELECT DISTINCT ?mandate ?fraction ?start ?end WHERE {
     ?mandate a mandaat:Mandaat ;
     ^org:hasPost ?orgaanInTijd ;
@@ -326,14 +287,7 @@ export const createMandatarisInstance = async (
   }
 
   const q = `
-  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-  PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
-  PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
   PREFIX mps: <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/>
-  PREFIX org: <http://www.w3.org/ns/org#>
-  PREFIX dct: <http://purl.org/dc/terms/>
-  PREFIX generiek: <http://data.vlaanderen.be/ns/generiek#>
-  PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
   INSERT DATA {
     GRAPH <http://mu.semte.ch/graphs/application> {
@@ -365,9 +319,6 @@ export const validateNoOverlappingMandate = async (
   uploadState: CsvUploadState,
 ) => {
   const q = `
-  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-  PREFIX org: <http://www.w3.org/ns/org#>
-
   ASK {
     ?mandataris a mandaat:Mandataris ;
       mandaat:isBestuurlijkeAliasVan ${sparqlEscapeUri(persoonUri)} ;
@@ -392,9 +343,6 @@ export const findExistingMandatarisOfPerson = async (
   persoonUri: string,
 ): Promise<string | undefined> => {
   const sparql = `
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX org: <http://www.w3.org/ns/org#>
-
     SELECT ?mandataris WHERE {
       GRAPH ${sparqlEscapeUri(orgGraph)} {
         ?mandataris a mandaat:Mandataris ;
@@ -425,11 +373,7 @@ export const copyFromPreviousMandataris = async (
     ${mandateUri ? ', org:holds' : ''}))`;
 
   await updateSudo(`
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mps: <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/>
-    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-    PREFIX org: <http://www.w3.org/ns/org#>
 
     INSERT {
       GRAPH ${sparqlEscapeUri(orgGraph)} {
@@ -466,9 +410,6 @@ export async function endExistingMandataris(
   }
 
   const terminateQuery = `
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-
     DELETE {
       GRAPH ${sparqlEscapeUri(graph)} {
         ?mandataris mandaat:einde ?einde .
@@ -506,9 +447,6 @@ export async function findDecisionAndLinkForMandataris(
 ): Promise<{ besluit: string | undefined; link: string | undefined }> {
   const mandatarisSubject = sparqlEscapeUri(mandatarisUri);
   const besluiteQuery = `
-  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-
    SELECT ?artikel ?link
    WHERE {
       GRAPH ?g {
@@ -544,8 +482,6 @@ export async function updatePublicationStatusOfMandataris(
     mandatarisType: sparqlEscapeTermValue(TERM_MANDATARIS_TYPE),
   };
   const updateStatusQuery = `
-    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
-
     DELETE {
       GRAPH ?graph {
         ${escaped.mandataris} lmb:hasPublicationStatus ?status.
@@ -590,10 +526,6 @@ export async function bulkSetPublicationStatusEffectief(
     todaysDate: sparqlEscapeDateTime(new Date()),
   };
   const query = `
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
-
     DELETE {
       GRAPH ?graph {
         ?mandataris lmb:hasPublicationStatus ?status .
@@ -637,10 +569,6 @@ export async function bulkBekrachtigMandatarissen(
     link: sparqlEscapeString(link),
   };
   const query = `
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
-
     DELETE {
       GRAPH ?graph {
         ?mandataris lmb:hasPublicationStatus ?status .
@@ -672,11 +600,6 @@ async function getPersonWithBestuursperiode(
   sudo: boolean = false,
 ): Promise<{ persoonId: string; bestuursperiodeId: string }> {
   const getQuery = `
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-    PREFIX org: <http://www.w3.org/ns/org#>
-    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
-
     SELECT DISTINCT ?persoonId ?bestuursperiodeId
     WHERE {
       ?mandataris a mandaat:Mandataris;
@@ -704,17 +627,6 @@ async function getNonResourceDomainProperties(
   mandatarisId: string,
 ): Promise<Array<TermProperty>> {
   const getQuery = `
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-    PREFIX org: <http://www.w3.org/ns/org#>
-    PREFIX dct: <http://purl.org/dc/terms/>
-    PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-    PREFIX owl: <http://www.w3.org/2002/07/owl#>
-    PREFIX schema: <http://schema.org/>
-    PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
-
     SELECT ?predicate ?object
     WHERE {
       ?mandataris a mandaat:Mandataris;
@@ -767,9 +679,6 @@ async function addPredicatesToMandataris(
   );
   console.log({ termProperties });
   const updateQuery = `
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-
     INSERT {
       ?mandataris ?predicate ?object.
     }
@@ -787,12 +696,6 @@ async function getMandatarisFracties(
   mandatarisId: string,
 ): Promise<Array<TermProperty>> {
   const q = `
-    PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
-    PREFIX org: <http://www.w3.org/ns/org#>
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
-
     SELECT DISTINCT ?fractieId
     WHERE {
       ?mandatarisOG a mandaat:Mandataris ;
@@ -837,14 +740,7 @@ async function generateMandatarissen(
   };
 
   const createQuery = `
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
-    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
     PREFIX mps: <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/>
-    PREFIX org: <http://www.w3.org/ns/org#>
-    PREFIX dct: <http://purl.org/dc/terms/>
-    PREFIX generiek: <http://data.vlaanderen.be/ns/generiek#>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
     INSERT {
       GRAPH <http://mu.semte.ch/graphs/application> {
