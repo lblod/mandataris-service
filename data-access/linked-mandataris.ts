@@ -1,11 +1,13 @@
-import { HttpError } from '../util/http-error';
 import { query, sparqlEscapeString, sparqlEscapeUri } from 'mu';
 import { updateSudo, querySudo } from '@lblod/mu-auth-sudo';
+import { v4 as uuidv4 } from 'uuid';
+
+import { HttpError } from '../util/http-error';
 import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
 } from '../util/sparql-result';
-import { v4 as uuidv4 } from 'uuid';
+import { FRACTIE_TYPE, GRAPH, PUBLICATION_STATUS } from '../util/constants';
 
 export async function canAccessMandataris(id: string) {
   const sparql = `
@@ -92,11 +94,11 @@ export async function getDestinationGraphLinkedMandataris(
 
       GRAPH ?g {
         ?currentBestuurseenheid besluit:werkingsgebied ?werkingsgebied ;
-          besluit:classificatie ?currentClassifiactie .
+          besluit:classificatie ?currentClassificatie .
         ?linkedBestuurseenheid besluit:werkingsgebied ?werkingsgebied ;
           besluit:classificatie ?linkedClassificatie .
       }
-      VALUES (?currentClassificate ?linkedClassificatie) {
+      VALUES (?currentClassificatie ?linkedClassificatie) {
         ${valueBindings}
       }
     }
@@ -298,7 +300,7 @@ export async function getFractieOfMandatarisInGraph(
           org:hasMembership ?lidmaatschap .
         ?lidmaatschap org:organisation ?fractie .
         ?fractie regorg:legalName ?fractieNaam ;
-          ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Samenwerkingsverband>
+          ext:isFractietype ${sparqlEscapeUri(FRACTIE_TYPE.SAMENWERKING)}
       }
 
       GRAPH ${sparqlEscapeUri(graph)} {
@@ -335,7 +337,7 @@ export async function copyOnafhankelijkeFractieOfMandataris(
       GRAPH ${sparqlEscapeUri(graph)} {
         ${sparqlEscapeUri(fractieUri)} a mandaat:Fractie ;
           mu:uuid ${sparqlEscapeString(fractieUuid)} ;
-          ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk> ;
+          ext:isFractietype ${sparqlEscapeUri(FRACTIE_TYPE.ONAFHANKELIJK)} ;
           regorg:legalName "Onafhankelijk" ;
           org:memberOf ?linkedBestuursorgaanIT ;
           org:linkedTo ?linkedBestuurseenheid .
@@ -454,6 +456,7 @@ export async function createNewLinkedMandataris(
     newMandatarisUuid: sparqlEscapeString(newMandatarisUuid),
     newMandataris: sparqlEscapeUri(newMandatarisUri),
     graph: sparqlEscapeUri(graph),
+    draftPublication: sparqlEscapeUri(PUBLICATION_STATUS.DRAFT),
   };
   let fractieTriples = '';
   if (fractieUri) {
@@ -484,7 +487,7 @@ export async function createNewLinkedMandataris(
         ${escaped.newMandataris} a mandaat:Mandataris ;
           mu:uuid ${escaped.newMandatarisUuid} ;
           org:holds ?linkedMandaat ;
-          lmb:hasPublicationStatus <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/588ce330-4abb-4448-9776-a17d9305df07> ;
+          lmb:hasPublicationStatus ${escaped.draftPublication} ;
           ?mandatarisp ?mandatariso .
         ${fractieTriples}
       }
@@ -632,7 +635,7 @@ export async function linkInstances(instance1: string, instance2: string) {
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
     INSERT {
-      GRAPH <http://mu.semte.ch/graphs/linkedInstances> {
+      GRAPH ${sparqlEscapeUri(GRAPH.LINKED_INSTANCES)} {
         ?i1 ext:linked ?i2 .
       }
     }
@@ -655,7 +658,7 @@ export async function unlinkInstance(instance: string) {
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
     DELETE {
-      GRAPH <http://mu.semte.ch/graphs/linkedInstances> {
+      GRAPH ${sparqlEscapeUri(GRAPH.LINKED_INSTANCES)} {
         ?i1 ext:linked ?i2 .
         ?i2 ext:linked ?i1 .
       }
@@ -664,7 +667,7 @@ export async function unlinkInstance(instance: string) {
       GRAPH ?g {
         ?i1 mu:uuid ${sparqlEscapeString(instance)} .
       }
-      GRAPH <http://mu.semte.ch/graphs/linkedInstances> {
+      GRAPH ${sparqlEscapeUri(GRAPH.LINKED_INSTANCES)} {
         {
           ?i1 ext:linked ?i2 .
         }
@@ -685,7 +688,7 @@ export async function findLinkedInstance(instance1: string) {
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
     SELECT DISTINCT ?i2Uri ?i2Id WHERE {
-      GRAPH <http://mu.semte.ch/graphs/linkedInstances> {
+      GRAPH ${sparqlEscapeUri(GRAPH.LINKED_INSTANCES)} {
         { ?i1 ext:linked ?i2Uri . } UNION { ?i2Uri ext:linked ?i1 . }
       }
       GRAPH ?g {

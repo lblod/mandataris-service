@@ -1,6 +1,8 @@
 import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
 import { sparqlEscapeUri } from 'mu';
+
 import { MandatarisBesluitLookup, Term, Triple } from '../types';
+
 import {
   createNotification,
   getMandatarisNotificationGraph,
@@ -10,6 +12,7 @@ import {
   getBooleanSparqlResult,
   getSparqlResults,
 } from '../util/sparql-result';
+import { GRAPH } from '../util/constants';
 
 export const BESLUIT_STAGING_GRAPH =
   process.env.BESLUIT_STAGING_GRAPH ||
@@ -160,9 +163,11 @@ export async function checkIfMandatarisExists(mandatarisUri) {
   const safeMandatarisUri = sparqlEscapeUri(mandatarisUri);
   const query = `
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+
     ASK {
       GRAPH ?g {
-        ${safeMandatarisUri} a <http://data.vlaanderen.be/ns/mandaat#Mandataris> .
+        ${safeMandatarisUri} a mandaat:Mandataris .
       }
       ?g ext:ownedBy ?bestuurseenheid.
     }
@@ -376,7 +381,7 @@ export async function copyPersonToGraph(personUri: string, graph: string) {
       }
     }
     ?g ext:ownedBy ?bestuurseenheid.
-    FILTER (?g = <http://mu.semte.ch/graphs/public> || BOUND(?bestuurseenheid))
+    FILTER (?g = ${sparqlEscapeUri(GRAPH.PUBLIC)} || BOUND(?bestuurseenheid))
   }`;
   await updateSudo(query);
 }
@@ -400,7 +405,7 @@ export async function copySimpleInstanceToGraph(
       ${safeInstanceUri} ?p ?o .
     }
     ?g ext:ownedBy ?bestuurseenheid.
-    FILTER (?g = <http://mu.semte.ch/graphs/public> || BOUND(?bestuurseenheid))
+    FILTER (?g = ${sparqlEscapeUri(GRAPH.PUBLIC)} || BOUND(?bestuurseenheid))
   }`;
   await updateSudo(query);
 }

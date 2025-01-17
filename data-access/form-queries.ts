@@ -2,6 +2,9 @@ import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
 import { sparqlEscapeUri, sparqlEscapeDateTime, sparqlEscapeString } from 'mu';
 import { v4 as uuid } from 'uuid';
 import { findFirstSparqlResult } from '../util/sparql-result';
+import { GRAPH } from '../util/constants';
+
+const FORM_HISTORY_TYPE_URI = 'http://mu.semte.ch/vocabularies/ext/FormHistory';
 
 export const fetchUserIdFromSession = async (sessionUri: string) => {
   const queryResult = await querySudo(`
@@ -24,7 +27,9 @@ export const saveHistoryItem = async (
   creatorUri: string,
   description?: string,
 ) => {
-  const historyGraph = `<http://mu.semte.ch/graphs/formHistory/${uuid()}>`;
+  const historyGraph = sparqlEscapeUri(
+    `<http://mu.semte.ch/graphs/formHistory/${uuid()}>`,
+  );
 
   let descriptionInsert = '';
   if (description && description.trim().length > 0) {
@@ -36,8 +41,8 @@ export const saveHistoryItem = async (
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
     INSERT {
-      GRAPH <http://mu.semte.ch/graphs/formHistory> {
-        ${historyGraph} a <http://mu.semte.ch/vocabularies/ext/FormHistory> ;
+      GRAPH ${sparqlEscapeUri(GRAPH.FORM_HISTORY)} {
+        ${historyGraph} a ${sparqlEscapeUri(FORM_HISTORY_TYPE_URI)} ;
           dct:isVersionOf ${sparqlEscapeUri(instanceUri)} ;
           dct:issued ${sparqlEscapeDateTime(new Date())} ;
           dct:creator ${sparqlEscapeUri(creatorUri)} ${descriptionInsert}.

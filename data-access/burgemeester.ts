@@ -1,16 +1,22 @@
 import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
 import { sparqlEscapeUri, sparqlEscapeString, sparqlEscapeDateTime } from 'mu';
 import { v4 as uuidv4 } from 'uuid';
-import { HttpError } from '../util/http-error';
+
+import {
+  copyFromPreviousMandataris,
+  endExistingMandataris,
+} from './mandataris';
 import { storeFile } from './file';
+import { HttpError } from '../util/http-error';
 import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
 } from '../util/sparql-result';
 import {
-  copyFromPreviousMandataris,
-  endExistingMandataris,
-} from './mandataris';
+  CLASSIFICATIE_CODE,
+  FUNCTIE_CODE,
+  MANDATARIS_STATUS,
+} from '../util/constants';
 
 export async function isBestuurseenheidDistrict(
   bestuurseenheidUri: string,
@@ -22,10 +28,7 @@ export async function isBestuurseenheidDistrict(
     ASK {
       GRAPH ?g {
         ${sparqlEscapeUri(bestuurseenheidUri)} a besluit:Bestuurseenheid ;
-          besluit:classificatie ?classificatie.
-        VALUES ?classificatie {
-          <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/5ab0e9b8a3b2ca7c5e000003>
-        }
+          besluit:classificatie ${sparqlEscapeUri(CLASSIFICATIE_CODE.DISTRICT)}.
       }
     }
   `;
@@ -38,6 +41,13 @@ export const findBurgemeesterMandates = async (
   bestuurseenheidUri: string,
   date: Date,
 ) => {
+  const e = {
+    burgemeesterF: sparqlEscapeUri(FUNCTIE_CODE.BURGEMEESTER),
+    burgemeesterC: sparqlEscapeUri(CLASSIFICATIE_CODE.BURGEMEESTER),
+    aangewezenBurgemeesterF: sparqlEscapeUri(
+      FUNCTIE_CODE.AANGEWEZEN_BURGEMEESTER,
+    ),
+  };
   const sparql = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
@@ -51,11 +61,7 @@ export const findBurgemeesterMandates = async (
         ^besluit:bestuurt ?bestuursOrgaan .
       VALUES ?bestuurseenheid { ${sparqlEscapeUri(bestuurseenheidUri)} }
       GRAPH ?orgGraph {
-        ?bestuursOrgaan besluit:classificatie ?classificatie .
-        VALUES ?classificatie {
-          # bestuursorgaan burgemeester
-          <http://data.vlaanderen.be/id/concept/BestuursorgaanClassificatieCode/4955bd72cd0e4eb895fdbfab08da0284>
-        }
+        ?bestuursOrgaan besluit:classificatie ${e.burgemeesterC} .
       }
       ?orgGraph ext:ownedBy ?owningEenheid.
       ?bestuursOrgaanIt mandaat:isTijdspecialisatieVan ?bestuursOrgaan .
@@ -63,8 +69,8 @@ export const findBurgemeesterMandates = async (
       OPTIONAL { ?bestuursOrgaanIt mandaat:bindingEinde ?einde }
       ?bestuursOrgaanIt org:hasPost ?burgemeesterMandaat .
       ?bestuursOrgaanIt org:hasPost ?aangewezenBurgemeesterMandaat .
-      ?burgemeesterMandaat org:role <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000013> .
-      ?aangewezenBurgemeesterMandaat org:role <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/7b038cc40bba10bec833ecfe6f15bc7a>.
+      ?burgemeesterMandaat org:role ${e.burgemeesterF} .
+      ?aangewezenBurgemeesterMandaat org:role ${e.aangewezenBurgemeesterF}.
       FILTER(
         ?start <= ${sparqlEscapeDateTime(date)} &&
         (!BOUND(?einde) || ?einde > ${sparqlEscapeDateTime(date)})
@@ -176,7 +182,7 @@ export const createBurgemeesterFromScratch = async (
           org:holds ${sparqlEscapeUri(burgemeesterMandaatUri)} ;
           mandaat:isBestuurlijkeAliasVan ${sparqlEscapeUri(burgemeesterUri)} ;
           mandaat:start ${sparqlEscapeDateTime(date)} ;
-          mandaat:status <http://data.vlaanderen.be/id/concept/MandatarisStatusCode/21063a5b-912c-4241-841c-cc7fb3c73e75> ;
+          mandaat:status ${sparqlEscapeUri(MANDATARIS_STATUS.EFFECTIEF)} ;
           lmb:hasPublicationStatus mps:9d8fd14d-95d0-4f5e-b3a5-a56a126227b6 .
         ${escapedBenoemingUri} ext:approves ${formattedNewMandatarisUri} .
       }

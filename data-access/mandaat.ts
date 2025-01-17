@@ -1,7 +1,19 @@
-import { query, sparqlEscapeString, sparqlEscapeDateTime } from 'mu';
+import {
+  query,
+  sparqlEscapeString,
+  sparqlEscapeDateTime,
+  sparqlEscapeUri,
+} from 'mu';
+
+import { MANDATARIS_STATUS } from '../util/constants';
 
 export const getNbActiveMandatarissen = async (mandaatId: string) => {
   const now = sparqlEscapeDateTime(new Date());
+  const escapedStatus = [
+    sparqlEscapeUri(MANDATARIS_STATUS.EFFECTIEF),
+    sparqlEscapeUri(MANDATARIS_STATUS.VERHINDERD),
+    sparqlEscapeUri(MANDATARIS_STATUS.TITELVOEREND),
+  ];
   const q = `
   PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
   PREFIX org: <http://www.w3.org/ns/org#>
@@ -30,7 +42,7 @@ export const getNbActiveMandatarissen = async (mandaatId: string) => {
     BIND(IF(?actualOrgaanEinde <= ${now}, ?actualOrgaanEinde - "P1D"^^xsd:duration, ${now}) AS ?testEinde).
     FILTER(!BOUND(?mandatarisEinde) || ?mandatarisEinde >= ?testEinde).
     # Filter mandatarissen that are either effectief, verhinderd or titelvoerend (or have no status)
-    FILTER(!BOUND(?status) || ?status IN (<http://data.vlaanderen.be/id/concept/MandatarisStatusCode/21063a5b-912c-4241-841c-cc7fb3c73e75>, <http://data.vlaanderen.be/id/concept/MandatarisStatusCode/c301248f-0199-45ca-b3e5-4c596731d5fe>, <http://data.vlaanderen.be/id/concept/MandatarisStatusCode/aacb3fed-b51d-4e0b-a411-f3fa641da1b3>)).
+    FILTER(!BOUND(?status) || ?status IN ( ${escapedStatus.join(', ')} )).
 
     ?g ext:ownedBy ?owningEenheid.
   }

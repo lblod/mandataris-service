@@ -7,10 +7,12 @@ import {
   update,
 } from 'mu';
 import { v4 as uuidv4 } from 'uuid';
+
 import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
 } from '../util/sparql-result';
+import { FRACTIE_TYPE, GRAPH } from '../util/constants';
 
 // note since we use the regular query, not sudo queries, be sure to log in when using this endpoint. E.g. use the vendor login
 
@@ -70,7 +72,7 @@ export const createPerson = async (
   PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 
   INSERT DATA {
-    GRAPH <http://mu.semte.ch/graphs/application> {
+    GRAPH ${sparqlEscapeUri(GRAPH.APPLICATION)} {
       ${sparqlEscapeUri(uri)} a person:Person;
           mu:uuid ${sparqlEscapeString(uuid)};
           persoon:gebruikteVoornaam ${sparqlEscapeString(fName)};
@@ -157,7 +159,7 @@ export async function isOnafhankelijkInPeriod(
           extlmb:currentFracties ?fractie .
         ?bestuursorgaan lmb:heeftBestuursperiode ?bestuursperiode .
         ?fractie org:memberOf ?bestuursorgaan ;
-          ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk> .
+          ext:isFractietype ${sparqlEscapeUri(FRACTIE_TYPE.ONAFHANKELIJK)} .
       }
       ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)} .
     }

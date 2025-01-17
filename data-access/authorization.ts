@@ -1,7 +1,13 @@
+import { Request } from 'express';
+
 import { querySudo } from '@lblod/mu-auth-sudo';
 import { sparqlEscapeUri, sparqlEscapeString } from 'mu';
-import { Request } from 'express';
+
 import { HttpError } from '../util/http-error';
+
+const VENDOR_KALLIOPE_URI = 'http://data.lblod.info/vendors/kalliope';
+const AUTOMATIC_SUBMISSION_GRAPH_URI =
+  'http://mu.semte.ch/graphs/automatic-submission';
 
 export const checkAuthorization = async (req: Request) => {
   const authorization = req.get('authorization');
@@ -22,9 +28,9 @@ export const checkAuthorization = async (req: Request) => {
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     SELECT ?vendor WHERE {
-      GRAPH <http://mu.semte.ch/graphs/automatic-submission> {
+      GRAPH ${sparqlEscapeUri(AUTOMATIC_SUBMISSION_GRAPH_URI)} {
         ?vendor a foaf:Agent, ext:Vendor ;
-        muAccount:canActOnBehalfOf <http://data.lblod.info/vendors/kalliope> ;
+        muAccount:canActOnBehalfOf ${sparqlEscapeUri(VENDOR_KALLIOPE_URI)} ;
         muAccount:key ${sparqlEscapeString(password)} .
         VALUES ?vendor {
           ${sparqlEscapeUri(reconstructedUsername)}

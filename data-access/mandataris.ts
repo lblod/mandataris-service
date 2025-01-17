@@ -12,6 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { CSVRow, CsvUploadState, MandateHit, TermProperty } from '../types';
 
 import {
+  FRACTIE_TYPE,
   MANDATARIS_STATUS,
   PUBLICATION_STATUS,
   STATUS_CODE,
@@ -40,6 +41,7 @@ export const mandataris = {
 };
 
 async function isOnafhankelijk(mandatarisId: string): Promise<boolean> {
+  const fractieTypeOnafhankelijk = sparqlEscapeUri(FRACTIE_TYPE.ONAFHANKELIJK);
   const getQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -51,7 +53,7 @@ async function isOnafhankelijk(mandatarisId: string): Promise<boolean> {
         mu:uuid ${sparqlEscapeString(mandatarisId)} ;
         org:hasMembership ?lidmaatschap .
         ?lidmaatschap org:organisation ?fractie .
-        ?fractie ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk> .
+        ?fractie ext:isFractietype ${fractieTypeOnafhankelijk} .
     }
   `;
 
@@ -110,6 +112,7 @@ export async function findOnafhankelijkeFractieForPerson(
   personUri: string,
   mandateUris: string[],
 ) {
+  const fractieTypeOnafhankelijk = sparqlEscapeUri(FRACTIE_TYPE.ONAFHANKELIJK);
   const getQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
@@ -117,7 +120,7 @@ export async function findOnafhankelijkeFractieForPerson(
 
     SELECT DISTINCT ?fractie WHERE {
       ?fractie a mandaat:Fractie .
-      ?fractie ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk> .
+      ?fractie ext:isFractietype ${fractieTypeOnafhankelijk} .
       ?fractie org:memberOf ?bestuursorgaan.
 
       ?bestuursorgaan org:hasPost ?mandate.
@@ -152,7 +155,7 @@ export async function createOnafhankelijkeFractie(mandateUris: string[]) {
     INSERT {
       GRAPH ?g {
         ${sparqlEscapeUri(uri)} a mandaat:Fractie ;
-          ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk> ;
+          ext:isFractietype ${sparqlEscapeUri(FRACTIE_TYPE.ONAFHANKELIJK)} ;
           regorg:legalName "Onafhankelijk" ;
           mu:uuid ${sparqlEscapeString(uuid)} ;
           org:linkedTo ?bestuurseenheid ;
@@ -343,7 +346,7 @@ export const createMandatarisInstance = async (
         mandaat:einde ${sparqlEscapeDateTime(mandatarisEnd)} ;
         org:holds ${sparqlEscapeUri(mandate.mandateUri)} ;
         # effectief
-        mandaat:status <http://data.vlaanderen.be/id/concept/MandatarisStatusCode/21063a5b-912c-4241-841c-cc7fb3c73e75> ;
+        mandaat:status ${sparqlEscapeUri(MANDATARIS_STATUS.EFFECTIEF)} ;
         # bekrachtigd
         lmb:hasPublicationStatus mps:9d8fd14d-95d0-4f5e-b3a5-a56a126227b6 .
 

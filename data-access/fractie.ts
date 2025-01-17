@@ -119,7 +119,7 @@ async function removeFractieWhenNoLidmaatschap(
         lmb:heeftBestuursperiode ?bestuursperiode.
       ?fractie a mandaat:Fractie;
         org:memberOf ?bestuursorgaan;
-        ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk>.
+        ext:isFractietype ${sparqlEscapeUri(FRACTIE_TYPE.ONAFHANKELIJK)} .
 
       FILTER NOT EXISTS {
         ?lidmaatschap a org:Membership;

@@ -1,5 +1,6 @@
 import { sparqlEscapeString, sparqlEscapeUri, query } from 'mu';
 import { v4 as uuidv4 } from 'uuid';
+import { GRAPH, SCHEME } from '../util/constants';
 
 export const ensureBeleidsdomeinen = async (beleidsdomeinen: string[]) => {
   const existing = await getExistingBeleidsdomeinen(beleidsdomeinen);
@@ -15,7 +16,7 @@ const getExistingBeleidsdomeinen = async (beleidsdomeinen: string[]) => {
   SELECT ?uri ?label WHERE {
     ?uri a skos:Concept;
         skos:prefLabel ?label;
-        skos:inScheme <http://data.vlaanderen.be/id/conceptscheme/BeleidsdomeinCode>.
+        skos:inScheme ${sparqlEscapeUri(SCHEME.BELEIDSDOMEIN_CODE)}.
     VALUES ?label {
       ${beleidsdomeinen.map(sparqlEscapeString).join('\n')}
     }
@@ -44,8 +45,8 @@ const createMissingBeleidsdomeinen = async (beleidsdomeinen: string[]) => {
     return `${sparqlEscapeUri(concept.uri)} a skos:Concept;
       mu:uuid ${sparqlEscapeString(concept.uuid)};
       skos:prefLabel ${sparqlEscapeString(concept.name)};
-      skos:inScheme <http://data.vlaanderen.be/id/conceptscheme/BeleidsdomeinCode> ;
-      skos:topConceptOf <http://data.vlaanderen.be/id/conceptscheme/BeleidsdomeinCode> .`;
+      skos:inScheme ${sparqlEscapeUri(SCHEME.BELEIDSDOMEIN_CODE)} ;
+      skos:topConceptOf ${sparqlEscapeUri(SCHEME.BELEIDSDOMEIN_CODE)} .`;
   });
 
   const q = `
@@ -53,7 +54,7 @@ const createMissingBeleidsdomeinen = async (beleidsdomeinen: string[]) => {
   PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
   INSERT DATA {
-    GRAPH <http://mu.semte.ch/graphs/application> {
+    GRAPH ${sparqlEscapeUri(GRAPH.APPLICATION)} {
       ${inserts.join('\n')}
     }
   }`;
