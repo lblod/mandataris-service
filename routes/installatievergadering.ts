@@ -375,9 +375,8 @@ async function moveMandatarisesWithoutFractions(
 async function movePersons(installatievergaderingId: string) {
   const escapedId = sparqlEscapeString(installatievergaderingId);
   const sparql = `
-
-  PREFIX mandaat:     <http://data.vlaanderen.be/ns/mandaat#>
-  PREFIX besluit:     <http://data.vlaanderen.be/ns/besluit#>
+  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+  PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
   PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
   PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
   PREFIX bestuurseenheidscode: <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/>
@@ -425,9 +424,8 @@ async function movePersons(installatievergaderingId: string) {
 async function setMandatarisenToEffectief(installatievergaderingId) {
   const escapedId = sparqlEscapeString(installatievergaderingId);
   const sparql = `
-
-  PREFIX mandaat:     <http://data.vlaanderen.be/ns/mandaat#>
-  PREFIX besluit:     <http://data.vlaanderen.be/ns/besluit#>
+  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+  PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
   PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
   PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
   PREFIX bestuurseenheidscode: <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/>
@@ -712,7 +710,7 @@ function generateNewInstanceIdsAndLinks(triples: SimpleTriple[]) {
 }
 
 async function clearMandatarisInstancesFromOrgaan(orgaanIt: string) {
-  const now = new Date();
+  const now = sparqlEscapeDateTime(new Date());
   const sparql = `
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -725,12 +723,12 @@ async function clearMandatarisInstancesFromOrgaan(orgaanIt: string) {
     }
     INSERT {
       ?mandataris a astreams:Tombstone;
-        astreams:deleted ${sparqlEscapeDateTime(now)} ;
-        dct:modified ${sparqlEscapeDateTime(now)} ;
+        astreams:deleted ${now} ;
+        dct:modified ${now} ;
         astreams:formerType mandaat:Mandataris .
       ?membership a astreams:Tombstone;
-        astreams:deleted ${sparqlEscapeDateTime(now)} ;
-        dct:modified ${sparqlEscapeDateTime(now)} ;
+        astreams:deleted ${now} ;
+        dct:modified ${now} ;
         astreams:formerType org:Membership .
     }
      WHERE {
@@ -753,7 +751,6 @@ async function clearMandatarisInstancesFromOrgaan(orgaanIt: string) {
 async function setLinkedIVToBehandeld(installatievergaderingId: string) {
   const escapedId = sparqlEscapeString(installatievergaderingId);
   const sparql = `
-
   PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
   PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
   PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
