@@ -204,6 +204,16 @@ async function moveMandatarises(installatievergaderingId: string) {
 }
 
 async function moveMandatarisMemberships(installatievergaderingId: string) {
+  const fractionMapping = await getFractionMapping(installatievergaderingId);
+  const membershipUris = await getMembershipUris(installatievergaderingId);
+  const fractionMappingValues = Object.keys(fractionMapping)
+    .map((from) => {
+      return `(${sparqlEscapeUri(from)} ${sparqlEscapeUri(
+        fractionMapping[from],
+      )})`;
+    })
+    .join('\n');
+
   const escapedId = sparqlEscapeString(installatievergaderingId);
   const sparql = `
     PREFIX mandaat:	<http://data.vlaanderen.be/ns/mandaat#>
@@ -219,9 +229,88 @@ async function moveMandatarisMemberships(installatievergaderingId: string) {
     INSERT {
       GRAPH ?target {
         ?membership ?mp ?mo.
-        ?membership org:organisation ?realFractie.
+        ?membership org:organisation ?fractieTo.
       }
     } WHERE {
+      VALUES ?membership {
+        ${membershipUris.map((uri) => sparqlEscapeUri(uri)).join('\n')}
+      }
+      VALUES ( ?fractieFrom ?fractieTo ) {
+        ${fractionMappingValues}
+      }
+      ?origin ext:ownedBy ?eenheid.
+      ?target ext:ownedBy ?ocmw.
+      ?ocmw ext:isOCMWVoor ?gemeente.
+      GRAPH ?origin {
+        ?installatieVergadering mu:uuid ${escapedId} .
+        ?membership ?mp ?mo.
+        FILTER(?mp != org:organisation)
+        ?membership org:organisation ?fractieFrom.
+      }
+      GRAPH ?target {
+        ?realOrgT mandaat:isTijdspecialisatieVan ?thing.
+        ?fractieTo org:memberOf ?realOrgT.
+      }
+    }`;
+  await updateSudo(sparql);
+}
+
+async function getFractionMapping(installatievergaderingId: string){
+  const escapedId = sparqlEscapeString(installatievergaderingId);
+  const sparql = `
+    PREFIX mandaat:	<http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX besluit:	<http://data.vlaanderen.be/ns/besluit#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+    PREFIX bestuurseenheidscode: <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX regorg: <https://www.w3.org/ns/regorg#>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+
+    SELECT ?fractionFrom ?fractionTo WHERE {
+      GRAPH ?origin {
+        ?installatieVergadering lmb:heeftBestuursperiode ?period.
+        ?installatieVergadering mu:uuid ${escapedId} .
+        ?installatieVergadering lmb:heeftBestuurseenheid ?eenheid .
+        ?bestuursorgaanT mandaat:isTijdspecialisatieVan / ext:isTijdelijkOrgaanIn ?eenheid .
+        ?bestuursorgaanT ext:origineleBestuursorgaan ?realOrgT.
+        ?bestuursorgaanT lmb:heeftBestuursperiode ?period.
+        ?bestuursorgaanT org:hasPost / ^org:holds / org:hasMembership / org:organisation ?fractionFrom.
+        ?fractionFrom regorg:legalName ?name.
+      }
+      GRAPH ?target {
+        ?realOrgT mandaat:isTijdspecialisatieVan ?thing.
+        ?fractionTo org:memberOf ?realOrgT.
+        ?fractionTo regorg:legalName ?name.
+      }
+      ?origin ext:ownedBy ?eenheid.
+      ?target ext:ownedBy ?ocmw.
+      ?ocmw ext:isOCMWVoor ?gemeente.
+    }`;
+  const result = await querySudo(sparql);
+  const mapping = {};
+  result.results.bindings.forEach((binding) => {
+    mapping[binding.fractionFrom.value] = binding.fractionTo.value;
+  });
+  return mapping;
+}
+
+async function getMembershipUris(installatievergaderingId: string){
+  const escapedId = sparqlEscapeString(installatievergaderingId);
+  const sparql = `
+    PREFIX mandaat:	<http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX besluit:	<http://data.vlaanderen.be/ns/besluit#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+    PREFIX bestuurseenheidscode: <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX regorg: <https://www.w3.org/ns/regorg#>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+
+    SELECT ?membership WHERE {
+      ?origin ext:ownedBy ?eenheid.
       GRAPH ?origin {
         ?installatieVergadering lmb:heeftBestuursperiode ?period.
         ?installatieVergadering mu:uuid ${escapedId} .
@@ -232,21 +321,11 @@ async function moveMandatarisMemberships(installatievergaderingId: string) {
         ?bestuursorgaanT org:hasPost ?mandaat.
         ?mandataris org:holds ?mandaat.
         ?mandataris org:hasMembership ?membership.
-        ?membership ?mp ?mo.
-        FILTER(?mp != org:organisation)
-        ?membership org:organisation ?fractie.
-        ?fractie regorg:legalName ?name.
       }
-      GRAPH ?target {
-        ?realOrgT mandaat:isTijdspecialisatieVan ?thing.
-        ?realFractie org:memberOf ?realOrgT.
-        ?realFractie regorg:legalName ?name.
-      }
-      FILTER(?target != ?origin)
-      ?origin ext:ownedBy ?owningEenheid.
-      ?target ext:ownedBy ?owningEenheid2.
     }`;
-  await updateSudo(sparql);
+
+  const result = await querySudo(sparql);
+  return result.results.bindings.map((binding) => binding.membership.value);
 }
 
 async function moveMandatarisesWithoutFractions(

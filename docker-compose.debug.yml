@@ -20,7 +20,7 @@ services:
       - ./:/app
       # ignore app/dist because this is where we map the built files to, otherwise we get an infinite loop of creating files (on mac)
       - /app/dist
-      - ./dist:/build/
+      - ./dist:/usr/src/dist
     networks:
       - debug
 
