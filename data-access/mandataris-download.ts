@@ -46,7 +46,7 @@ async function getUrisForFilters(filters) {
       FILTER (
         ?safeEinde <= ?safeEindeBestuursorgaan &&
         ?safeEinde >= ?startBestuursorgaan &&
-        ?safeEinde >= ${escapedTodaysDate}
+        ?safeEinde > ${escapedTodaysDate}
       )
     `;
   }

@@ -11,6 +11,7 @@ import {
   copyFromPreviousMandataris,
   endExistingMandataris,
 } from './mandataris';
+import moment from 'moment';
 
 export async function isBestuurseenheidDistrict(
   bestuurseenheidUri: string,
@@ -132,7 +133,13 @@ export const markCurrentBurgemeesterAsRejected = async (
     );
   }
 
-  await endExistingMandataris(orgGraph, existingMandatarisUri, date, benoeming);
+  const endDate = moment(date).add(1, 'days').startOf('day').toDate();
+  await endExistingMandataris(
+    orgGraph,
+    existingMandatarisUri,
+    endDate,
+    benoeming,
+  );
 
   // TODO: check use case if mandataris is waarnemend -> should something happen to the verhindering?
 
@@ -202,10 +209,11 @@ export const benoemBurgemeester = async (
       burgemeesterMandaatUri,
     );
 
+    const endDate = moment(date).add(1, 'days').startOf('day').toDate();
     await endExistingMandataris(
       orgGraph,
       existingMandataris,
-      date,
+      endDate,
       benoemingUri,
     );
   } else {

@@ -36,6 +36,7 @@ import {
   VOORZITTER_RMW_CODE,
   VOORZITTER_VB_FUNCTIE_CODE,
 } from '../util/constants';
+import moment from 'moment';
 
 export const checkLinkedMandataris = async (req) => {
   const mandatarisId = req.params.id;
@@ -274,7 +275,7 @@ export const changeStateLinkedMandataris = async (req) => {
   await linkInstances(newMandatarisId, newLinkedMandataris.id);
 
   // End original linked mandatee
-  const endDate = new Date();
+  const endDate = moment().add(1, 'days').startOf('day').toDate();
   endExistingMandataris(destinationGraph, linkedMandataris.uri, endDate);
 };
 
