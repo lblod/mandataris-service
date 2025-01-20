@@ -255,7 +255,7 @@ async function moveMandatarisMemberships(installatievergaderingId: string) {
   await updateSudo(sparql);
 }
 
-async function getFractionMapping(installatievergaderingId: string){
+async function getFractionMapping(installatievergaderingId: string) {
   const escapedId = sparqlEscapeString(installatievergaderingId);
   const sparql = `
     PREFIX mandaat:	<http://data.vlaanderen.be/ns/mandaat#>
@@ -296,7 +296,7 @@ async function getFractionMapping(installatievergaderingId: string){
   return mapping;
 }
 
-async function getMembershipUris(installatievergaderingId: string){
+async function getMembershipUris(installatievergaderingId: string) {
   const escapedId = sparqlEscapeString(installatievergaderingId);
   const sparql = `
     PREFIX mandaat:	<http://data.vlaanderen.be/ns/mandaat#>
