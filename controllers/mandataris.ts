@@ -235,6 +235,6 @@ async function setEndDateOfActiveMandatarissen(
   await saveBulkHistoryItem(
     activeMandatarisUris,
     userId,
-    'All person mandatarissen ended by user.',
+    `Mandatarissen voor persoon(${id}) beëindigd door gebruiker`,
   );
 }
