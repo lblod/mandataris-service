@@ -4,6 +4,9 @@ import { Request, Response } from 'express';
 
 import { STATUS_CODE } from '../util/constants';
 import { persoonUsecase, putPersonInRightGraph } from '../controllers/persoon';
+import { mandatarisUsecase } from '../controllers/mandataris';
+import { fetchUserIdFromSession } from '../data-access/form-queries';
+import { mandataris } from '../data-access/mandataris';
 
 export const personenRouter = Router();
 
@@ -29,13 +32,40 @@ personenRouter.get(
   },
 );
 
+personenRouter.get(
+  '/:id/has-active-mandates',
+  async (req: Request, res: Response) => {
+    try {
+      const actieveMandatarissen =
+        await mandataris.getActiveMandatarissenForPerson(req.params.id);
+
+      return res
+        .status(STATUS_CODE.OK)
+        .send({ isTrue: actieveMandatarissen.length > 0 });
+    } catch (error) {
+      const message =
+        error.message ??
+        `Something went wrong while checking if person with id: ${req.params.id} has active mandates.`;
+      const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
+      return res.status(statusCode).send({ message });
+    }
+  },
+);
+
 personenRouter.put(
   '/:id/end-active-mandates',
   async (req: Request, res: Response) => {
     const personId = req.params.id;
 
     try {
-      await persoonUsecase.setEndDateOfActiveMandatarissen(personId);
+      const userId = await fetchUserIdFromSession(req.get('mu-session-id'));
+      if (!userId) {
+        return res
+          .status(STATUS_CODE.FORBIDDEN)
+          .send({ message: 'Not authenticated' });
+      }
+      await mandatarisUsecase.setEndDateOfActiveMandatarissen(personId, userId);
+
       return res.status(STATUS_CODE.OK).send({});
     } catch (error) {
       const message =

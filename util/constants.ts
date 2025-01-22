@@ -18,6 +18,7 @@ export enum STATUS_CODE {
   CREATED = 201,
   INTERNAL_SERVER_ERROR = 500,
   BAD_REQUEST = 400,
+  FORBIDDEN = 403,
 }
 export enum BENOEMING_STATUS {
   BENOEMD = 'benoemd',
