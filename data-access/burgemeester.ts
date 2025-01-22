@@ -11,7 +11,7 @@ import {
   copyFromPreviousMandataris,
   endExistingMandataris,
 } from './mandataris';
-import moment from 'moment';
+import { endOfDay } from '../util/date-manipulation';
 
 export async function isBestuurseenheidDistrict(
   bestuurseenheidUri: string,
@@ -133,11 +133,10 @@ export const markCurrentBurgemeesterAsRejected = async (
     );
   }
 
-  const endDate = moment(date).add(1, 'days').startOf('day').toDate();
   await endExistingMandataris(
     orgGraph,
     existingMandatarisUri,
-    endDate,
+    endOfDay(date),
     benoeming,
   );
 
@@ -209,11 +208,10 @@ export const benoemBurgemeester = async (
       burgemeesterMandaatUri,
     );
 
-    const endDate = moment(date).add(1, 'days').startOf('day').toDate();
     await endExistingMandataris(
       orgGraph,
       existingMandataris,
-      endDate,
+      endOfDay(date),
       benoemingUri,
     );
   } else {
