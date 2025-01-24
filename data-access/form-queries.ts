@@ -24,7 +24,9 @@ export const saveHistoryItem = async (
   creatorUri: string,
   description?: string,
 ) => {
-  const historyGraph = `<http://mu.semte.ch/graphs/formHistory/${uuid()}>`;
+  const historyGraphUri = sparqlEscapeUri(
+    `http://mu.semte.ch/graphs/formHistory/${uuid()}`,
+  );
 
   let descriptionInsert = '';
   if (description && description.trim().length > 0) {
@@ -37,12 +39,12 @@ export const saveHistoryItem = async (
 
     INSERT {
       GRAPH <http://mu.semte.ch/graphs/formHistory> {
-        ${historyGraph} a <http://mu.semte.ch/vocabularies/ext/FormHistory> ;
+        ${historyGraphUri} a <http://mu.semte.ch/vocabularies/ext/FormHistory> ;
           dct:isVersionOf ${sparqlEscapeUri(instanceUri)} ;
           dct:issued ${sparqlEscapeDateTime(new Date())} ;
           dct:creator ${sparqlEscapeUri(creatorUri)} ${descriptionInsert}.
       }
-      GRAPH ${historyGraph} {
+      GRAPH ${historyGraphUri} {
         ${sparqlEscapeUri(instanceUri)} ?p ?o.
       }
     }

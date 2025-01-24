@@ -51,7 +51,7 @@ export async function createNotification({
     PREFIX schema: <http://schema.org/>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     INSERT DATA {
-      GRAPH <${graph}> {
+      GRAPH ${sparqlEscapeUri(graph)} {
         ${uri} a ext:SystemNotification ;
           mu:uuid ${sparqlEscapeString(id)} ;
           dct:subject ${sparqlEscapeString(title)} ;

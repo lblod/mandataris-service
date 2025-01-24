@@ -132,7 +132,7 @@ async function removeFractieWhenNoLidmaatschap(
   const fractieUris = results.map((f) => f.fractie?.value).filter((f) => f);
   const escaped = fractieUris.map((uri) => sparqlEscapeUri(uri)).join(' ');
   if (results.length >= 1) {
-    const now = new Date();
+    const now = sparqlEscapeDateTime(new Date());
     const deleteFractie = `
       PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
       PREFIX astreams: <http://www.w3.org/ns/activitystreams#>
@@ -143,8 +143,8 @@ async function removeFractieWhenNoLidmaatschap(
       }
       INSERT {
         ?fractie a astreams:Tombstone ;
-          dct:modified ${sparqlEscapeDateTime(now)} ;
-          astreams:deleted ${sparqlEscapeDateTime(now)} ;
+          dct:modified ${now} ;
+          astreams:deleted ${now} ;
           astreams:formerType mandaat:Fractie .
       }
       WHERE {
