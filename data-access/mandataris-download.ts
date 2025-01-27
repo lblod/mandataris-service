@@ -32,21 +32,22 @@ async function getUrisForFilters(filters) {
   }
   if (filters.activeOnly) {
     const escapedTodaysDate = sparqlEscapeDateTime(new Date());
+    // the str() call is necessary because otherwise the comparison fails in virtuoso (datatype issue?)
     onlyActiveFilter = `
       OPTIONAL {
         ?mandataris mandaat:einde ?einde.
       }
-      ?bestuursorgaanInTijd mandaat:bindingStart ?startBestuursorgaan. 
+      ?bestuursorgaanInTijd mandaat:bindingStart ?startBestuursorgaan.
       OPTIONAL {
-        ?bestuursorgaanInTijd mandaat:bindingEinde ?eindeBestuursorgaan. 
+        ?bestuursorgaanInTijd mandaat:bindingEinde ?eindeBestuursorgaan.
       }
 
       BIND(IF(BOUND(?eindeBestuursorgaan), ?eindeBestuursorgaan, ${escapedTodaysDate}) AS ?safeEindeBestuursorgaan).
       BIND(IF(BOUND(?einde), ?einde, ${escapedTodaysDate}) AS ?safeEinde).
       FILTER (
-        ?safeEinde <= ?safeEindeBestuursorgaan &&
-        ?safeEinde >= ?startBestuursorgaan &&
-        ?safeEinde >= ${escapedTodaysDate}
+        STR(?safeEinde) <= STR(?safeEindeBestuursorgaan) &&
+        STR(?safeEinde) >= STR(?startBestuursorgaan) &&
+        STR(?safeEinde) >= STR(${escapedTodaysDate})
       )
     `;
   }
@@ -196,9 +197,9 @@ async function getPropertiesOfMandatarissen(
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     PREFIX regorg: <https://www.w3.org/ns/regorg#>
 
-    SELECT 
+    SELECT
       ?Voornaam
-      ?Naam 
+      ?Naam
       (?fractieLabel as ?Fractie)
       (?mandaatLabel as ?Mandaat)
       (?statusLabel as ?Status)
@@ -223,7 +224,7 @@ async function getPropertiesOfMandatarissen(
       ?bestuursfunctie skos:prefLabel ?mandaatLabel.
 
       ?bestuursorgaanInTijd org:hasPost ?mandaat.
-      ?bestuursorgaanInTijd mandaat:isTijdspecialisatieVan ?bestuursorgaan. 
+      ?bestuursorgaanInTijd mandaat:isTijdspecialisatieVan ?bestuursorgaan.
       ${bestuursorgaanInTijdFilter ?? ''}
       ?bestuursorgaan skos:prefLabel ?bestuursorgaanLabel.
 
@@ -233,11 +234,11 @@ async function getPropertiesOfMandatarissen(
         ?mandataris lmb:hasPublicationStatus ?publicatieStatusCode.
         ?publicatieStatusCode skos:prefLabel ?publicatieStatusLabel.
       }
-      
+
       OPTIONAL {
         ?mandataris mandaat:rangorde ?Rangorde.
       }
-    
+
       OPTIONAL {
         ?mandataris mandaat:beleidsdomein ?beleidsdomeinCode.
         ?beleidsdomeinCode skos:prefLabel ?beleidsdomeinLabel.
