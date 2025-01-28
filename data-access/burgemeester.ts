@@ -186,13 +186,27 @@ export const createBurgemeesterFromScratch = async (
 
 export const benoemBurgemeester = async (
   orgGraph: string,
-  burgemeesterUri: string,
+  burgemeesterPersoonUri: string,
   burgemeesterMandaatUri: string,
   date: Date,
   benoemingUri: string,
   existingMandataris: string | undefined | null,
 ) => {
   let newMandatarisUri;
+  const existingTrueBurgemeesterMandataris =
+    await getExistingBurgemeesterMandataris(
+      burgemeesterPersoonUri,
+      burgemeesterMandaatUri,
+      orgGraph,
+      date,
+    );
+  if (existingTrueBurgemeesterMandataris) {
+    newMandatarisUri = existingTrueBurgemeesterMandataris;
+    await bekrachtigExistingBurgemeester(
+      existingTrueBurgemeesterMandataris,
+      date,
+    );
+  }
   if (existingMandataris) {
     // we can copy over the existing values for the new burgemeester from the previous mandataris
     newMandatarisUri = await copyFromPreviousMandataris(
@@ -201,19 +215,21 @@ export const benoemBurgemeester = async (
       date,
       burgemeesterMandaatUri,
     );
-
-    await endExistingMandataris(
-      orgGraph,
-      existingMandataris,
-      date,
-      benoemingUri,
-    );
   } else {
     // we need to create a new mandataris from scratch
     newMandatarisUri = await createBurgemeesterFromScratch(
       orgGraph,
-      burgemeesterUri,
+      burgemeesterPersoonUri,
       burgemeesterMandaatUri,
+      date,
+      benoemingUri,
+    );
+  }
+
+  if (existingMandataris) {
+    await endExistingMandataris(
+      orgGraph,
+      existingMandataris,
       date,
       benoemingUri,
     );
@@ -228,3 +244,82 @@ export const benoemBurgemeester = async (
       }
     }`);
 };
+
+async function getExistingBurgemeesterMandataris(
+  burgemeesterPersoonUri: string,
+  burgemeesterMandaatUri: string,
+  orgGraph: string,
+  date: Date,
+) {
+  const safeBurgemeesterPersoon = sparqlEscapeUri(burgemeesterPersoonUri);
+  const selectQuery = `
+  SELECT ?s WHERE {
+    GRAPH ${sparqlEscapeUri(orgGraph)} {
+      VALUES ?mandaat {
+        ${sparqlEscapeUri(burgemeesterMandaatUri)}
+      }
+      ?s a <http://data.vlaanderen.be/ns/mandaat#Mandataris> .
+      ?s org:holds ?mandaat .
+      ?s mandaat:isBestuurlijkeAliasVan ${safeBurgemeesterPersoon} .
+      ?s mandaat:start ?start .
+      OPTIONAL { ?s mandaat:einde ?einde }
+      BIND(IF(BOUND(?einde), ?einde, "3000-01-01"^^xsd:dateTime) as ?safeEinde)
+      FILTER(
+        ?start <= ${sparqlEscapeDateTime(date)} &&
+        ?safeEinde > ${sparqlEscapeDateTime(date)}
+      )
+    }
+  } LIMIT 1
+  `;
+  const result = await querySudo(selectQuery);
+  if (result.results.bindings.length === 0) {
+    return null;
+  }
+  return result.results.bindings[0].s.value;
+}
+
+async function bekrachtigExistingBurgemeester(
+  existingTrueBurgemeesterMandatarisUri: string,
+  dateOfBekrachtiging: Date,
+) {
+  const updateQuery = `
+  PREFIX mps: <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/>
+  PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+  PREFIX dct: <http://purl.org/dc/terms/>
+  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+
+  DELETE {
+    GRAPH ?g {
+      ?s lmb:hasPublicationStatus ?oldStatus .
+      ?s dct:modified ?oldMod.
+      ?s mandaat:start ?oldStart.
+    }
+  }
+  INSERT {
+    GRAPH ?g {
+      ?s lmb:hasPublicationStatus mps:9d8fd14d-95d0-4f5e-b3a5-a56a126227b6 .
+      ?s dct:modified ?now.
+      ?s mandaat:start ${sparqlEscapeDateTime(dateOfBekrachtiging)}.
+    }
+  }
+  WHERE {
+    VALUES ?s {
+      ${sparqlEscapeUri(existingTrueBurgemeesterMandatarisUri)}
+    }
+    GRAPH ?g {
+      ?s a mandaat:Mandataris .
+      OPTIONAL {
+        ?s lmb:hasPublicationStatus ?oldStatus .
+      }
+      OPTIONAL {
+        ?s dct:modified ?oldMod.
+      }
+      BIND(NOW() as ?now)
+    }
+    ?g ext:ownedBy ?someone.
+  }
+  `;
+
+  await updateSudo(updateQuery);
+}
