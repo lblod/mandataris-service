@@ -894,7 +894,7 @@ async function getActiveMandatarissenForPerson(persoonId: string) {
       }
       FILTER (
           ${escaped.dateNow} >= xsd:dateTime(?startDate) &&
-          ${escaped.dateNow} <= ?safeEnd
+          ${escaped.dateNow} < ?safeEnd
       )
       BIND(IF(BOUND(?endDate), ?endDate,  ${escaped.dateNow}) as ?safeEnd )
     }

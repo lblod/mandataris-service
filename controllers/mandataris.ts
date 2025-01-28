@@ -14,6 +14,8 @@ import { createRangorde } from '../util/rangorde';
 import { v4 as uuidv4 } from 'uuid';
 import { areIdsValid, isValidId, RDF_TYPE } from '../util/valid-id';
 
+import { endOfDay } from '../util/date-manipulation';
+
 export const mandatarisUsecase = {
   getMandatarisFracties,
   updateCurrentFractie,
@@ -231,7 +233,7 @@ async function setEndDateOfActiveMandatarissen(
   const activeMandatarisUris =
     await mandataris.getActiveMandatarissenForPerson(id);
 
-  await mandataris.bulkUpdateEndDate(activeMandatarisUris, new Date());
+  await mandataris.bulkUpdateEndDate(activeMandatarisUris, endOfDay());
   await saveBulkHistoryItem(
     activeMandatarisUris,
     userId,

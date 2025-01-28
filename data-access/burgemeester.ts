@@ -11,6 +11,7 @@ import {
   copyFromPreviousMandataris,
   endExistingMandataris,
 } from './mandataris';
+import { endOfDay } from '../util/date-manipulation';
 
 export async function isBestuurseenheidDistrict(
   bestuurseenheidUri: string,
@@ -132,7 +133,12 @@ export const markCurrentBurgemeesterAsRejected = async (
     );
   }
 
-  await endExistingMandataris(orgGraph, existingMandatarisUri, date, benoeming);
+  await endExistingMandataris(
+    orgGraph,
+    existingMandatarisUri,
+    endOfDay(date),
+    benoeming,
+  );
 
   // TODO: check use case if mandataris is waarnemend -> should something happen to the verhindering?
 
@@ -205,7 +211,7 @@ export const benoemBurgemeester = async (
     await endExistingMandataris(
       orgGraph,
       existingMandataris,
-      date,
+      endOfDay(date),
       benoemingUri,
     );
   } else {

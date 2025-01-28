@@ -36,6 +36,7 @@ import {
   VOORZITTER_RMW_CODE,
   VOORZITTER_VB_FUNCTIE_CODE,
 } from '../util/constants';
+import { endOfDay } from '../util/date-manipulation';
 
 export const checkLinkedMandataris = async (req) => {
   const mandatarisId = req.params.id;
@@ -274,8 +275,7 @@ export const changeStateLinkedMandataris = async (req) => {
   await linkInstances(newMandatarisId, newLinkedMandataris.id);
 
   // End original linked mandatee
-  const endDate = new Date();
-  endExistingMandataris(destinationGraph, linkedMandataris.uri, endDate);
+  endExistingMandataris(destinationGraph, linkedMandataris.uri, endOfDay());
 };
 
 const preliminaryChecksLinkedMandataris = async (req) => {
