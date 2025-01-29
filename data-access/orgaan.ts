@@ -12,10 +12,7 @@ export async function getActivePersonen(bestuursorgaanId: string) {
       'http://data.vlaanderen.be/id/concept/MandatarisStatusCode/21063a5b-912c-4241-841c-cc7fb3c73e75', // Effectief
     ),
     sparqlEscapeUri(
-      'http://data.vlaanderen.be/id/concept/MandatarisStatusCode/c301248f-0199-45ca-b3e5-4c596731d5fe', // Verhinderd
-    ),
-    sparqlEscapeUri(
-      'http://data.vlaanderen.be/id/concept/MandatarisStatusCode/aacb3fed-b51d-4e0b-a411-f3fa641da1b3', // Titelvoerend
+      'http://data.vlaanderen.be/id/concept/MandatarisStatusCode/e1ca6edd-55e1-4288-92a5-53f4cf71946a', // Waarnemend
     ),
   ];
   const result = await query(`
