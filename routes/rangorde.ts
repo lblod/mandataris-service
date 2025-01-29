@@ -78,6 +78,7 @@ async function createNewMandatarissen(
   mandatarissen: RangordeDiff[],
   date: Date,
 ) {
+  mandatarissen = await addLinkedMandatarissen(mandatarissen);
   const { quadsGroupedByGraph, mandatarisMapping } =
     await buildNewMandatarisQuads(mandatarissen);
   await insertQuads(quadsGroupedByGraph);
@@ -95,13 +96,51 @@ type QuadsGroupedByGraph = Record<
   }[]
 >;
 
+async function addLinkedMandatarissen(mandatarissen: RangordeDiff[]) {
+  const safeMandatarisIds = mandatarissen
+    .map((value) => sparqlEscapeString(value.mandatarisId))
+    .join('\n');
+  const selectQuery = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+
+    SELECT DISTINCT ?linkedMandatarisId WHERE {
+      VALUES ?mandatarisId {
+        ${safeMandatarisIds}
+      }
+      {
+        { ?s ext:linked / mu:uuid ?mandatarisId. }
+        UNION
+        { ?other mu:uuid ?mandatarisId . ?other ext:linked ?s. }
+      }
+      GRAPH ?g {
+        ?s a mandaat:Mandataris.
+        ?s mu:uuid ?linkedMandatarisId.
+      }
+      ?g ext:ownedBy ?someone.
+    }
+  `;
+  const result = await querySudo(selectQuery);
+  const combinedMandatarissen = [...mandatarissen];
+  result.results.bindings.forEach((binding) => {
+    combinedMandatarissen.push({
+      mandatarisId: binding.linkedMandatarisId.value,
+      // the linked mandatarissen are part of the ocmw and don't have a rangorde
+      rangorde: null, // TODO but we need to make sure we don't try to insert null later!
+    });
+  });
+  return combinedMandatarissen;
+}
+
 async function buildNewMandatarisQuads(mandatarissen: RangordeDiff[]) {
   const mandatarisMapping: Record<string, string> = {};
   const safeMandatarisIds = mandatarissen
     .map((value) => sparqlEscapeString(value.mandatarisId))
     .join('\n');
-
-  // TODO this breaks, we need to do it in two steps
 
   const constructQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -111,17 +150,11 @@ async function buildNewMandatarisQuads(mandatarissen: RangordeDiff[]) {
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
-    SELECT DISTINCT ?g ?s ?p ?o ?mandatarisId WHERE {
+    SELECT DISTINCT ?g ?s ?p ?o WHERE {
       VALUES ?mandatarisId {
         ${safeMandatarisIds}
       }
-      {
-        { ?s mu:uuid ?mandatarisId. }
-        UNION
-        { ?s ext:linked / mu:uuid ?mandatarisId. }
-        UNION
-        { ?other mu:uuid ?mandatarisId . ?other ext:linked ?s. }
-      }
+      ?s mu:uuid ?mandatarisId.
       GRAPH ?g {
         ?s a mandaat:Mandataris.
         ?s ?p ?o.
