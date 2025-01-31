@@ -422,33 +422,26 @@ export async function updateRangordesQuery(
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     DELETE {
-      GRAPH ?graph {
-        ?mandataris mandaat:rangorde ?rangorde .
-        ?mandataris dct:modified ?modified .
-      }
+      ?mandataris mandaat:rangorde ?rangorde .
+      ?mandataris dct:modified ?modified .
     }
     INSERT {
-      GRAPH ?graph {
-        ?mandataris mandaat:rangorde ?newRangorde .
-        ?mandataris dct:modified ?now .
-      }
+      ?mandataris mandaat:rangorde ?newRangorde .
+      ?mandataris dct:modified ?now .
     }
     WHERE {
-      GRAPH ?graph {
-        ?mandataris a mandaat:Mandataris ;
-          mu:uuid ?mandatarisId .
-        OPTIONAL {
-          ?mandataris mandaat:rangorde ?rangorde .
-        }
-        OPTIONAL {
-          ?mandataris dct:modified ?modified .
-        }
+      ?mandataris a mandaat:Mandataris ;
+        mu:uuid ?mandatarisId .
+      OPTIONAL {
+        ?mandataris mandaat:rangorde ?rangorde .
+      }
+      OPTIONAL {
+        ?mandataris dct:modified ?modified .
       }
       VALUES (?mandatarisId ?newRangorde) {
         ${valueBindings}
       }
       BIND(NOW() AS ?now)
-      ?graph ext:ownedBy ?owner.
     }
   `;
 
