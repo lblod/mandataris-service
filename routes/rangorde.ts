@@ -14,7 +14,6 @@ import { Request, Response } from 'express';
 
 import { STATUS_CODE } from '../util/constants';
 import { HttpError } from '../util/http-error';
-import { isValidId, RDF_TYPE } from '../util/valid-id';
 import { sparqlEscapeQueryBinding } from '../util/sparql-escape';
 
 const rangordeRouter = Router();
@@ -23,17 +22,22 @@ type RangordeDiff = {
   mandatarisId: string;
   rangorde: string;
 };
+type RangordeDiffByUri = {
+  mandatarisUri: string;
+  rangorde: string;
+};
 
 rangordeRouter.post(
   '/update-rangordes/',
   async (req: Request, res: Response) => {
     const { mandatarissen, date } = req.body;
+    const mandatarissenByUri = await transformIdsToUris(mandatarissen);
 
     try {
       if (req.query.asCorrection === 'true') {
-        await correctRangorde(mandatarissen);
+        await correctRangorde(mandatarissenByUri);
       } else {
-        await updateRangorde(mandatarissen, date);
+        await updateRangorde(mandatarissenByUri, date);
       }
       // give resources time to update its cache
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -48,7 +52,32 @@ rangordeRouter.post(
   },
 );
 
-async function updateRangorde(mandatarissen: RangordeDiff[], date: Date) {
+async function transformIdsToUris(mandatarissen: RangordeDiff[]) {
+  const safeMandatarisIds = mandatarissen
+    .map((value) => sparqlEscapeString(value.mandatarisId))
+    .join('\n');
+  const selectQuery = `
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    SELECT ?mandatarisId ?mandataris WHERE {
+      VALUES ?mandatarisId {
+        ${safeMandatarisIds}
+      }
+      ?mandataris mu:uuid ?mandatarisId.
+    }`;
+  const result = await query(selectQuery);
+  const idToUriMapping = {};
+  result.results.bindings.forEach((binding) => {
+    idToUriMapping[binding.mandatarisId.value] = binding.mandataris.value;
+  });
+  return mandatarissen.map((value) => {
+    return {
+      rangorde: value.rangorde,
+      mandatarisUri: idToUriMapping[value.mandatarisId],
+    };
+  });
+}
+
+async function updateRangorde(mandatarissen: RangordeDiffByUri[], date: Date) {
   if (!date) {
     throw new HttpError('No date provided', STATUS_CODE.BAD_REQUEST);
   }
@@ -64,27 +93,35 @@ async function updateRangorde(mandatarissen: RangordeDiff[], date: Date) {
 }
 
 async function endAndCreateMandatarissenForNewRangordes(
-  mandatarissen: RangordeDiff[],
+  mandatarissen: RangordeDiffByUri[],
   date: Date,
 ) {
-  await createNewMandatarissen(mandatarissen, date);
+  const mandatarissenWithLinkedMandatarissen = await createNewMandatarissen(
+    mandatarissen,
+    date,
+  );
   await endAffectedMandatarissen(
-    mandatarissen.map((value) => value.mandatarisId),
+    mandatarissenWithLinkedMandatarissen.map((value) => value.mandatarisUri),
     date,
   );
 }
 
 async function createNewMandatarissen(
-  mandatarissen: RangordeDiff[],
+  mandatarissen: RangordeDiffByUri[],
   date: Date,
 ) {
   mandatarissen = await addLinkedMandatarissen(mandatarissen);
-  const { quadsGroupedByGraph, mandatarisMapping } =
+  const { quadsGroupedByGraph, mandatarisToNewUuidMapping } =
     await buildNewMandatarisQuads(mandatarissen);
   await insertQuads(quadsGroupedByGraph);
-  await insertNewMandatarisData(mandatarissen, date, mandatarisMapping);
-  await addNewMandatarisLinks(mandatarisMapping);
-  await addMemberships(mandatarisMapping);
+  await insertNewMandatarisData(
+    mandatarissen,
+    date,
+    mandatarisToNewUuidMapping,
+  );
+  await addNewMandatarisLinks(mandatarisToNewUuidMapping);
+  await addMemberships(mandatarisToNewUuidMapping);
+  return mandatarissen;
 }
 
 type QuadsGroupedByGraph = Record<
@@ -96,9 +133,9 @@ type QuadsGroupedByGraph = Record<
   }[]
 >;
 
-async function addLinkedMandatarissen(mandatarissen: RangordeDiff[]) {
-  const safeMandatarisIds = mandatarissen
-    .map((value) => sparqlEscapeString(value.mandatarisId))
+async function addLinkedMandatarissen(mandatarissen: RangordeDiffByUri[]) {
+  const safeMandatarissen = mandatarissen
+    .map((value) => sparqlEscapeUri(value.mandatarisUri))
     .join('\n');
   const selectQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -108,18 +145,17 @@ async function addLinkedMandatarissen(mandatarissen: RangordeDiff[]) {
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
-    SELECT DISTINCT ?linkedMandatarisId WHERE {
-      VALUES ?mandatarisId {
-        ${safeMandatarisIds}
+    SELECT DISTINCT ?linked WHERE {
+      VALUES ?mandataris {
+        ${safeMandatarissen}
       }
       {
-        { ?s ext:linked / mu:uuid ?mandatarisId. }
+        { ?linked ext:linked ?mandataris. }
         UNION
-        { ?other mu:uuid ?mandatarisId . ?other ext:linked ?s. }
+        { ?mandataris ext:linked ?linked. }
       }
       GRAPH ?g {
-        ?s a mandaat:Mandataris.
-        ?s mu:uuid ?linkedMandatarisId.
+        ?linked a mandaat:Mandataris.
       }
       ?g ext:ownedBy ?someone.
     }
@@ -128,18 +164,18 @@ async function addLinkedMandatarissen(mandatarissen: RangordeDiff[]) {
   const combinedMandatarissen = [...mandatarissen];
   result.results.bindings.forEach((binding) => {
     combinedMandatarissen.push({
-      mandatarisId: binding.linkedMandatarisId.value,
+      mandatarisUri: binding.linked.value,
       // the linked mandatarissen are part of the ocmw and don't have a rangorde
-      rangorde: null, // TODO but we need to make sure we don't try to insert null later!
+      rangorde: null,
     });
   });
   return combinedMandatarissen;
 }
 
-async function buildNewMandatarisQuads(mandatarissen: RangordeDiff[]) {
-  const mandatarisMapping: Record<string, string> = {};
-  const safeMandatarisIds = mandatarissen
-    .map((value) => sparqlEscapeString(value.mandatarisId))
+async function buildNewMandatarisQuads(mandatarissen: RangordeDiffByUri[]) {
+  const mandatarisToNewUuidMapping: Record<string, string> = {};
+  const safeMandatarissen = mandatarissen
+    .map((value) => sparqlEscapeUri(value.mandatarisUri))
     .join('\n');
 
   const constructQuery = `
@@ -151,10 +187,9 @@ async function buildNewMandatarisQuads(mandatarissen: RangordeDiff[]) {
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
     SELECT DISTINCT ?g ?s ?p ?o WHERE {
-      VALUES ?mandatarisId {
-        ${safeMandatarisIds}
+      VALUES ?s {
+        ${safeMandatarissen}
       }
-      ?s mu:uuid ?mandatarisId.
       GRAPH ?g {
         ?s a mandaat:Mandataris.
         ?s ?p ?o.
@@ -165,16 +200,13 @@ async function buildNewMandatarisQuads(mandatarissen: RangordeDiff[]) {
   const mandatarisQuads = await querySudo(constructQuery);
 
   const transformedQuads = [];
-  const idToIdMapping = {};
   mandatarisQuads.results.bindings.forEach((quad) => {
-    let existingId = mandatarisMapping[quad.s.value];
-    if (!existingId) {
-      const newUuid = uuidv4();
-      mandatarisMapping[quad.s.value] = newUuid;
-      existingId = newUuid;
+    let newUuid = mandatarisToNewUuidMapping[quad.s.value];
+    if (!newUuid) {
+      newUuid = uuidv4();
+      mandatarisToNewUuidMapping[quad.s.value] = newUuid;
     }
-    const newSubject = `http://data.lblod.info/id/mandatarissen/${existingId}`;
-    idToIdMapping[quad.mandatarisId.value] = existingId;
+    const newSubject = buildNewMandatarisUri(newUuid);
     const transformedQuad = {
       ...quad,
       s: { value: newSubject },
@@ -194,7 +226,7 @@ async function buildNewMandatarisQuads(mandatarissen: RangordeDiff[]) {
       o: quad.o,
     });
   });
-  return { mandatarisMapping: idToIdMapping, quadsGroupedByGraph };
+  return { mandatarisToNewUuidMapping, quadsGroupedByGraph };
 }
 
 async function insertQuads(quadsGroupedByGraph: QuadsGroupedByGraph) {
@@ -223,18 +255,18 @@ async function insertQuads(quadsGroupedByGraph: QuadsGroupedByGraph) {
 }
 
 async function insertNewMandatarisData(
-  mandatarissen: RangordeDiff[],
+  mandatarissen: RangordeDiffByUri[],
   date: Date,
-  mandatarisIdMapping: Record<string, string>,
+  mandatarisToNewUuidMapping: Record<string, string>,
 ) {
   const safeMandatarissen = mandatarissen
     .map((value) => {
-      const newId = mandatarisIdMapping[value.mandatarisId];
+      const newId = mandatarisToNewUuidMapping[value.mandatarisUri];
       const safeNewUuid = sparqlEscapeString(newId);
-      const safeRangorde = sparqlEscapeString(value.rangorde);
-      const safeUri = sparqlEscapeUri(
-        `http://data.lblod.info/id/mandatarissen/${newId}`,
-      );
+      const safeRangorde = value.rangorde
+        ? sparqlEscapeString(value.rangorde)
+        : 'undef'; // undef in case of ocmw mandataris who don't have rangorde
+      const safeUri = sparqlEscapeUri(buildNewMandatarisUri(newId));
       return `( ${safeUri} ${safeNewUuid} ${safeRangorde} )`;
     })
     .join('\n');
@@ -265,14 +297,53 @@ async function insertNewMandatarisData(
   await updateSudo(updateQuery);
 }
 
-async function addMemberships(mandatarisUuidMapping: Record<string, string>) {
-  const safeMandatarisIds = Object.keys(mandatarisUuidMapping)
-    .map((originalId) => {
-      return `( ${sparqlEscapeString(originalId)} ${sparqlEscapeString(
-        mandatarisUuidMapping[originalId],
+async function addMemberships(
+  mandatarisToNewIdMapping: Record<string, string>,
+) {
+  const safeMandatarisUris = Object.keys(mandatarisToNewIdMapping)
+    .map((originalMandataris) => {
+      const newMandataris = buildNewMandatarisUri(
+        mandatarisToNewIdMapping[originalMandataris],
+      );
+      const safeMandataris = sparqlEscapeUri(originalMandataris);
+      const safeNewMandataris = sparqlEscapeUri(newMandataris);
+      return `( ${safeMandataris} ${safeNewMandataris} )`;
+    })
+    .join('\n');
+  // need to work in two steps because a single insert will create a new uuid for every row in the result (for every p)
+  const selectNewUUidsQuery = `
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+
+    SELECT DISTINCT ?originalMembership ?newMembershipUuid ?newMandataris
+    WHERE {
+      VALUES ( ?originalMandataris ?newMandataris ) {
+        ${safeMandatarisUris}
+      }
+      GRAPH ?g {
+        ?originalMandataris org:hasMembership ?originalMembership.
+        ?originalMembership a org:Membership.
+        BIND(STRUUID() AS ?newMembershipUuid)
+      }
+      ?g ext:ownedBy ?someone.
+    }
+  `;
+  const result = await querySudo(selectNewUUidsQuery);
+  const safeNewMembershipLinks = result.results.bindings
+    .map((binding) => {
+      const id = binding.newMembershipUuid.value;
+      return `( ${sparqlEscapeUri(
+        binding.originalMembership.value,
+      )} ${sparqlEscapeUri(
+        `http://data.lblod.info/id/lidmaatschappen/${id}`,
+      )} ${sparqlEscapeString(id)} ${sparqlEscapeUri(
+        binding.newMandataris.value,
       )} )`;
     })
     .join('\n');
+
   const updateQuery = `
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX dct: <http://purl.org/dc/terms/>
@@ -284,21 +355,17 @@ async function addMemberships(mandatarisUuidMapping: Record<string, string>) {
         ?newMembership ?p ?o.
         ?newMandataris org:hasMembership ?newMembership.
         ?newMembership dct:modified ?now.
-        ?newMembership mu:uuid ?newMembershipId.
+        ?newMembership mu:uuid ?newMembershipUuid.
       }
     }
     WHERE {
-      VALUES ( ?originalMandatarisId ?newMandatarisId ) {
-        ${safeMandatarisIds}
+      VALUES ( ?originalMembership ?newMembership ?newMembershipUuid ?newMandataris ) {
+        ${safeNewMembershipLinks}
       }
       GRAPH ?g {
-        ?originalMandataris org:hasMembership ?membership.
-        ?originalMandataris mu:uuid ?originalMandatarisId.
-        ?membership ?p ?o.
+        ?originalMembership a org:Membership.
+        ?originalMembership ?p ?o.
         FILTER(?p NOT IN (dct:modified, mu:uuid ))
-        BIND(STRUUID() AS ?newMembershipId)
-        BIND(IRI(CONCAT("http://data.lblod.info/id/mandatarissen/", ?newMandatarisId)) AS ?newMandataris)
-        BIND(IRI(CONCAT("http://data.lblod.info/id/lidmaatschappen/", ?newMembershipId)) AS ?newMembership)
         BIND(NOW() AS ?now)
       }
       ?g ext:ownedBy ?someone.
@@ -307,9 +374,9 @@ async function addMemberships(mandatarisUuidMapping: Record<string, string>) {
   await updateSudo(updateQuery);
 }
 
-async function endAffectedMandatarissen(mandatarisIds: string[], date: Date) {
-  const safeMandatarisIds = mandatarisIds
-    .map((value) => sparqlEscapeString(value))
+async function endAffectedMandatarissen(mandatarisUris: string[], date: Date) {
+  const safeMandatarissen = mandatarisUris
+    .map((value) => sparqlEscapeUri(value))
     .join('\n');
   const updateQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -330,12 +397,11 @@ async function endAffectedMandatarissen(mandatarisIds: string[], date: Date) {
       }
     }
     WHERE {
-      VALUES ?mandatarisId {
-        ${safeMandatarisIds}
+      VALUES ?mandataris {
+        ${safeMandatarissen}
       }
       GRAPH ?g {
         ?mandataris a mandaat:Mandataris .
-        ?mandataris mu:uuid ?mandatarisId.
 
         OPTIONAL {
           ?mandataris mandaat:einde ?oldEinde .
@@ -349,31 +415,31 @@ async function endAffectedMandatarissen(mandatarisIds: string[], date: Date) {
   await updateSudo(updateQuery);
 }
 
-async function getMandatarissenWithoutRangorde(mandatarissen: RangordeDiff[]) {
-  const safeMandatarisIds = mandatarissen
-    .map((value) => sparqlEscapeString(value.mandatarisId))
+async function getMandatarissenWithoutRangorde(
+  mandatarissen: RangordeDiffByUri[],
+) {
+  const safeMandatarisUris = mandatarissen
+    .map((value) => sparqlEscapeUri(value.mandatarisUri))
     .join('\n');
   const selectQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-    SELECT ?mandatarisId WHERE {
-      VALUES ?mandatarisId {
-        ${safeMandatarisIds}
+    SELECT ?mandataris WHERE {
+      VALUES ?mandataris {
+        ${safeMandatarisUris}
       }
       ?mandataris a mandaat:Mandataris ;
-        mu:uuid ?mandatarisId ;
         mandaat:rangorde ?rangorde .
-
     }
   `;
   const result = await query(selectQuery);
-  const idsWithRangorde = new Set(
-    result.results.bindings.map((res) => res.mandatarisId.value),
+  const mandatarissenWithRangorde = new Set(
+    result.results.bindings.map((res) => res.mandataris.value),
   );
-  const withRangorde: RangordeDiff[] = [];
-  const withoutRangorde: RangordeDiff[] = [];
+  const withRangorde: RangordeDiffByUri[] = [];
+  const withoutRangorde: RangordeDiffByUri[] = [];
   mandatarissen.forEach((value) => {
-    if (idsWithRangorde.has(value.mandatarisId)) {
+    if (mandatarissenWithRangorde.has(value.mandatarisUri)) {
       withRangorde.push(value);
     } else {
       withoutRangorde.push(value);
@@ -382,33 +448,23 @@ async function getMandatarissenWithoutRangorde(mandatarissen: RangordeDiff[]) {
   return { withoutRangorde, withRangorde };
 }
 
-async function correctRangorde(mandatarissen: RangordeDiff[]) {
+async function correctRangorde(mandatarissen: RangordeDiffByUri[]) {
   if (!mandatarissen || mandatarissen.length == 0) {
     throw new HttpError('No mandatarissen provided', STATUS_CODE.BAD_REQUEST);
   }
 
-  // We just check access to the first mandataris
-  const isMandataris = await isValidId(
-    RDF_TYPE.MANDATARIS,
-    mandatarissen.at(0).mandatarisId,
-  );
-  if (!isMandataris) {
-    throw new HttpError('Unauthorized', 401);
-  }
-
-  // Probably need to check if all mandatarissen exist?
-
+  // no need to check if the uris exist, we will do a regular update so seas will handle it
   // This is a correct mistakes version, still need a update state version
   await updateRangordesQuery(mandatarissen);
   return;
 }
 
 export async function updateRangordesQuery(
-  mandatarissen: RangordeDiff[],
+  mandatarissen: RangordeDiffByUri[],
 ): Promise<void> {
   const valueBindings = mandatarissen
     .map((value) => {
-      return `(${sparqlEscapeString(value.mandatarisId)} ${sparqlEscapeString(
+      return `(${sparqlEscapeUri(value.mandatarisUri)} ${sparqlEscapeString(
         value.rangorde,
       )})`;
     })
@@ -430,15 +486,15 @@ export async function updateRangordesQuery(
       ?mandataris dct:modified ?now .
     }
     WHERE {
-      ?mandataris a mandaat:Mandataris ;
-        mu:uuid ?mandatarisId .
+      ?mandataris a mandaat:Mandataris .
+
       OPTIONAL {
         ?mandataris mandaat:rangorde ?rangorde .
       }
       OPTIONAL {
         ?mandataris dct:modified ?modified .
       }
-      VALUES (?mandatarisId ?newRangorde) {
+      VALUES (?mandataris ?newRangorde) {
         ${valueBindings}
       }
       BIND(NOW() AS ?now)
@@ -451,24 +507,24 @@ export async function updateRangordesQuery(
 async function addNewMandatarisLinks(
   mandatarisMapping: Record<string, string>,
 ) {
-  const safeMandatarisIds = Object.keys(mandatarisMapping)
+  const safeMandatarissen = Object.keys(mandatarisMapping)
     .map((value) => {
-      return sparqlEscapeString(value);
+      return sparqlEscapeUri(value);
     })
     .join('\n');
   // only one direction needed because the mapping contains both from and to
   const fetchOldLinksQuery = `
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
 
-    SELECT ?oldFrom ?oldTo WHERE {
+    SELECT DISTINCT ?oldMandatarisFrom ?oldMandatarisTo WHERE {
       GRAPH <http://mu.semte.ch/graphs/linkedInstances> {
         ?oldMandatarisFrom ext:linked ?oldMandatarisTo.
       }
-      ?oldMandatarisFrom mu:uuid ?oldFrom.
-      ?oldMandatarisTo mu:uuid ?oldTo.
-      VALUES ?oldFrom {
-          ${safeMandatarisIds}
+      ?oldMandatarisFrom a mandaat:Mandataris.
+      VALUES ?oldMandatarisFrom {
+          ${safeMandatarissen}
       }
     }
     `;
@@ -476,25 +532,33 @@ async function addNewMandatarisLinks(
   const result = await querySudo(fetchOldLinksQuery);
   const safeNewLinks = result.results.bindings
     .map((binding) => {
-      const oldFrom = binding.oldFrom.value;
-      const oldTo = binding.oldTo.value;
-      const newFrom = mandatarisMapping[oldFrom];
-      const newTo = mandatarisMapping[oldTo];
-      if (!newFrom || !newTo) {
+      const oldMandatarisFrom = binding.oldMandatarisFrom.value;
+      const oldMandatarisTo = binding.oldMandatarisTo.value;
+      const newFromId = mandatarisMapping[oldMandatarisFrom];
+      const newToId = mandatarisMapping[oldMandatarisTo];
+      const safeFrom = sparqlEscapeUri(buildNewMandatarisUri(newFromId));
+      const safeTo = sparqlEscapeUri(buildNewMandatarisUri(newToId));
+      if (!newFromId || !newToId) {
         return null; // sometimes a link can linger after the mandataris was deleted
       }
-      return `( ${sparqlEscapeUri(newFrom)} ${sparqlEscapeUri(newTo)} )`;
+      return `${safeFrom} ext:linked ${safeTo} .`;
     })
-    .filter((value) => value !== null);
+    .filter((value) => value !== null)
+    .join('\n');
 
   const insertNewLinksQuery = `
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     INSERT DATA {
       GRAPH <http://mu.semte.ch/graphs/linkedInstances> {
-        ${safeNewLinks.join('\n')}
+        ${safeNewLinks}
       }
-    }
-  `;
+    }`;
   await updateSudo(insertNewLinksQuery);
+}
+
+function buildNewMandatarisUri(id: string) {
+  return `http://data.lblod.info/id/mandatarissen/${id}`;
 }
 
 export { rangordeRouter };
