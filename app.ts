@@ -14,6 +14,7 @@ import { mockRouter } from './routes/mock';
 
 import { cronjob as harvestBekrachtigingenCron } from './cron/fetch-bekrachtigingen';
 import { electionResultsRouter } from './routes/verkiezingsresultaten';
+import { rangordeRouter } from './routes/rangorde';
 
 app.use(
   bodyParser.json({
@@ -38,6 +39,7 @@ app.use('/mandaten', mandatenRouter);
 app.use('/burgemeester-benoeming', burgemeesterRouter);
 app.use('/installatievergadering-api', installatievergaderingRouter);
 app.use('/election-results-api', electionResultsRouter);
+app.use('/rangorde', rangordeRouter);
 app.use('/mock', mockRouter);
 
 const errorHandler: ErrorRequestHandler = function (err, _req, res, _next) {
