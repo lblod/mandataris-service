@@ -82,7 +82,7 @@ async function updateRangorde(mandatarissen: RangordeDiffByUri[], date: Date) {
     throw new HttpError('No date provided', STATUS_CODE.BAD_REQUEST);
   }
   const { withoutRangorde, withRangorde } =
-    await getMandatarissenWithoutRangorde(mandatarissen);
+    await splitMandatarissenAlongRangorde(mandatarissen);
 
   if (withoutRangorde.length > 0) {
     await correctRangorde(withoutRangorde);
@@ -110,18 +110,19 @@ async function createNewMandatarissen(
   mandatarissen: RangordeDiffByUri[],
   date: Date,
 ) {
-  mandatarissen = await addLinkedMandatarissen(mandatarissen);
+  const mandatarissenAndLinkedMandatarissen =
+    await combineWithLinkedMandatarissen(mandatarissen);
   const { quadsGroupedByGraph, mandatarisToNewUuidMapping } =
-    await buildNewMandatarisQuads(mandatarissen);
+    await buildNewMandatarisQuads(mandatarissenAndLinkedMandatarissen);
   await insertQuads(quadsGroupedByGraph);
   await insertNewMandatarisData(
-    mandatarissen,
+    mandatarissenAndLinkedMandatarissen,
     date,
     mandatarisToNewUuidMapping,
   );
   await addNewMandatarisLinks(mandatarisToNewUuidMapping);
   await addMemberships(mandatarisToNewUuidMapping);
-  return mandatarissen;
+  return mandatarissenAndLinkedMandatarissen;
 }
 
 type QuadsGroupedByGraph = Record<
@@ -133,7 +134,9 @@ type QuadsGroupedByGraph = Record<
   }[]
 >;
 
-async function addLinkedMandatarissen(mandatarissen: RangordeDiffByUri[]) {
+async function combineWithLinkedMandatarissen(
+  mandatarissen: RangordeDiffByUri[],
+) {
   const safeMandatarissen = mandatarissen
     .map((value) => sparqlEscapeUri(value.mandatarisUri))
     .join('\n');
@@ -415,7 +418,7 @@ async function endAffectedMandatarissen(mandatarisUris: string[], date: Date) {
   await updateSudo(updateQuery);
 }
 
-async function getMandatarissenWithoutRangorde(
+async function splitMandatarissenAlongRangorde(
   mandatarissen: RangordeDiffByUri[],
 ) {
   const safeMandatarisUris = mandatarissen
@@ -454,7 +457,6 @@ async function correctRangorde(mandatarissen: RangordeDiffByUri[]) {
   }
 
   // no need to check if the uris exist, we will do a regular update so seas will handle it
-  // This is a correct mistakes version, still need a update state version
   await updateRangordesQuery(mandatarissen);
   return;
 }
