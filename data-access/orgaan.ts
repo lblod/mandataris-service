@@ -35,6 +35,7 @@ export async function getActivePersonen(bestuursorgaanId: string) {
       }
 
       ?mandataris mandaat:isBestuurlijkeAliasVan ?persoon .
+      ?mandataris mandaat:start ?mandatarisStart.
       OPTIONAL {
         ?mandataris mandaat:einde ?mandatarisEinde.
       }
@@ -46,8 +47,10 @@ export async function getActivePersonen(bestuursorgaanId: string) {
         ?mandataris lmb:hasPublicationStatus ${draftPublicatieStatus}
       }
 
-      BIND(IF(BOUND(?orgaanEinde), ?orgaanEinde, ${now}) AS ?safeOrgaanEinde).
-      FILTER(!BOUND(?mandatarisEinde) || ?mandatarisEinde <= ?safeOrgaanEinde).
+      BIND(IF(BOUND(?orgaanEinde), ?orgaanEinde, "2025-02-03T12:38:02.144Z"^^xsd:dateTime) AS ?safeOrgaanEinde).
+      BIND(IF(?safeOrgaanEinde < NOW(),?safeOrgaanEinde, NOW()) AS ?dateToCheck)
+      FILTER(!BOUND(?mandatarisEinde) || ?mandatarisEinde >= ?dateToCheck).
+      FILTER(?mandatarisStart <= ?dateToCheck).
       FILTER(!BOUND(?status) || ?status IN (${safeStatussen.join(', ')})).
     }
   `);
