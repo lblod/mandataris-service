@@ -5,8 +5,11 @@ import {
   sparqlEscapeUri,
 } from 'mu';
 
+import { PUBLICATION_STATUS } from '../util/constants';
+
 export async function getActivePersonen(bestuursorgaanId: string) {
   const now = sparqlEscapeDateTime(new Date());
+  const draftPublicatieStatus = sparqlEscapeUri(PUBLICATION_STATUS.DRAFT);
   const safeStatussen = [
     sparqlEscapeUri(
       'http://data.vlaanderen.be/id/concept/MandatarisStatusCode/21063a5b-912c-4241-841c-cc7fb3c73e75', // Effectief
@@ -20,6 +23,7 @@ export async function getActivePersonen(bestuursorgaanId: string) {
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
     SELECT (COUNT(DISTINCT ?persoon) AS ?count)
     WHERE {
@@ -36,6 +40,10 @@ export async function getActivePersonen(bestuursorgaanId: string) {
       }
       OPTIONAL {
         ?mandataris mandaat:status ?status.
+      }
+
+      FILTER NOT EXISTS {
+        ?mandataris lmb:hasPublicationStatus ${draftPublicatieStatus}
       }
 
       BIND(IF(BOUND(?orgaanEinde), ?orgaanEinde, ${now}) AS ?actualOrgaanEinde).
