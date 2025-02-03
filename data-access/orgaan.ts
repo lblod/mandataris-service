@@ -46,9 +46,8 @@ export async function getActivePersonen(bestuursorgaanId: string) {
         ?mandataris lmb:hasPublicationStatus ${draftPublicatieStatus}
       }
 
-      BIND(IF(BOUND(?orgaanEinde), ?orgaanEinde, ${now}) AS ?actualOrgaanEinde).
-      BIND(IF(?actualOrgaanEinde <= ${now}, ?actualOrgaanEinde, ${now}) AS ?testEinde).
-      FILTER(!BOUND(?mandatarisEinde) || ?mandatarisEinde >= ?testEinde).
+      BIND(IF(BOUND(?orgaanEinde), ?orgaanEinde, ${now}) AS ?safeOrgaanEinde).
+      FILTER(!BOUND(?mandatarisEinde) || ?mandatarisEinde <= ?safeOrgaanEinde).
       FILTER(!BOUND(?status) || ?status IN (${safeStatussen.join(', ')})).
     }
   `);
