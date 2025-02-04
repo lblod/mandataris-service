@@ -4,11 +4,11 @@ import {
   sparqlEscapeDateTime,
   sparqlEscapeUri,
 } from 'mu';
+import moment from 'moment';
 
 import { PUBLICATION_STATUS } from '../util/constants';
 
 export async function getActivePersonen(bestuursorgaanId: string) {
-  const now = sparqlEscapeDateTime(new Date());
   const draftPublicatieStatus = sparqlEscapeUri(PUBLICATION_STATUS.DRAFT);
   const safeStatussen = [
     sparqlEscapeUri(
@@ -18,6 +18,28 @@ export async function getActivePersonen(bestuursorgaanId: string) {
       'http://data.vlaanderen.be/id/concept/MandatarisStatusCode/c301248f-0199-45ca-b3e5-4c596731d5fe', // Verhinderd
     ),
   ];
+
+  const effectiveEndDateQuery = `
+   PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+   PREFIX org: <http://www.w3.org/ns/org#>
+   PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+   SELECT (MAX(?mandatarisEinde) AS ?effectiveEndDate)
+   WHERE {
+     ?boi mu:uuid ${sparqlEscapeString(bestuursorgaanId)} .
+     ?boi org:hasPost / ^org:holds ?mandataris  .
+     ?mandataris mandaat:einde ?mandatarisEinde.
+   }`;
+
+  const effectiveEndDateResult = await query(effectiveEndDateQuery);
+  const effectiveEndDate =
+    effectiveEndDateResult?.results?.bindings[0]?.effectiveEndDate?.value ||
+    new Date();
+  // especially old data has incorrect hours in their end date. Let's give ourselves two hours of margin
+  const effectiveEndDateWithMargin = moment(effectiveEndDate)
+    .subtract(2, 'hours')
+    .toISOString();
+
   const result = await query(`
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
@@ -29,10 +51,6 @@ export async function getActivePersonen(bestuursorgaanId: string) {
     WHERE {
       ?boi mu:uuid ${sparqlEscapeString(bestuursorgaanId)} .
       ?boi org:hasPost / ^org:holds ?mandataris  .
-
-      OPTIONAL {
-        ?boi mandaat:bindingEinde ?orgaanEinde.
-      }
 
       ?mandataris mandaat:isBestuurlijkeAliasVan ?persoon .
       ?mandataris mandaat:start ?mandatarisStart.
@@ -46,11 +64,12 @@ export async function getActivePersonen(bestuursorgaanId: string) {
       FILTER NOT EXISTS {
         ?mandataris lmb:hasPublicationStatus ${draftPublicatieStatus}
       }
+      VALUES ?dateToCheck {
+        ${sparqlEscapeDateTime(effectiveEndDateWithMargin)}
+      }
 
-      BIND(IF(BOUND(?orgaanEinde), ?orgaanEinde, "2025-02-03T12:38:02.144Z"^^xsd:dateTime) AS ?safeOrgaanEinde).
-      BIND(IF(?safeOrgaanEinde < NOW(),?safeOrgaanEinde, NOW()) AS ?dateToCheck)
       FILTER(!BOUND(?mandatarisEinde) || ?mandatarisEinde >= ?dateToCheck).
-      FILTER(?mandatarisStart <= ?dateToCheck).
+      FILTER(?mandatarisStart <= ?dateToCheck ).
       FILTER(!BOUND(?status) || ?status IN (${safeStatussen.join(', ')})).
     }
   `);
