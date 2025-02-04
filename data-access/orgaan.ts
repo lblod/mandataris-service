@@ -38,7 +38,7 @@ export async function getActivePersonen(bestuursorgaanId: string) {
   // especially old data has incorrect hours in their end date. Let's give ourselves two hours of margin
   const effectiveEndDateWithMargin = moment(effectiveEndDate)
     .subtract(2, 'hours')
-    .toISOString();
+    .toDate();
 
   const result = await query(`
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -62,7 +62,7 @@ export async function getActivePersonen(bestuursorgaanId: string) {
       }
 
       FILTER NOT EXISTS {
-        ?mandataris lmb:hasPublicationStatus ${draftPublicatieStatus}
+        ?mandataris lmb:hasPublicationStatus ${draftPublicatieStatus} .
       }
       VALUES ?dateToCheck {
         ${sparqlEscapeDateTime(effectiveEndDateWithMargin)}
