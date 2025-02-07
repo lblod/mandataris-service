@@ -3,7 +3,7 @@ import { app } from 'mu';
 import express, { Request, ErrorRequestHandler } from 'express';
 import bodyParser from 'body-parser';
 
-import { deltaRouter } from './routes/delta-decisions';
+import { deltaRouter } from './routes/delta-router';
 import { mandatarissenRouter } from './routes/mandatarissen';
 import { fractiesRouter } from './routes/fractie';
 import { personenRouter } from './routes/persoon';

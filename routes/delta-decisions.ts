@@ -1,4 +1,3 @@
-import Router from 'express-promise-router';
 import { sparqlEscapeUri, sparqlEscapeDateTime } from 'mu';
 
 import { Request, Response } from 'express';
@@ -8,9 +7,7 @@ import { updateSudo } from '@lblod/mu-auth-sudo';
 import { v4 as uuid } from 'uuid';
 import { BESLUIT_STAGING_GRAPH } from '../data-access/mandatees-decisions';
 
-const deltaRouter = Router();
-
-deltaRouter.post('/decisions', async (req: Request, res: Response) => {
+export async function handleDeltaDecision(req: Request, res: Response) {
   console.log('|>Triggered the decisions endpoint!');
   const changesets: Changeset[] = req.body;
   const insertTriples = changesets
@@ -58,6 +55,4 @@ deltaRouter.post('/decisions', async (req: Request, res: Response) => {
   });
 
   res.status(200).send({ status: 'ok' });
-});
-
-export { deltaRouter };
+}
