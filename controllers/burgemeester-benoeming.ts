@@ -159,7 +159,12 @@ const markCurrentBurgemeesterAsRejected = async (
     );
   }
 
-  await endExistingMandataris(orgGraph, existingMandatarisUri, date, benoemingUri);
+  await endExistingMandataris(
+    orgGraph,
+    existingMandatarisUri,
+    date,
+    benoemingUri,
+  );
 
   // TODO: check use case if mandataris is waarnemend -> should something happen to the verhindering?
 
