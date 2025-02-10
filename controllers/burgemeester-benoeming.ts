@@ -2,15 +2,19 @@ import { Request, Response } from 'express';
 import { HttpError } from '../util/http-error';
 
 import {
-  benoemBurgemeester,
+  addBenoemingTriple,
   createBurgemeesterBenoeming,
+  createBurgemeesterFromScratch,
   findBurgemeesterMandates,
   isBestuurseenheidDistrict,
-  markCurrentBurgemeesterAsRejected,
 } from '../data-access/burgemeester';
 import { BENOEMING_STATUS } from '../util/constants';
 import { checkAuthorization } from '../data-access/authorization';
-import { findExistingMandatarisOfPerson } from '../data-access/mandataris';
+import {
+  copyFromPreviousMandataris,
+  endExistingMandataris,
+  findExistingMandatarisOfPerson,
+} from '../data-access/mandataris';
 import { personExistsInGraph } from '../data-access/persoon';
 
 const parseBody = (body) => {
@@ -99,6 +103,74 @@ const validateAndParseRequest = async (req: Request) => {
   };
 };
 
+const transferAangewezenBurgemeesterToBurgemeester = async (
+  orgGraph: string,
+  burgemeesterUri: string,
+  burgemeesterMandaatUri: string,
+  date: Date,
+  benoemingUri: string,
+  existingMandataris: string | undefined | null,
+) => {
+  let newMandatarisUri;
+  if (existingMandataris) {
+    // we can copy over the existing values for the new burgemeester from the previous mandataris
+    newMandatarisUri = await copyFromPreviousMandataris(
+      orgGraph,
+      existingMandataris,
+      date,
+      burgemeesterMandaatUri,
+    );
+
+    await endExistingMandataris(
+      orgGraph,
+      existingMandataris,
+      date,
+      benoemingUri,
+    );
+  } else {
+    // we need to create a new mandataris from scratch
+    newMandatarisUri = await createBurgemeesterFromScratch(
+      orgGraph,
+      burgemeesterUri,
+      burgemeesterMandaatUri,
+      date,
+      benoemingUri,
+    );
+  }
+  addBenoemingTriple(
+    orgGraph,
+    newMandatarisUri,
+    benoemingUri,
+    BENOEMING_STATUS.BENOEMD,
+  );
+};
+
+const markCurrentBurgemeesterAsRejected = async (
+  orgGraph: string,
+  burgemeesterUri: string,
+  date: Date,
+  benoemingUri: string,
+  existingMandatarisUri: string | undefined,
+) => {
+  if (!existingMandatarisUri) {
+    throw new HttpError(
+      `No existing mandataris found for burgemeester(${burgemeesterUri})`,
+      400,
+    );
+  }
+
+  await endExistingMandataris(orgGraph, existingMandatarisUri, date, benoeming);
+
+  // TODO: check use case if mandataris is waarnemend -> should something happen to the verhindering?
+
+  addBenoemingTriple(
+    orgGraph,
+    existingMandatarisUri,
+    benoemingUri,
+    BENOEMING_STATUS.AFGEWEZEN,
+  );
+};
+
 const onBurgemeesterBenoemingSafe = async (req: Request) => {
   const {
     bestuurseenheidUri,
@@ -125,7 +197,7 @@ const onBurgemeesterBenoemingSafe = async (req: Request) => {
     burgemeesterUri,
   );
   if (status === BENOEMING_STATUS.BENOEMD) {
-    await benoemBurgemeester(
+    await transferAangewezenBurgemeesterToBurgemeester(
       orgGraph,
       burgemeesterUri,
       burgemeesterMandaatUri,

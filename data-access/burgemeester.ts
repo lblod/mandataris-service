@@ -7,10 +7,7 @@ import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
 } from '../util/sparql-result';
-import {
-  copyFromPreviousMandataris,
-  endExistingMandataris,
-} from './mandataris';
+import { BENOEMING_STATUS } from '../util/constants';
 
 export async function isBestuurseenheidDistrict(
   bestuurseenheidUri: string,
@@ -118,38 +115,6 @@ export const createBurgemeesterBenoeming = async (
   return benoemingUri;
 };
 
-export const markCurrentBurgemeesterAsRejected = async (
-  orgGraph: string,
-  burgemeesterUri: string,
-  date: Date,
-  benoeming: string,
-  existingMandatarisUri: string | undefined,
-) => {
-  if (!existingMandatarisUri) {
-    throw new HttpError(
-      `No existing mandataris found for burgemeester(${burgemeesterUri})`,
-      400,
-    );
-  }
-
-  await endExistingMandataris(orgGraph, existingMandatarisUri, date, benoeming);
-
-  // TODO: check use case if mandataris is waarnemend -> should something happen to the verhindering?
-
-  const mandatarisUri = sparqlEscapeUri(existingMandatarisUri);
-  const benoemingUri = sparqlEscapeUri(benoeming);
-
-  const sparql = `
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-
-    INSERT DATA {
-      GRAPH ${sparqlEscapeUri(orgGraph)} {
-        ${benoemingUri} ext:rejects ${mandatarisUri} .
-      }
-    }`;
-  await updateSudo(sparql);
-};
-
 export const createBurgemeesterFromScratch = async (
   orgGraph: string,
   burgemeesterUri: string,
@@ -184,47 +149,30 @@ export const createBurgemeesterFromScratch = async (
   return newMandatarisUri;
 };
 
-export const benoemBurgemeester = async (
+export const addBenoemingTriple = async (
   orgGraph: string,
-  burgemeesterUri: string,
-  burgemeesterMandaatUri: string,
-  date: Date,
+  mandatarisUri: string,
   benoemingUri: string,
-  existingMandataris: string | undefined | null,
+  action: BENOEMING_STATUS,
 ) => {
-  let newMandatarisUri;
-  if (existingMandataris) {
-    // we can copy over the existing values for the new burgemeester from the previous mandataris
-    newMandatarisUri = await copyFromPreviousMandataris(
-      orgGraph,
-      existingMandataris,
-      date,
-      burgemeesterMandaatUri,
-    );
-
-    await endExistingMandataris(
-      orgGraph,
-      existingMandataris,
-      date,
-      benoemingUri,
-    );
-  } else {
-    // we need to create a new mandataris from scratch
-    newMandatarisUri = await createBurgemeesterFromScratch(
-      orgGraph,
-      burgemeesterUri,
-      burgemeesterMandaatUri,
-      date,
-      benoemingUri,
-    );
+  const escaped = {
+    graph: sparqlEscapeUri(orgGraph),
+    benoeming: sparqlEscapeUri(benoemingUri),
+    mandataris: sparqlEscapeUri(mandatarisUri),
+  };
+  let triple = '';
+  if (action == BENOEMING_STATUS.BENOEMD) {
+    triple = `${escaped.benoeming} ext:approves ${escaped.mandataris} .`;
+  } else if (action == BENOEMING_STATUS.AFGEWEZEN) {
+    triple = `${escaped.benoeming} ext:rejects ${escaped.mandataris} .`;
   }
-  const benoeming = sparqlEscapeUri(benoemingUri);
+
   await updateSudo(`
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     INSERT DATA {
-      GRAPH ${sparqlEscapeUri(orgGraph)} {
-        ${benoeming} ext:approves ${sparqlEscapeUri(newMandatarisUri)} .
+      GRAPH ${escaped.graph} {
+        ${triple}
       }
     }`);
 };
