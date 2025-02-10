@@ -103,40 +103,92 @@ const validateAndParseRequest = async (req: Request) => {
   };
 };
 
-const transferAangewezenBurgemeesterToBurgemeester = async (
+const handleAangewezenBurgemeester = async (
   orgGraph: string,
-  burgemeesterUri: string,
-  burgemeesterMandaatUri: string,
+  existingMandataris: string | undefined | null,
   date: Date,
   benoemingUri: string,
-  existingMandataris: string | undefined | null,
 ) => {
-  let newMandatarisUri;
   if (existingMandataris) {
-    // we can copy over the existing values for the new burgemeester from the previous mandataris
-    newMandatarisUri = await copyFromPreviousMandataris(
-      orgGraph,
-      existingMandataris,
-      date,
-      burgemeesterMandaatUri,
-    );
-
     await endExistingMandataris(
       orgGraph,
       existingMandataris,
       date,
       benoemingUri,
     );
+  }
+};
+
+const handleBurgemeester = async (
+  orgGraph: string,
+  burgemeesterPersoonUri: string,
+  burgemeesterMandaatUri: string,
+  date: Date,
+  benoemingUri: string,
+  existingMandataris: string | undefined | null,
+) => {
+  if (existingMandataris) {
+    // we can copy over the existing values for the new burgemeester from the previous mandataris
+    return await copyFromPreviousMandataris(
+      orgGraph,
+      existingMandataris,
+      date,
+      burgemeesterMandaatUri,
+    );
   } else {
     // we need to create a new mandataris from scratch
-    newMandatarisUri = await createBurgemeesterFromScratch(
+    return await createBurgemeesterFromScratch(
       orgGraph,
-      burgemeesterUri,
+      burgemeesterPersoonUri,
       burgemeesterMandaatUri,
       date,
       benoemingUri,
     );
   }
+};
+
+const handleLinkedMandatarisBurgemeester = async (
+  orgGraph: string,
+  newBurgemeesterUri: string,
+  date: Date,
+  benoemingUri: string,
+  existingMandataris: string | undefined | null,
+) => {
+  // TODO
+};
+
+const transferAangewezenBurgemeesterToBurgemeester = async (
+  orgGraph: string,
+  burgemeesterPersoonUri: string,
+  burgemeesterMandaatUri: string,
+  date: Date,
+  benoemingUri: string,
+  existingMandataris: string | undefined | null,
+) => {
+  await handleAangewezenBurgemeester(
+    orgGraph,
+    existingMandataris,
+    date,
+    benoemingUri,
+  );
+
+  const newMandatarisUri = await handleBurgemeester(
+    orgGraph,
+    burgemeesterPersoonUri,
+    burgemeesterMandaatUri,
+    date,
+    benoemingUri,
+    existingMandataris,
+  );
+
+  handleLinkedMandatarisBurgemeester(
+    orgGraph,
+    newMandatarisUri,
+    date,
+    benoemingUri,
+    existingMandataris,
+  );
+
   addBenoemingTriple(
     orgGraph,
     newMandatarisUri,
