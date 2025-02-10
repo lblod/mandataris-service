@@ -127,6 +127,14 @@ const handleBurgemeester = async (
   benoemingUri: string,
   existingMandataris: string | undefined | null,
 ) => {
+  // Check if burgemeester already exists for the person
+
+  // If it exists, just bekrachtig it
+
+  // Check if burgemeester exists for another person
+
+  // If so create notification
+
   if (existingMandataris) {
     // we can copy over the existing values for the new burgemeester from the previous mandataris
     return await copyFromPreviousMandataris(
@@ -149,12 +157,21 @@ const handleBurgemeester = async (
 
 const handleLinkedMandatarisBurgemeester = async (
   orgGraph: string,
+  aangewezenBurgemeesterUri: string | undefined | null,
   newBurgemeesterUri: string,
   date: Date,
   benoemingUri: string,
-  existingMandataris: string | undefined | null,
 ) => {
-  // TODO
+  // If no aangewezen burgemeester -> early return
+  // Check if aangewezen burgemeester has linked mandataris
+  // If it does and the burgemeester has none
+  // End linked mandataris
+  // Copy linked mandataris
+  // Set linked on burgemeester
+  // If it does and the burgemeester has one as well
+  // Check if different
+  // If not -> repeat steps above
+  // If different -> just end the one from the aangewezen burgemeester
 };
 
 const transferAangewezenBurgemeesterToBurgemeester = async (
@@ -183,10 +200,10 @@ const transferAangewezenBurgemeesterToBurgemeester = async (
 
   handleLinkedMandatarisBurgemeester(
     orgGraph,
+    existingMandataris,
     newMandatarisUri,
     date,
     benoemingUri,
-    existingMandataris,
   );
 
   addBenoemingTriple(
