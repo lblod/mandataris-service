@@ -318,3 +318,22 @@ export const createNotificationMultipleBurgemeesters = async (
     ],
   });
 };
+
+export const createNotificationAfgewezenBurgemeester = async (
+  graph: string,
+  mandatarisUri: string,
+) => {
+  await createNotification({
+    title: 'Burgemeester werd afgewezen',
+    description:
+      'De burgemeester werd afgewezen, gelieve een nieuwe burgemeester aan te stellen en deze wijzigingen ook door the voeren in het OCMW.',
+    type: 'info',
+    graph: graph,
+    links: [
+      {
+        type: 'mandataris',
+        uri: mandatarisUri,
+      },
+    ],
+  });
+};

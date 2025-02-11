@@ -5,6 +5,7 @@ import {
   addBenoemingTriple,
   createBurgemeesterBenoeming,
   createBurgemeesterFromScratch,
+  createNotificationAfgewezenBurgemeester,
   createNotificationMultipleBurgemeesters,
   findBurgemeesterMandates,
   getPersoonMandaatMandataris,
@@ -330,6 +331,8 @@ const markCurrentBurgemeesterAsRejected = async (
     benoemingUri,
     BENOEMING_STATUS.AFGEWEZEN,
   );
+
+  createNotificationAfgewezenBurgemeester(orgGraph, existingMandatarisUri);
 };
 
 const onBurgemeesterBenoemingSafe = async (req: Request) => {
