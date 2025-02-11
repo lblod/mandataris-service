@@ -7,6 +7,7 @@ import {
   createBurgemeesterFromScratch,
   createNotificationAangesteldeBurgemeester,
   createNotificationAfgewezenBurgemeester,
+  createNotificationMultipleAangesteldeBurgemeesters,
   createNotificationOtherPersonWithBurgemeesterMandaat,
   findBurgemeesterMandates,
   getPersoonMandaatMandataris,
@@ -309,6 +310,11 @@ const transferAangewezenBurgemeesterToBurgemeester = async (
     createNotificationAangesteldeBurgemeester(
       orgGraph,
       newBurgemeesterMandatarissen.at(0),
+    );
+  } else if (newBurgemeesterMandatarissen.length >= 1) {
+    createNotificationMultipleAangesteldeBurgemeesters(
+      orgGraph,
+      newBurgemeesterMandatarissen,
     );
   }
 };
