@@ -191,10 +191,15 @@ const handleLinkedMandatarisBurgemeester = async (
   benoemingUri: string,
 ) => {
   // If no aangewezen burgemeester -> early return
+  if (!aangewezenBurgemeesterUri) {
+    return;
+  }
+
   // Check if aangewezen burgemeester has linked mandataris
   // If it does and the burgemeester has none
   // End linked mandataris
   // Copy linked mandataris
+
   // Set linked on burgemeester
   // If it does and the burgemeester has one as well
   // Check if different
