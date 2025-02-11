@@ -8,6 +8,7 @@ import {
   createNotificationMultipleBurgemeesters,
   findBurgemeesterMandates,
   getPersoonMandaatMandataris,
+  getPersoonMandaatMandatarissen,
   isBestuurseenheidDistrict,
   otherPersonHasMandate,
   setPublicationSatusWithDate,
@@ -139,7 +140,7 @@ const handleBurgemeester = async (
   existingMandataris: string | undefined | null,
 ) => {
   // Check if burgemeester already exists for the person
-  const burgemeesterMandatarisExists = await getPersoonMandaatMandataris(
+  const burgemeesterMandatarisExists = await getPersoonMandaatMandatarissen(
     orgGraph,
     burgemeesterPersoonUri,
     burgemeesterMandaatUri,

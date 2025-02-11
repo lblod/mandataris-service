@@ -6,6 +6,7 @@ import { storeFile } from './file';
 import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
+  getSparqlResults,
 } from '../util/sparql-result';
 import { BENOEMING_STATUS, PUBLICATION_STATUS } from '../util/constants';
 import { createNotification } from '../util/create-notification';
@@ -178,7 +179,7 @@ export const addBenoemingTriple = async (
     }`);
 };
 
-export const getPersoonMandaatMandataris = async (
+export const getPersoonMandaatMandatarissen = async (
   graph: string,
   persoonUri: string,
   mandaatUri: string,
@@ -211,7 +212,7 @@ export const getPersoonMandaatMandataris = async (
     }
   `;
   const result = await querySudo(selectQuery);
-  return findFirstSparqlResult(result)?.mandataris?.value;
+  return getSparqlResults(result).map((b) => b.mandataris?.value);
 };
 
 export const otherPersonHasMandate = async (
@@ -253,16 +254,18 @@ export const otherPersonHasMandate = async (
 
 export const setPublicationSatusWithDate = async (
   graph: string,
-  mandatarisUri: string,
+  mandatarissen: string[],
   date: Date,
   status: PUBLICATION_STATUS,
 ) => {
   const escaped = {
     graph: sparqlEscapeUri(graph),
-    mandatarisUri: sparqlEscapeUri(mandatarisUri),
     date: sparqlEscapeDateTime(date),
     status: sparqlEscapeUri(status),
   };
+  const safeMandatarissen = mandatarissen
+    .map((mandataris) => sparqlEscapeUri(mandataris))
+    .join('\n');
   const updateQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX dct: <http://purl.org/dc/terms/>
@@ -293,7 +296,9 @@ export const setPublicationSatusWithDate = async (
         }
         BIND(NOW() as ?now)
       }
-      VALUES ?mandataris { ${escaped.mandatarisUri} }
+      VALUES ?mandataris {
+        ${safeMandatarissen}
+      }
     }
 `;
   await updateSudo(updateQuery);
