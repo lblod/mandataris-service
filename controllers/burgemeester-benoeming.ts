@@ -7,7 +7,7 @@ import {
   createBurgemeesterFromScratch,
   createNotificationAangesteldeBurgemeester,
   createNotificationAfgewezenBurgemeester,
-  createNotificationMultipleBurgemeesters,
+  createNotificationOtherPersonWithBurgemeesterMandaat,
   findBurgemeesterMandates,
   getPersoonMandaatMandataris,
   getPersoonMandaatMandatarissen,
@@ -173,7 +173,10 @@ const handleBurgemeester = async (
 
   // If so create notification
   if (otherBurgemeesterFound) {
-    createNotificationMultipleBurgemeesters(orgGraph, otherBurgemeesterFound);
+    createNotificationOtherPersonWithBurgemeesterMandaat(
+      orgGraph,
+      otherBurgemeesterFound,
+    );
   }
 
   if (existingMandataris) {

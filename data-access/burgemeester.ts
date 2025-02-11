@@ -300,7 +300,7 @@ export const setPublicationStatusWithDate = async (
   await updateSudo(updateQuery);
 };
 
-export const createNotificationMultipleBurgemeesters = async (
+export const createNotificationOtherPersonWithBurgemeesterMandaat = async (
   graph: string,
   mandatarisUri: string,
 ) => {
