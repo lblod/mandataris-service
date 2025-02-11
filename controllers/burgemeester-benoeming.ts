@@ -23,12 +23,6 @@ import {
   findExistingMandatarisOfPerson,
 } from '../data-access/mandataris';
 import { personExistsInGraph } from '../data-access/persoon';
-import {
-  linkedMandateExists,
-  linkInstancesOnUri,
-  unlinkInstanceOnUri,
-} from '../data-access/linked-mandataris';
-import { getLinkedMandates } from './linked-mandataris';
 
 const parseBody = (body) => {
   if (body == null) {
@@ -199,67 +193,6 @@ const handleBurgemeester = async (
   }
 };
 
-const handleLinkedMandatarisBurgemeester = async (
-  orgGraph: string,
-  aangewezenBurgemeesterUri: string | undefined | null,
-  newBurgemeesterUri: string,
-  date: Date,
-  benoemingUri: string,
-) => {
-  // If no aangewezen burgemeester -> early return
-  if (!aangewezenBurgemeesterUri) {
-    return;
-  }
-
-  // Check if aangewezen burgemeester has linked mandataris
-  const linkedMandatarisABExists = await linkedMandateExists(
-    aangewezenBurgemeesterUri,
-    orgGraph,
-    getLinkedMandates,
-  );
-  const linkedMandatarisBExists = await linkedMandateExists(
-    newBurgemeesterUri,
-    orgGraph,
-    getLinkedMandates,
-  );
-
-  if (!linkedMandatarisABExists) {
-    return;
-  }
-
-  // If it does and the burgemeester has none
-  if (!linkedMandatarisBExists) {
-    // Copy linked mandataris
-    const newLinkedMandataris = await copyFromPreviousMandataris(
-      orgGraph,
-      linkedMandatarisABExists,
-      date,
-    );
-    // Set linked on burgemeester
-    linkInstancesOnUri(newBurgemeesterUri, newLinkedMandataris);
-  }
-
-  // If it does and the burgemeester has one
-  if (linkedMandatarisABExists == linkedMandatarisBExists) {
-    // Copy linked mandataris
-    const newLinkedMandataris = await copyFromPreviousMandataris(
-      orgGraph,
-      linkedMandatarisABExists,
-      date,
-    );
-    // Set linked on burgemeester
-    unlinkInstanceOnUri(newBurgemeesterUri);
-    linkInstancesOnUri(newBurgemeesterUri, newLinkedMandataris);
-  }
-
-  await endExistingMandataris(
-    orgGraph,
-    aangewezenBurgemeesterUri,
-    date,
-    benoemingUri,
-  );
-};
-
 const transferAangewezenBurgemeesterToBurgemeester = async (
   orgGraph: string,
   burgemeesterPersoonUri: string,
@@ -283,16 +216,6 @@ const transferAangewezenBurgemeesterToBurgemeester = async (
     benoemingUri,
     existingMandataris,
   );
-
-  for (const mandataris in newBurgemeesterMandatarissen) {
-    handleLinkedMandatarisBurgemeester(
-      orgGraph,
-      existingMandataris,
-      mandataris,
-      date,
-      benoemingUri,
-    );
-  }
 
   for (const mandataris in newBurgemeesterMandatarissen) {
     addBenoemingTriple(
