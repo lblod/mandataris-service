@@ -12,6 +12,7 @@ import {
   isBestuurseenheidDistrict,
   otherPersonHasMandate,
   setPublicationSatusWithDate,
+  setPublicationStatusMandatarissenWithDate,
 } from '../data-access/burgemeester';
 import { BENOEMING_STATUS, PUBLICATION_STATUS } from '../util/constants';
 import { checkAuthorization } from '../data-access/authorization';
@@ -140,7 +141,7 @@ const handleBurgemeester = async (
   existingMandataris: string | undefined | null,
 ) => {
   // Check if burgemeester already exists for the person
-  const burgemeesterMandatarisExists = await getPersoonMandaatMandatarissen(
+  const burgemeesterMandatarissenExist = await getPersoonMandaatMandatarissen(
     orgGraph,
     burgemeesterPersoonUri,
     burgemeesterMandaatUri,
@@ -148,14 +149,16 @@ const handleBurgemeester = async (
   );
 
   // If it exists, just bekrachtig it
-  if (burgemeesterMandatarisExists) {
-    setPublicationSatusWithDate(
-      orgGraph,
-      burgemeesterMandatarisExists,
-      date,
-      PUBLICATION_STATUS.BEKRACHTIGD,
-    );
-    return burgemeesterMandatarisExists;
+  if (burgemeesterMandatarissenExist) {
+    for (const burgemeesterMandataris in burgemeesterMandatarissenExist) {
+      setPublicationStatusMandatarissenWithDate(
+        orgGraph,
+        burgemeesterMandataris,
+        date,
+        PUBLICATION_STATUS.BEKRACHTIGD,
+      );
+    }
+    return burgemeesterMandatarissenExist;
   }
 
   // Check if burgemeester exists for another person
@@ -173,21 +176,23 @@ const handleBurgemeester = async (
 
   if (existingMandataris) {
     // we can copy over the existing values for the new burgemeester from the previous mandataris
-    return await copyFromPreviousMandataris(
+    const newBurgemeesterMandataris = await copyFromPreviousMandataris(
       orgGraph,
       existingMandataris,
       date,
       burgemeesterMandaatUri,
     );
+    return [newBurgemeesterMandataris];
   } else {
     // we need to create a new mandataris from scratch
-    return await createBurgemeesterFromScratch(
+    const newBurgemeesterMandataris = await createBurgemeesterFromScratch(
       orgGraph,
       burgemeesterPersoonUri,
       burgemeesterMandaatUri,
       date,
       benoemingUri,
     );
+    return [newBurgemeesterMandataris];
   }
 };
 
@@ -267,7 +272,7 @@ const transferAangewezenBurgemeesterToBurgemeester = async (
     benoemingUri,
   );
 
-  const newMandatarisUri = await handleBurgemeester(
+  const newBurgemeesterMandatarissen = await handleBurgemeester(
     orgGraph,
     burgemeesterPersoonUri,
     burgemeesterMandaatUri,
@@ -276,20 +281,24 @@ const transferAangewezenBurgemeesterToBurgemeester = async (
     existingMandataris,
   );
 
-  handleLinkedMandatarisBurgemeester(
-    orgGraph,
-    existingMandataris,
-    newMandatarisUri,
-    date,
-    benoemingUri,
-  );
+  for (const mandataris in newBurgemeesterMandatarissen) {
+    handleLinkedMandatarisBurgemeester(
+      orgGraph,
+      existingMandataris,
+      mandataris,
+      date,
+      benoemingUri,
+    );
+  }
 
-  addBenoemingTriple(
-    orgGraph,
-    newMandatarisUri,
-    benoemingUri,
-    BENOEMING_STATUS.BENOEMD,
-  );
+  for (const mandataris in newBurgemeesterMandatarissen) {
+    addBenoemingTriple(
+      orgGraph,
+      mandataris,
+      benoemingUri,
+      BENOEMING_STATUS.BENOEMD,
+    );
+  }
 };
 
 const markCurrentBurgemeesterAsRejected = async (

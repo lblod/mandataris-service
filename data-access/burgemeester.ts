@@ -252,20 +252,18 @@ export const otherPersonHasMandate = async (
   return findFirstSparqlResult(result)?.mandataris?.value;
 };
 
-export const setPublicationSatusWithDate = async (
+export const setPublicationStatusWithDate = async (
   graph: string,
-  mandatarissen: string[],
+  mandataris: string,
   date: Date,
   status: PUBLICATION_STATUS,
 ) => {
   const escaped = {
     graph: sparqlEscapeUri(graph),
+    mandataris: sparqlEscapeUri(mandataris),
     date: sparqlEscapeDateTime(date),
     status: sparqlEscapeUri(status),
   };
-  const safeMandatarissen = mandatarissen
-    .map((mandataris) => sparqlEscapeUri(mandataris))
-    .join('\n');
   const updateQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX dct: <http://purl.org/dc/terms/>
@@ -296,9 +294,7 @@ export const setPublicationSatusWithDate = async (
         }
         BIND(NOW() as ?now)
       }
-      VALUES ?mandataris {
-        ${safeMandatarissen}
-      }
+      VALUES ?mandataris { ${escaped.mandataris} }
     }
 `;
   await updateSudo(updateQuery);
