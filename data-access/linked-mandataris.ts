@@ -679,62 +679,6 @@ export async function unlinkInstance(instance: string) {
   await updateSudo(query);
 }
 
-export async function linkInstancesOnUri(instance1: string, instance2: string) {
-  const insertQuery = `
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-
-    INSERT {
-      GRAPH <http://mu.semte.ch/graphs/linkedInstances> {
-        ?i1 ext:linked ?i2 .
-      }
-    }
-    WHERE {
-      GRAPH ?g {
-        ?i1 mu:uuid ?id1 .
-      }
-      GRAPH ?h {
-        ?i2 mu:uuid ?id2 .
-      }
-      VALUES ?i1 { ${sparqlEscapeUri(instance1)} }
-      VALUES ?i2 { ${sparqlEscapeUri(instance2)} }
-    }
-  `;
-
-  await updateSudo(insertQuery);
-}
-
-export async function unlinkInstanceOnUri(instance: string) {
-  const query = `
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-
-    DELETE {
-      GRAPH <http://mu.semte.ch/graphs/linkedInstances> {
-        ?i1 ext:linked ?i2 .
-        ?i2 ext:linked ?i1 .
-      }
-    }
-    WHERE {
-      GRAPH ?g {
-        ?i1 mu:uuid ?id1 .
-      }
-      GRAPH <http://mu.semte.ch/graphs/linkedInstances> {
-        {
-          ?i1 ext:linked ?i2 .
-        }
-        UNION
-        {
-          ?i2 ext:linked ?i1 .
-        }
-      }
-      VALUES ?i1 { ${sparqlEscapeUri(instance)} }
-    }
-  `;
-
-  await updateSudo(query);
-}
-
 export async function findLinkedInstance(instance1: string) {
   const query = `
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
