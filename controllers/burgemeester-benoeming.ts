@@ -8,6 +8,7 @@ import {
   findBurgemeesterMandates,
   getPersoonMandaatMandataris,
   isBestuurseenheidDistrict,
+  otherPersonHasMandate,
 } from '../data-access/burgemeester';
 import { BENOEMING_STATUS } from '../util/constants';
 import { checkAuthorization } from '../data-access/authorization';
@@ -139,6 +140,12 @@ const handleBurgemeester = async (
   // If it exists, just bekrachtig it
 
   // Check if burgemeester exists for another person
+  const otherBurgemeesterFound = otherPersonHasMandate(
+    orgGraph,
+    burgemeesterPersoonUri,
+    burgemeesterMandaatUri,
+    date,
+  );
 
   // If so create notification
 

@@ -212,3 +212,40 @@ export const getPersoonMandaatMandataris = async (
   const result = await querySudo(selectQuery);
   return findFirstSparqlResult(result);
 };
+
+export const otherPersonHasMandate = async (
+  graph: string,
+  persoonUri: string,
+  mandaatUri: string,
+  date: Date,
+) => {
+  const escaped = {
+    graph: sparqlEscapeUri(graph),
+    persoonUri: sparqlEscapeUri(persoonUri),
+    mandaatUri: sparqlEscapeUri(mandaatUri),
+    date: sparqlEscapeDateTime(date),
+  };
+  const selectQuery = `
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    SELECT DISTINCT ?mandataris WHERE {
+      GRAPH ${escaped.graph} {
+        ?mandataris a mandaat:Mandataris ;
+          org:holds ?mandaat ;
+          mandaat:isBestuurlijkeAliasVan ?otherPersoon ;
+          mandaat:start ?start .
+        OPTIONAL {
+          ?mandataris mandaat:einde ?einde .
+        }
+        BIND(IF(BOUND(?einde), ?einde, "3000-01-01"^^xsd:dateTime) AS ?safeEinde)
+        FILTER (?persoon != ?otherPersoon)
+        FILTER(?start <= ${escaped.date} && ?safeEinde > ${escaped.date})
+      }
+      VALUES ?persoon { ${escaped.persoonUri} }
+      VALUES ?mandaat { ${escaped.mandaatUri} }
+    }
+  `;
+  const result = await querySudo(selectQuery);
+  return findFirstSparqlResult(result);
+};
