@@ -153,6 +153,53 @@ export async function linkedMandateAlreadyExists(
   return getBooleanSparqlResult(result);
 }
 
+export async function linkedMandateExists(
+  mandatarisUri: string,
+  graph: string,
+  valueBindings,
+) {
+  const q = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+
+    SELECT DISTINCT ?linkedMandataris WHERE {
+      GRAPH ?origin {
+        ?currentMandataris a mandaat:Mandataris ;
+          org:holds ?currentMandaat ;
+          mandaat:isBestuurlijkeAliasVan ?person .
+
+        ?currentMandaat a mandaat:Mandaat ;
+          org:role ?currentBestuursfunctie ;
+          ^org:hasPost ?currentBestuursOrgaanIT .
+        ?currentBestuursOrgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
+      }
+
+      GRAPH ${sparqlEscapeUri(graph)} {
+        ?linkedMandataris a mandaat:Mandataris ;
+          org:holds ?linkedMandaat ;
+          mandaat:isBestuurlijkeAliasVan ?person .
+        ?linkedMandaat a mandaat:Mandaat ;
+          org:role ?linkedBestuursfunctie ;
+          ^org:hasPost ?linkedBestuursOrgaanIT .
+        ?linkedBestuursOrgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
+      }
+
+      VALUES ?currentMandataris {
+        ${sparqlEscapeUri(mandatarisUri)}
+      }
+      VALUES (?currentBestuursfunctie ?linkedBestuursfunctie) {
+        ${valueBindings}
+      }
+    }
+    `;
+
+  const result = await querySudo(q);
+
+  return findFirstSparqlResult(result)?.linkedMandataris?.value;
+}
+
 export async function findPersonForMandataris(mandatarisId) {
   const q = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>

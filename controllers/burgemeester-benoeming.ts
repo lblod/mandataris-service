@@ -20,6 +20,11 @@ import {
   findExistingMandatarisOfPerson,
 } from '../data-access/mandataris';
 import { personExistsInGraph } from '../data-access/persoon';
+import {
+  linkedMandateAlreadyExists,
+  linkedMandateExists,
+} from '../data-access/linked-mandataris';
+import { getLinkedMandates } from './linked-mandataris';
 
 const parseBody = (body) => {
   if (body == null) {
@@ -196,11 +201,22 @@ const handleLinkedMandatarisBurgemeester = async (
   }
 
   // Check if aangewezen burgemeester has linked mandataris
+  const linkedMandatarisABExists = linkedMandateExists(
+    aangewezenBurgemeesterUri,
+    orgGraph,
+    getLinkedMandates,
+  );
+  const linkedMandatarisBExists = linkedMandateExists(
+    newBurgemeesterUri,
+    orgGraph,
+    getLinkedMandates,
+  );
+
   // If it does and the burgemeester has none
   // End linked mandataris
   // Copy linked mandataris
-
   // Set linked on burgemeester
+
   // If it does and the burgemeester has one as well
   // Check if different
   // If not -> repeat steps above
