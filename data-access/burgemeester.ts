@@ -248,7 +248,7 @@ export const otherPersonHasMandate = async (
     }
   `;
   const result = await querySudo(selectQuery);
-  return findFirstSparqlResult(result);
+  return findFirstSparqlResult(result)?.mandataris?.value;
 };
 
 export const setPublicationSatusWithDate = async (

@@ -151,7 +151,7 @@ const handleBurgemeester = async (
   }
 
   // Check if burgemeester exists for another person
-  const otherBurgemeesterFound = otherPersonHasMandate(
+  const otherBurgemeesterFound = await otherPersonHasMandate(
     orgGraph,
     burgemeesterPersoonUri,
     burgemeesterMandaatUri,
@@ -160,7 +160,7 @@ const handleBurgemeester = async (
 
   // If so create notification
   if (otherBurgemeesterFound) {
-    createNotificationMultipleBurgemeesters(orgGraph);
+    createNotificationMultipleBurgemeesters(orgGraph, otherBurgemeesterFound);
   }
 
   if (existingMandataris) {
