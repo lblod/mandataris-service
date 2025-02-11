@@ -23,6 +23,8 @@ import { personExistsInGraph } from '../data-access/persoon';
 import {
   linkedMandateAlreadyExists,
   linkedMandateExists,
+  linkInstancesOnUri,
+  unlinkInstanceOnUri,
 } from '../data-access/linked-mandataris';
 import { getLinkedMandates } from './linked-mandataris';
 
@@ -201,26 +203,52 @@ const handleLinkedMandatarisBurgemeester = async (
   }
 
   // Check if aangewezen burgemeester has linked mandataris
-  const linkedMandatarisABExists = linkedMandateExists(
+  const linkedMandatarisABExists = await linkedMandateExists(
     aangewezenBurgemeesterUri,
     orgGraph,
     getLinkedMandates,
   );
-  const linkedMandatarisBExists = linkedMandateExists(
+  const linkedMandatarisBExists = await linkedMandateExists(
     newBurgemeesterUri,
     orgGraph,
     getLinkedMandates,
   );
 
-  // If it does and the burgemeester has none
-  // End linked mandataris
-  // Copy linked mandataris
-  // Set linked on burgemeester
+  if (!linkedMandatarisABExists) {
+    return;
+  }
 
-  // If it does and the burgemeester has one as well
-  // Check if different
-  // If not -> repeat steps above
-  // If different -> just end the one from the aangewezen burgemeester
+  // If it does and the burgemeester has none
+  if (!linkedMandatarisBExists) {
+    // Copy linked mandataris
+    const newLinkedMandataris = await copyFromPreviousMandataris(
+      orgGraph,
+      linkedMandatarisABExists,
+      date,
+    );
+    // Set linked on burgemeester
+    linkInstancesOnUri(newBurgemeesterUri, newLinkedMandataris);
+  }
+
+  // If it does and the burgemeester has one
+  if (linkedMandatarisABExists == linkedMandatarisBExists) {
+    // Copy linked mandataris
+    const newLinkedMandataris = await copyFromPreviousMandataris(
+      orgGraph,
+      linkedMandatarisABExists,
+      date,
+    );
+    // Set linked on burgemeester
+    unlinkInstanceOnUri(newBurgemeesterUri);
+    linkInstancesOnUri(newBurgemeesterUri, newLinkedMandataris);
+  }
+
+  await endExistingMandataris(
+    orgGraph,
+    aangewezenBurgemeesterUri,
+    date,
+    benoemingUri,
+  );
 };
 
 const transferAangewezenBurgemeesterToBurgemeester = async (
