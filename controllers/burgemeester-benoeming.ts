@@ -156,7 +156,7 @@ const handleBurgemeester = async (
   );
 
   if (burgemeesterMandatarissenExist.length != 0) {
-    for (const burgemeesterMandataris in burgemeesterMandatarissenExist) {
+    for (const burgemeesterMandataris of burgemeesterMandatarissenExist) {
       setPublicationStatusWithDate(
         orgGraph,
         burgemeesterMandataris,
@@ -213,7 +213,7 @@ const transferAangewezenBurgemeesterToBurgemeester = async (
     existingMandataris,
   );
 
-  for (const mandataris in newBurgemeesterMandatarissen) {
+  for (const mandataris of newBurgemeesterMandatarissen) {
     addBenoemingTriple(
       orgGraph,
       mandataris,
