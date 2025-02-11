@@ -134,7 +134,20 @@ const handleBurgemeester = async (
   benoemingUri: string,
   existingMandataris: string | undefined | null,
 ) => {
-  // Check if burgemeester already exists for the person
+  const otherBurgemeesterFound = await otherPersonHasMandate(
+    orgGraph,
+    burgemeesterPersoonUri,
+    burgemeesterMandaatUri,
+    date,
+  );
+
+  if (otherBurgemeesterFound) {
+    createNotificationOtherPersonWithBurgemeesterMandaat(
+      orgGraph,
+      otherBurgemeesterFound,
+    );
+  }
+
   const burgemeesterMandatarissenExist = await getPersoonMandaatMandatarissen(
     orgGraph,
     burgemeesterPersoonUri,
@@ -142,8 +155,7 @@ const handleBurgemeester = async (
     date,
   );
 
-  // If it exists, just bekrachtig it
-  if (burgemeesterMandatarissenExist) {
+  if (burgemeesterMandatarissenExist.length != 0) {
     for (const burgemeesterMandataris in burgemeesterMandatarissenExist) {
       setPublicationStatusWithDate(
         orgGraph,
@@ -153,22 +165,6 @@ const handleBurgemeester = async (
       );
     }
     return burgemeesterMandatarissenExist;
-  }
-
-  // Check if burgemeester exists for another person
-  const otherBurgemeesterFound = await otherPersonHasMandate(
-    orgGraph,
-    burgemeesterPersoonUri,
-    burgemeesterMandaatUri,
-    date,
-  );
-
-  // If so create notification
-  if (otherBurgemeesterFound) {
-    createNotificationOtherPersonWithBurgemeesterMandaat(
-      orgGraph,
-      otherBurgemeesterFound,
-    );
   }
 
   if (existingMandataris) {
