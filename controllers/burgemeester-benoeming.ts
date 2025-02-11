@@ -10,12 +10,10 @@ import {
   createNotificationMultipleAangesteldeBurgemeesters,
   createNotificationOtherPersonWithBurgemeesterMandaat,
   findBurgemeesterMandates,
-  getPersoonMandaatMandataris,
   getPersoonMandaatMandatarissen,
   isBestuurseenheidDistrict,
   otherPersonHasMandate,
-  setPublicationSatusWithDate,
-  setPublicationStatusMandatarissenWithDate,
+  setPublicationStatusWithDate,
 } from '../data-access/burgemeester';
 import { BENOEMING_STATUS, PUBLICATION_STATUS } from '../util/constants';
 import { checkAuthorization } from '../data-access/authorization';
@@ -26,7 +24,6 @@ import {
 } from '../data-access/mandataris';
 import { personExistsInGraph } from '../data-access/persoon';
 import {
-  linkedMandateAlreadyExists,
   linkedMandateExists,
   linkInstancesOnUri,
   unlinkInstanceOnUri,
@@ -154,7 +151,7 @@ const handleBurgemeester = async (
   // If it exists, just bekrachtig it
   if (burgemeesterMandatarissenExist) {
     for (const burgemeesterMandataris in burgemeesterMandatarissenExist) {
-      setPublicationStatusMandatarissenWithDate(
+      setPublicationStatusWithDate(
         orgGraph,
         burgemeesterMandataris,
         date,
