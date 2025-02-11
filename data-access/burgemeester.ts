@@ -7,7 +7,7 @@ import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
 } from '../util/sparql-result';
-import { BENOEMING_STATUS } from '../util/constants';
+import { BENOEMING_STATUS, PUBLICATION_STATUS } from '../util/constants';
 
 export async function isBestuurseenheidDistrict(
   bestuurseenheidUri: string,
@@ -210,7 +210,7 @@ export const getPersoonMandaatMandataris = async (
     }
   `;
   const result = await querySudo(selectQuery);
-  return findFirstSparqlResult(result);
+  return findFirstSparqlResult(result)?.mandataris?.value;
 };
 
 export const otherPersonHasMandate = async (
@@ -248,4 +248,52 @@ export const otherPersonHasMandate = async (
   `;
   const result = await querySudo(selectQuery);
   return findFirstSparqlResult(result);
+};
+
+export const setPublicationSatusWithDate = async (
+  graph: string,
+  mandatarisUri: string,
+  date: Date,
+  status: PUBLICATION_STATUS,
+) => {
+  const escaped = {
+    graph: sparqlEscapeUri(graph),
+    mandatarisUri: sparqlEscapeUri(mandatarisUri),
+    date: sparqlEscapeDateTime(date),
+    status: sparqlEscapeUri(status),
+  };
+  const updateQuery = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+    DELETE {
+      GRAPH ${escaped.graph} {
+        ?mandataris lmb:hasPublicationStatus ?pStatus .
+        ?mandataris mandaat:start ?start .
+        ?mandataris dct:modified ?oldModified .
+      }
+    }
+    INSERT {
+      GRAPH ${escaped.graph} {
+        ?mandataris lmb:hasPublicationStatus ${escaped.status} .
+        ?mandataris mandaat:start ${escaped.date} .
+        ?mandataris dct:modified ?now .
+      }
+    }
+    WHERE {
+      GRAPH ${escaped.graph} {
+        ?mandataris a mandaat:Mandataris ;
+          mandaat:start ?start .
+        OPTIONAL {
+          ?mandataris lmb:hasPublicationStatus ?pStatus .
+        }
+        OPTIONAL {
+          ?mandataris dct:modified ?oldModified .
+        }
+        BIND(NOW() as ?now)
+      }
+      VALUES ?mandataris { ${escaped.mandatarisUri} }
+    }
+`;
+  await updateSudo(updateQuery);
 };

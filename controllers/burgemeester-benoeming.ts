@@ -9,8 +9,9 @@ import {
   getPersoonMandaatMandataris,
   isBestuurseenheidDistrict,
   otherPersonHasMandate,
+  setPublicationSatusWithDate,
 } from '../data-access/burgemeester';
-import { BENOEMING_STATUS } from '../util/constants';
+import { BENOEMING_STATUS, PUBLICATION_STATUS } from '../util/constants';
 import { checkAuthorization } from '../data-access/authorization';
 import {
   copyFromPreviousMandataris,
@@ -130,7 +131,7 @@ const handleBurgemeester = async (
   existingMandataris: string | undefined | null,
 ) => {
   // Check if burgemeester already exists for the person
-  const burgemeesterMandatarisExists = getPersoonMandaatMandataris(
+  const burgemeesterMandatarisExists = await getPersoonMandaatMandataris(
     orgGraph,
     burgemeesterPersoonUri,
     burgemeesterMandaatUri,
@@ -138,6 +139,14 @@ const handleBurgemeester = async (
   );
 
   // If it exists, just bekrachtig it
+  if (burgemeesterMandatarisExists) {
+    setPublicationSatusWithDate(
+      orgGraph,
+      burgemeesterMandatarisExists,
+      date,
+      PUBLICATION_STATUS.BEKRACHTIGD,
+    );
+  }
 
   // Check if burgemeester exists for another person
   const otherBurgemeesterFound = otherPersonHasMandate(
