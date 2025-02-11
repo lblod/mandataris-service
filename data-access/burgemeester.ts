@@ -8,6 +8,7 @@ import {
   getBooleanSparqlResult,
 } from '../util/sparql-result';
 import { BENOEMING_STATUS, PUBLICATION_STATUS } from '../util/constants';
+import { createNotification } from '../util/create-notification';
 
 export async function isBestuurseenheidDistrict(
   bestuurseenheidUri: string,
@@ -296,4 +297,23 @@ export const setPublicationSatusWithDate = async (
     }
 `;
   await updateSudo(updateQuery);
+};
+
+export const createNotificationMultipleBurgemeesters = async (
+  graph: string,
+  mandatarisUri: string,
+) => {
+  await createNotification({
+    title: 'Andere burgemeester gevonden die niet benoemd is',
+    description:
+      'Bij het benoemen van de burgemeester werd een andere persoon gevonden met het burgemeester mandaat. Gelieve dit na te kijken.',
+    type: 'warning',
+    graph: graph,
+    links: [
+      {
+        type: 'mandataris',
+        uri: mandatarisUri,
+      },
+    ],
+  });
 };

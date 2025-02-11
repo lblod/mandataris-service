@@ -5,6 +5,7 @@ import {
   addBenoemingTriple,
   createBurgemeesterBenoeming,
   createBurgemeesterFromScratch,
+  createNotificationMultipleBurgemeesters,
   findBurgemeesterMandates,
   getPersoonMandaatMandataris,
   isBestuurseenheidDistrict,
@@ -158,6 +159,9 @@ const handleBurgemeester = async (
   );
 
   // If so create notification
+  if (otherBurgemeesterFound) {
+    createNotificationMultipleBurgemeesters(orgGraph);
+  }
 
   if (existingMandataris) {
     // we can copy over the existing values for the new burgemeester from the previous mandataris
