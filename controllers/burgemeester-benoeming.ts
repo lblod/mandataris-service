@@ -197,13 +197,6 @@ const transferAangewezenBurgemeesterToBurgemeester = async (
   benoemingUri: string,
   existingMandataris: string | undefined | null,
 ) => {
-  await handleAangewezenBurgemeester(
-    orgGraph,
-    existingMandataris,
-    date,
-    benoemingUri,
-  );
-
   const newBurgemeesterMandatarissen = await handleBurgemeester(
     orgGraph,
     burgemeesterPersoonUri,
@@ -211,6 +204,13 @@ const transferAangewezenBurgemeesterToBurgemeester = async (
     date,
     benoemingUri,
     existingMandataris,
+  );
+
+  await handleAangewezenBurgemeester(
+    orgGraph,
+    existingMandataris,
+    date,
+    benoemingUri,
   );
 
   for (const mandataris of newBurgemeesterMandatarissen) {
