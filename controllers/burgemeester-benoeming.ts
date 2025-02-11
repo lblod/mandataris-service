@@ -146,6 +146,7 @@ const handleBurgemeester = async (
       date,
       PUBLICATION_STATUS.BEKRACHTIGD,
     );
+    return burgemeesterMandatarisExists;
   }
 
   // Check if burgemeester exists for another person
