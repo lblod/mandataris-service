@@ -319,6 +319,25 @@ export const createNotificationMultipleBurgemeesters = async (
   });
 };
 
+export const createNotificationAangesteldeBurgemeester = async (
+  graph: string,
+  mandatarisUri: string,
+) => {
+  await createNotification({
+    title: 'Burgemeester werd benoemd',
+    description:
+      'De benoeming van de burgemeester werd succesvol verwerkt, deze burgemeester is nu bekrachtigd.',
+    type: 'info',
+    graph: graph,
+    links: [
+      {
+        type: 'mandataris',
+        uri: mandatarisUri,
+      },
+    ],
+  });
+};
+
 export const createNotificationAfgewezenBurgemeester = async (
   graph: string,
   mandatarisUri: string,

@@ -5,6 +5,7 @@ import {
   addBenoemingTriple,
   createBurgemeesterBenoeming,
   createBurgemeesterFromScratch,
+  createNotificationAangesteldeBurgemeester,
   createNotificationAfgewezenBurgemeester,
   createNotificationMultipleBurgemeesters,
   findBurgemeesterMandates,
@@ -298,6 +299,13 @@ const transferAangewezenBurgemeesterToBurgemeester = async (
       mandataris,
       benoemingUri,
       BENOEMING_STATUS.BENOEMD,
+    );
+  }
+
+  if (newBurgemeesterMandatarissen.length == 1) {
+    createNotificationAangesteldeBurgemeester(
+      orgGraph,
+      newBurgemeesterMandatarissen.at(0),
     );
   }
 };
