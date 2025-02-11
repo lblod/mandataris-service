@@ -6,6 +6,7 @@ import {
   createBurgemeesterBenoeming,
   createBurgemeesterFromScratch,
   findBurgemeesterMandates,
+  getPersoonMandaatMandataris,
   isBestuurseenheidDistrict,
 } from '../data-access/burgemeester';
 import { BENOEMING_STATUS } from '../util/constants';
@@ -128,6 +129,12 @@ const handleBurgemeester = async (
   existingMandataris: string | undefined | null,
 ) => {
   // Check if burgemeester already exists for the person
+  const burgemeesterMandatarisExists = getPersoonMandaatMandataris(
+    orgGraph,
+    burgemeesterPersoonUri,
+    burgemeesterMandaatUri,
+    date,
+  );
 
   // If it exists, just bekrachtig it
 
