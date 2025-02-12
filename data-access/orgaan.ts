@@ -32,9 +32,13 @@ export async function getActivePersonen(bestuursorgaanId: string) {
    }`;
 
   const effectiveEndDateResult = await query(effectiveEndDateQuery);
-  const effectiveEndDate =
+  let effectiveEndDate =
     effectiveEndDateResult?.results?.bindings[0]?.effectiveEndDate?.value ||
     new Date();
+  if (moment(effectiveEndDate).isAfter(new Date())) {
+    // if the end date is in the future, it means we are looking at the current organ. Return the currently active mandatarissen
+    effectiveEndDate = new Date();
+  }
   // especially old data has incorrect hours in their end date. Let's give ourselves two hours of margin
   const effectiveEndDateWithMargin = moment(effectiveEndDate)
     .subtract(2, 'hours')
