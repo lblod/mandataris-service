@@ -325,7 +325,7 @@ export const createNotificationNoCorrespondingAangewezenBurgemeester = async (
   await createNotification({
     title: 'Geen aangewezen burgemeester gevonden voor burgemeesterbenoeming',
     description:
-      'Bij het benoemen van de burgemeester werd geen aangewezen burgemeester gevonden voor deze persoon. Het kan zijn dat er geen aangewezen burgemeester bestond of dat er een aangewezen burgemeester mandaat bestond voor een andere persoon. Gelieve dit na te kijken.',
+      'Bij het benoemen van de burgemeester werd geen aangewezen burgemeester gevonden voor deze persoon. Het kan dat er geen aangewezen burgemeester bestond of dat er een aangewezen burgemeester mandaat bestond voor een andere persoon. Gelieve dit na te kijken.',
     type: 'warning',
     graph: graph,
     links: [],
