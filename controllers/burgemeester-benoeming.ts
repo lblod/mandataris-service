@@ -259,8 +259,6 @@ const markCurrentBurgemeesterAsRejected = async (
     benoemingUri,
   );
 
-  // TODO: check use case if mandataris is waarnemend -> should something happen to the verhindering?
-
   addBenoemingTriple(
     orgGraph,
     existingMandatarisUri,
