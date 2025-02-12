@@ -326,7 +326,7 @@ export const createNotificationMultipleAangesteldeBurgemeesters = async (
   await createNotification({
     title: 'Meerdere burgemeester werden benoemd',
     description:
-      'De benoeming van de burgemeester werd succesvol verwerkt, deze persoon had echter meerdere burgemeester mandaten, dus zijn alle benoemd.',
+      'De benoeming van de burgemeester werd succesvol verwerkt, deze persoon had echter meerdere burgemeester mandaten, dus zijn al deze mandatarissen bekrachtigd.',
     type: 'info',
     graph: graph,
     links: mandatarisUris.map((mandataris) => {
