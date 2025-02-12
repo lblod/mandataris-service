@@ -8,6 +8,7 @@ import {
   createNotificationAangesteldeBurgemeester,
   createNotificationAfgewezenBurgemeester,
   createNotificationMultipleAangesteldeBurgemeesters,
+  createNotificationNoCorrespondingAangewezenBurgemeester,
   createNotificationOtherPersonWithBurgemeesterMandaat,
   findBurgemeesterMandates,
   getPersoonMandaatMandatarissen,
@@ -123,6 +124,8 @@ const handleAangewezenBurgemeester = async (
       date,
       benoemingUri,
     );
+  } else {
+    createNotificationNoCorrespondingAangewezenBurgemeester(orgGraph);
   }
 };
 

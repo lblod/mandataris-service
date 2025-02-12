@@ -319,6 +319,19 @@ export const createNotificationOtherPersonWithBurgemeesterMandaat = async (
   });
 };
 
+export const createNotificationNoCorrespondingAangewezenBurgemeester = async (
+  graph: string,
+) => {
+  await createNotification({
+    title: 'Geen aangewezen burgemeester gevonden voor burgemeesterbenoeming',
+    description:
+      'Bij het benoemen van de burgemeester werd geen aangewezen burgemeester gevonden voor deze persoon. Het kan zijn dat er geen aangewezen burgemeester bestond of dat er een aangewezen burgemeester mandaat bestond voor een andere persoon. Gelieve dit na te kijken.',
+    type: 'warning',
+    graph: graph,
+    links: [],
+  });
+};
+
 export const createNotificationMultipleAangesteldeBurgemeesters = async (
   graph: string,
   mandatarisUris: string[],
