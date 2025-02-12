@@ -326,6 +326,10 @@ export const getOrCreateOnafhankelijkeFractie = async (
   return await copyOnafhankelijkeFractieOfMandataris(mandatarisId, graph);
 };
 
+export const getLinkedMandates = () => {
+  return getValueBindings(linkedMandaten);
+};
+
 function getValueBindings(mapping) {
   const stringArray: string[] = [];
   mapping.forEach((value, key) => {
