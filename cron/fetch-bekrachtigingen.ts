@@ -1,5 +1,5 @@
 import { CronJob } from 'cron';
-import { updateSudo as update, querySudo } from '@lblod/mu-auth-sudo';
+import { updateSudo, querySudo } from '@lblod/mu-auth-sudo';
 import { sparqlEscapeUri, sparqlEscapeString } from 'mu';
 import { getIdentifierFromUri } from '../util/uuid-for-uri';
 import { v4 as uuidv4 } from 'uuid';
@@ -44,7 +44,7 @@ async function fetchBekrachtigingenForHarvester(harvester: string) {
     return res.text();
   });
 
-  await update(`DELETE {
+  await updateSudo(`DELETE {
     GRAPH ${sparqlEscapeUri(receiverGraph)} {
       ?s ?p ?o.
     }
@@ -58,7 +58,7 @@ async function fetchBekrachtigingenForHarvester(harvester: string) {
   while (batchedTtlData.length > 0) {
     const batch = batchedTtlData.splice(0, 1000).join('> .\n');
     const suffix = batchedTtlData.length > 0 ? '> .\n' : '';
-    await update(`
+    await updateSudo(`
     INSERT DATA {
        GRAPH ${sparqlEscapeUri(receiverGraph)} {
           ${batch}${suffix}
@@ -106,13 +106,13 @@ async function addMinDateAndOrgToBesluiten() {
       } GROUP BY ?trueOrgInT }
     }
   `;
-  await update(updateQuery);
+  await updateSudo(updateQuery);
 }
 
 async function processCurrentBekrachtigingen() {
   // weirdly doing this in one query is too heavy for virtuoso when filtering on startdate
   // splitting in two
-  await update(`
+  await updateSudo(`
   PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
   PREFIX org: <http://www.w3.org/ns/org#>
   PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
@@ -146,7 +146,7 @@ async function processCurrentBekrachtigingen() {
   }
   `);
 
-  await update(`
+  await updateSudo(`
   PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
   PREFIX org: <http://www.w3.org/ns/org#>
   PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
@@ -226,8 +226,8 @@ async function addMissingUuidsAndTypes() {
       }
     }
   `;
-  await update(updateUuids);
-  await update(`
+  await updateSudo(updateUuids);
+  await updateSudo(`
   PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
   PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
   INSERT {
