@@ -26,15 +26,12 @@ import {
 import { mandatarisUsecase } from './mandataris';
 import { isOnafhankelijkInPeriod } from '../data-access/persoon';
 import {
-  AANGEWEZEN_BURGEMEESTER_FUNCTIE_CODE,
-  BURGEMEESTER_FUNCTIE_CODE,
   GEMEENTERAADSLID_FUNCTIE_CODE,
   LID_OCMW_FUNCTIE_CODE,
   LID_VB_FUNCTIE_CODE,
   SCHEPEN_FUNCTIE_CODE,
   VOORZITTER_GEMEENTERAAD_FUNCTIE_CODE,
   VOORZITTER_RMW_CODE,
-  VOORZITTER_VB_FUNCTIE_CODE,
 } from '../util/constants';
 
 export const checkLinkedMandataris = async (req) => {
@@ -329,6 +326,10 @@ export const getOrCreateOnafhankelijkeFractie = async (
   return await copyOnafhankelijkeFractieOfMandataris(mandatarisId, graph);
 };
 
+export const getLinkedMandates = () => {
+  return getValueBindings(linkedMandaten);
+};
+
 function getValueBindings(mapping) {
   const stringArray: string[] = [];
   mapping.forEach((value, key) => {
@@ -342,8 +343,6 @@ const linkedMandaten = new Map([
   [GEMEENTERAADSLID_FUNCTIE_CODE, LID_OCMW_FUNCTIE_CODE],
   [VOORZITTER_GEMEENTERAAD_FUNCTIE_CODE, VOORZITTER_RMW_CODE],
   [SCHEPEN_FUNCTIE_CODE, LID_VB_FUNCTIE_CODE],
-  [BURGEMEESTER_FUNCTIE_CODE, VOORZITTER_VB_FUNCTIE_CODE],
-  [AANGEWEZEN_BURGEMEESTER_FUNCTIE_CODE, VOORZITTER_VB_FUNCTIE_CODE],
 ]);
 
 const linkedBestuurseenheden = new Map([

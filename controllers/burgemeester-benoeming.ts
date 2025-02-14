@@ -2,15 +2,27 @@ import { Request, Response } from 'express';
 import { HttpError } from '../util/http-error';
 
 import {
-  benoemBurgemeester,
+  addBenoemingTriple,
   createBurgemeesterBenoeming,
+  createBurgemeesterFromScratch,
+  createNotificationAangesteldeBurgemeester,
+  createNotificationAfgewezenBurgemeester,
+  createNotificationMultipleAangesteldeBurgemeesters,
+  createNotificationNoCorrespondingAangewezenBurgemeester,
+  createNotificationOtherPersonWithBurgemeesterMandaat,
   findBurgemeesterMandates,
+  getPersoonMandaatMandatarissen,
   isBestuurseenheidDistrict,
-  markCurrentBurgemeesterAsRejected,
+  otherPersonHasMandate,
+  setPublicationStatusWithDate,
 } from '../data-access/burgemeester';
-import { BENOEMING_STATUS } from '../util/constants';
+import { BENOEMING_STATUS, PUBLICATION_STATUS } from '../util/constants';
 import { checkAuthorization } from '../data-access/authorization';
-import { findExistingMandatarisOfPerson } from '../data-access/mandataris';
+import {
+  copyFromPreviousMandataris,
+  endExistingMandataris,
+  findExistingMandatarisOfPerson,
+} from '../data-access/mandataris';
 import { personExistsInGraph } from '../data-access/persoon';
 
 const parseBody = (body) => {
@@ -99,6 +111,164 @@ const validateAndParseRequest = async (req: Request) => {
   };
 };
 
+const handleAangewezenBurgemeester = async (
+  orgGraph: string,
+  existingMandataris: string | undefined | null,
+  date: Date,
+  benoemingUri: string,
+) => {
+  if (existingMandataris) {
+    await endExistingMandataris(
+      orgGraph,
+      existingMandataris,
+      date,
+      benoemingUri,
+    );
+  } else {
+    createNotificationNoCorrespondingAangewezenBurgemeester(orgGraph);
+  }
+};
+
+const handleBurgemeester = async (
+  orgGraph: string,
+  burgemeesterPersoonUri: string,
+  burgemeesterMandaatUri: string,
+  date: Date,
+  benoemingUri: string,
+  existingMandataris: string | undefined | null,
+) => {
+  const otherBurgemeesterFound = await otherPersonHasMandate(
+    orgGraph,
+    burgemeesterPersoonUri,
+    burgemeesterMandaatUri,
+    date,
+  );
+
+  if (otherBurgemeesterFound) {
+    createNotificationOtherPersonWithBurgemeesterMandaat(
+      orgGraph,
+      otherBurgemeesterFound,
+    );
+  }
+
+  const burgemeesterMandatarissenExist = await getPersoonMandaatMandatarissen(
+    orgGraph,
+    burgemeesterPersoonUri,
+    burgemeesterMandaatUri,
+    date,
+  );
+
+  if (burgemeesterMandatarissenExist.length != 0) {
+    for (const burgemeesterMandataris of burgemeesterMandatarissenExist) {
+      setPublicationStatusWithDate(
+        orgGraph,
+        burgemeesterMandataris,
+        date,
+        PUBLICATION_STATUS.BEKRACHTIGD,
+      );
+    }
+    return burgemeesterMandatarissenExist;
+  }
+
+  if (existingMandataris) {
+    // we can copy over the existing values for the new burgemeester from the previous mandataris
+    const newBurgemeesterMandataris = await copyFromPreviousMandataris(
+      orgGraph,
+      existingMandataris,
+      date,
+      burgemeesterMandaatUri,
+    );
+    return [newBurgemeesterMandataris];
+  } else {
+    // we need to create a new mandataris from scratch
+    const newBurgemeesterMandataris = await createBurgemeesterFromScratch(
+      orgGraph,
+      burgemeesterPersoonUri,
+      burgemeesterMandaatUri,
+      date,
+      benoemingUri,
+    );
+    return [newBurgemeesterMandataris];
+  }
+};
+
+const transferAangewezenBurgemeesterToBurgemeester = async (
+  orgGraph: string,
+  burgemeesterPersoonUri: string,
+  burgemeesterMandaatUri: string,
+  date: Date,
+  benoemingUri: string,
+  existingMandataris: string | undefined | null,
+) => {
+  const newBurgemeesterMandatarissen = await handleBurgemeester(
+    orgGraph,
+    burgemeesterPersoonUri,
+    burgemeesterMandaatUri,
+    date,
+    benoemingUri,
+    existingMandataris,
+  );
+
+  await handleAangewezenBurgemeester(
+    orgGraph,
+    existingMandataris,
+    date,
+    benoemingUri,
+  );
+
+  for (const mandataris of newBurgemeesterMandatarissen) {
+    addBenoemingTriple(
+      orgGraph,
+      mandataris,
+      benoemingUri,
+      BENOEMING_STATUS.BENOEMD,
+    );
+  }
+
+  if (newBurgemeesterMandatarissen.length == 1) {
+    createNotificationAangesteldeBurgemeester(
+      orgGraph,
+      newBurgemeesterMandatarissen.at(0),
+    );
+  } else if (newBurgemeesterMandatarissen.length >= 1) {
+    createNotificationMultipleAangesteldeBurgemeesters(
+      orgGraph,
+      newBurgemeesterMandatarissen,
+    );
+  }
+};
+
+const markCurrentBurgemeesterAsRejected = async (
+  orgGraph: string,
+  burgemeesterUri: string,
+  date: Date,
+  benoemingUri: string,
+  existingMandatarisUri: string | undefined,
+) => {
+  if (!existingMandatarisUri) {
+    throw new HttpError(
+      `No existing mandataris found for burgemeester(${burgemeesterUri})`,
+      400,
+    );
+  }
+
+  await endExistingMandataris(
+    orgGraph,
+    existingMandatarisUri,
+    date,
+    benoemingUri,
+  );
+
+  addBenoemingTriple(
+    orgGraph,
+    existingMandatarisUri,
+    benoemingUri,
+    BENOEMING_STATUS.AFGEWEZEN,
+  );
+
+  createNotificationAfgewezenBurgemeester(orgGraph, existingMandatarisUri);
+};
+
 const onBurgemeesterBenoemingSafe = async (req: Request) => {
   const {
     bestuurseenheidUri,
@@ -125,7 +295,7 @@ const onBurgemeesterBenoemingSafe = async (req: Request) => {
     burgemeesterUri,
   );
   if (status === BENOEMING_STATUS.BENOEMD) {
-    await benoemBurgemeester(
+    await transferAangewezenBurgemeesterToBurgemeester(
       orgGraph,
       burgemeesterUri,
       burgemeesterMandaatUri,

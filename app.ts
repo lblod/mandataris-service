@@ -9,11 +9,12 @@ import { fractiesRouter } from './routes/fractie';
 import { personenRouter } from './routes/persoon';
 import { burgemeesterRouter } from './routes/burgemeester-benoeming';
 import { installatievergaderingRouter } from './routes/installatievergadering';
-import { mandatenRouter } from './routes/mandaten';
+import { organenRouter } from './routes/organen';
 import { mockRouter } from './routes/mock';
 
 import { cronjob as harvestBekrachtigingenCron } from './cron/fetch-bekrachtigingen';
 import { electionResultsRouter } from './routes/verkiezingsresultaten';
+import { rangordeRouter } from './routes/rangorde';
 
 app.use(
   bodyParser.json({
@@ -34,10 +35,11 @@ app.use('/delta', deltaRouter);
 app.use('/mandatarissen', mandatarissenRouter);
 app.use('/fracties', fractiesRouter);
 app.use('/personen', personenRouter);
-app.use('/mandaten', mandatenRouter);
+app.use('/organen', organenRouter);
 app.use('/burgemeester-benoeming', burgemeesterRouter);
 app.use('/installatievergadering-api', installatievergaderingRouter);
 app.use('/election-results-api', electionResultsRouter);
+app.use('/rangorde', rangordeRouter);
 app.use('/mock', mockRouter);
 
 const errorHandler: ErrorRequestHandler = function (err, _req, res, _next) {

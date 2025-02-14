@@ -6,11 +6,10 @@ import { storeFile } from './file';
 import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
+  getSparqlResults,
 } from '../util/sparql-result';
-import {
-  copyFromPreviousMandataris,
-  endExistingMandataris,
-} from './mandataris';
+import { BENOEMING_STATUS, PUBLICATION_STATUS } from '../util/constants';
+import { createNotification } from '../util/create-notification';
 
 export async function isBestuurseenheidDistrict(
   bestuurseenheidUri: string,
@@ -118,38 +117,6 @@ export const createBurgemeesterBenoeming = async (
   return benoemingUri;
 };
 
-export const markCurrentBurgemeesterAsRejected = async (
-  orgGraph: string,
-  burgemeesterUri: string,
-  date: Date,
-  benoeming: string,
-  existingMandatarisUri: string | undefined,
-) => {
-  if (!existingMandatarisUri) {
-    throw new HttpError(
-      `No existing mandataris found for burgemeester(${burgemeesterUri})`,
-      400,
-    );
-  }
-
-  await endExistingMandataris(orgGraph, existingMandatarisUri, date, benoeming);
-
-  // TODO: check use case if mandataris is waarnemend -> should something happen to the verhindering?
-
-  const mandatarisUri = sparqlEscapeUri(existingMandatarisUri);
-  const benoemingUri = sparqlEscapeUri(benoeming);
-
-  const sparql = `
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-
-    INSERT DATA {
-      GRAPH ${sparqlEscapeUri(orgGraph)} {
-        ${benoemingUri} ext:rejects ${mandatarisUri} .
-      }
-    }`;
-  await updateSudo(sparql);
-};
-
 export const createBurgemeesterFromScratch = async (
   orgGraph: string,
   burgemeesterUri: string,
@@ -184,47 +151,240 @@ export const createBurgemeesterFromScratch = async (
   return newMandatarisUri;
 };
 
-export const benoemBurgemeester = async (
+export const addBenoemingTriple = async (
   orgGraph: string,
-  burgemeesterUri: string,
-  burgemeesterMandaatUri: string,
-  date: Date,
+  mandatarisUri: string,
   benoemingUri: string,
-  existingMandataris: string | undefined | null,
+  action: BENOEMING_STATUS,
 ) => {
-  let newMandatarisUri;
-  if (existingMandataris) {
-    // we can copy over the existing values for the new burgemeester from the previous mandataris
-    newMandatarisUri = await copyFromPreviousMandataris(
-      orgGraph,
-      existingMandataris,
-      date,
-      burgemeesterMandaatUri,
-    );
-
-    await endExistingMandataris(
-      orgGraph,
-      existingMandataris,
-      date,
-      benoemingUri,
-    );
-  } else {
-    // we need to create a new mandataris from scratch
-    newMandatarisUri = await createBurgemeesterFromScratch(
-      orgGraph,
-      burgemeesterUri,
-      burgemeesterMandaatUri,
-      date,
-      benoemingUri,
-    );
+  const escaped = {
+    graph: sparqlEscapeUri(orgGraph),
+    benoeming: sparqlEscapeUri(benoemingUri),
+    mandataris: sparqlEscapeUri(mandatarisUri),
+  };
+  let triple = '';
+  if (action == BENOEMING_STATUS.BENOEMD) {
+    triple = `${escaped.benoeming} ext:approves ${escaped.mandataris} .`;
+  } else if (action == BENOEMING_STATUS.AFGEWEZEN) {
+    triple = `${escaped.benoeming} ext:rejects ${escaped.mandataris} .`;
   }
-  const benoeming = sparqlEscapeUri(benoemingUri);
+
   await updateSudo(`
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     INSERT DATA {
-      GRAPH ${sparqlEscapeUri(orgGraph)} {
-        ${benoeming} ext:approves ${sparqlEscapeUri(newMandatarisUri)} .
+      GRAPH ${escaped.graph} {
+        ${triple}
       }
     }`);
+};
+
+export const getPersoonMandaatMandatarissen = async (
+  graph: string,
+  persoonUri: string,
+  mandaatUri: string,
+  date: Date,
+) => {
+  const escaped = {
+    graph: sparqlEscapeUri(graph),
+    persoonUri: sparqlEscapeUri(persoonUri),
+    mandaatUri: sparqlEscapeUri(mandaatUri),
+    date: sparqlEscapeDateTime(date),
+  };
+  const selectQuery = `
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    SELECT DISTINCT ?mandataris WHERE {
+      GRAPH ${escaped.graph} {
+        ?mandataris a mandaat:Mandataris ;
+          org:holds ?mandaat ;
+          mandaat:isBestuurlijkeAliasVan ?persoon ;
+          mandaat:start ?start .
+        OPTIONAL {
+          ?mandataris mandaat:einde ?einde .
+        }
+        BIND(IF(BOUND(?einde), ?einde, "3000-01-01"^^xsd:dateTime) AS ?safeEinde)
+        FILTER(?start <= ${escaped.date} && ?safeEinde > ${escaped.date})
+      }
+      VALUES ?persoon { ${escaped.persoonUri} }
+      VALUES ?mandaat { ${escaped.mandaatUri} }
+    }
+  `;
+  const result = await querySudo(selectQuery);
+  return getSparqlResults(result).map((b) => b.mandataris?.value);
+};
+
+export const otherPersonHasMandate = async (
+  graph: string,
+  persoonUri: string,
+  mandaatUri: string,
+  date: Date,
+) => {
+  const escaped = {
+    graph: sparqlEscapeUri(graph),
+    persoonUri: sparqlEscapeUri(persoonUri),
+    mandaatUri: sparqlEscapeUri(mandaatUri),
+    date: sparqlEscapeDateTime(date),
+  };
+  const selectQuery = `
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    SELECT DISTINCT ?mandataris WHERE {
+      GRAPH ${escaped.graph} {
+        ?mandataris a mandaat:Mandataris ;
+          org:holds ?mandaat ;
+          mandaat:isBestuurlijkeAliasVan ?otherPersoon ;
+          mandaat:start ?start .
+        OPTIONAL {
+          ?mandataris mandaat:einde ?einde .
+        }
+        BIND(IF(BOUND(?einde), ?einde, "3000-01-01"^^xsd:dateTime) AS ?safeEinde)
+        FILTER (?persoon != ?otherPersoon)
+        FILTER(?start <= ${escaped.date} && ?safeEinde > ${escaped.date})
+      }
+      VALUES ?persoon { ${escaped.persoonUri} }
+      VALUES ?mandaat { ${escaped.mandaatUri} }
+    }
+  `;
+  const result = await querySudo(selectQuery);
+  return findFirstSparqlResult(result)?.mandataris?.value;
+};
+
+export const setPublicationStatusWithDate = async (
+  graph: string,
+  mandataris: string,
+  date: Date,
+  status: PUBLICATION_STATUS,
+) => {
+  const escaped = {
+    graph: sparqlEscapeUri(graph),
+    mandataris: sparqlEscapeUri(mandataris),
+    date: sparqlEscapeDateTime(date),
+    status: sparqlEscapeUri(status),
+  };
+  const updateQuery = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+    DELETE {
+      GRAPH ${escaped.graph} {
+        ?mandataris lmb:hasPublicationStatus ?pStatus .
+        ?mandataris mandaat:start ?start .
+        ?mandataris dct:modified ?oldModified .
+      }
+    }
+    INSERT {
+      GRAPH ${escaped.graph} {
+        ?mandataris lmb:hasPublicationStatus ${escaped.status} .
+        ?mandataris mandaat:start ${escaped.date} .
+        ?mandataris dct:modified ?now .
+      }
+    }
+    WHERE {
+      GRAPH ${escaped.graph} {
+        ?mandataris a mandaat:Mandataris ;
+          mandaat:start ?start .
+        OPTIONAL {
+          ?mandataris lmb:hasPublicationStatus ?pStatus .
+        }
+        OPTIONAL {
+          ?mandataris dct:modified ?oldModified .
+        }
+        BIND(NOW() as ?now)
+      }
+      VALUES ?mandataris { ${escaped.mandataris} }
+    }
+`;
+  await updateSudo(updateQuery);
+};
+
+export const createNotificationOtherPersonWithBurgemeesterMandaat = async (
+  graph: string,
+  mandatarisUri: string,
+) => {
+  await createNotification({
+    title: 'Andere burgemeester gevonden die niet benoemd is',
+    description:
+      'Bij het benoemen van de burgemeester werd een andere persoon gevonden met het burgemeester mandaat. Gelieve dit na te kijken.',
+    type: 'warning',
+    graph: graph,
+    links: [
+      {
+        type: 'mandataris',
+        uri: mandatarisUri,
+      },
+    ],
+  });
+};
+
+export const createNotificationNoCorrespondingAangewezenBurgemeester = async (
+  graph: string,
+) => {
+  await createNotification({
+    title: 'Geen aangewezen burgemeester gevonden voor burgemeesterbenoeming',
+    description:
+      'Bij het benoemen van de burgemeester werd geen aangewezen burgemeester gevonden voor deze persoon. Het kan dat er geen aangewezen burgemeester bestond of dat er een aangewezen burgemeester mandaat bestond voor een andere persoon. Gelieve dit na te kijken.',
+    type: 'warning',
+    graph: graph,
+    links: [],
+  });
+};
+
+export const createNotificationMultipleAangesteldeBurgemeesters = async (
+  graph: string,
+  mandatarisUris: string[],
+) => {
+  await createNotification({
+    title: 'Meerdere burgemeester werden benoemd',
+    description:
+      'De benoeming van de burgemeester werd succesvol verwerkt, deze persoon had echter meerdere burgemeester mandaten, dus zijn al deze mandatarissen bekrachtigd.',
+    type: 'info',
+    graph: graph,
+    links: mandatarisUris.map((mandataris) => {
+      return {
+        type: 'mandataris',
+        uri: mandataris,
+      };
+    }),
+  });
+};
+
+export const createNotificationAangesteldeBurgemeester = async (
+  graph: string,
+  mandatarisUri: string,
+) => {
+  await createNotification({
+    title: 'Burgemeester werd benoemd',
+    description:
+      'De benoeming van de burgemeester werd succesvol verwerkt, deze burgemeester is nu bekrachtigd.',
+    type: 'info',
+    graph: graph,
+    links: [
+      {
+        type: 'mandataris',
+        uri: mandatarisUri,
+      },
+    ],
+  });
+};
+
+export const createNotificationAfgewezenBurgemeester = async (
+  graph: string,
+  mandatarisUri: string,
+) => {
+  await createNotification({
+    title: 'Burgemeester werd afgewezen',
+    description:
+      'De burgemeester werd afgewezen, gelieve een nieuwe burgemeester aan te stellen en deze wijzigingen ook door the voeren in het OCMW.',
+    type: 'info',
+    graph: graph,
+    links: [
+      {
+        type: 'mandataris',
+        uri: mandatarisUri,
+      },
+    ],
+  });
 };
