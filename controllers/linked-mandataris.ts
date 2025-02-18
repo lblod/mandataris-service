@@ -329,7 +329,7 @@ export const handleCreationNewLinkedMandataris = async (
   await linkInstances(newMandatarisId, newLinkedMandataris.id);
 };
 
-export const handleCreationNewLinkedMandataris = async (
+export const handleReplacement = async (
   destinationGraph: string,
   mandatarisId: string,
   linkedMandataris: resource,
