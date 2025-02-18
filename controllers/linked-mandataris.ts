@@ -325,6 +325,23 @@ export const handleCreationNewLinkedMandataris = async (
   await linkInstances(newMandatarisId, newLinkedMandataris.id);
 };
 
+export const handleCreationNewLinkedMandataris = async (
+  destinationGraph: string,
+  mandatarisId: string,
+  linkedMandataris: resource,
+) => {
+  // Check if replacement
+  // Check if linked replacement
+  // YES: Add link and replacement relation
+  // NO: split cases update state vs corrigeer fouten
+  // Update state:
+  // Check if mandataris exists that could be linked
+  // Yes: notification warning
+  // NO: create it
+  // Corrigeer fouten:
+  // Create notification
+};
+
 export const getLinkedMandates = () => {
   return getValueBindings(linkedMandaten);
 };
