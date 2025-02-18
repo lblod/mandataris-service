@@ -33,6 +33,7 @@ import {
   VOORZITTER_GEMEENTERAAD_FUNCTIE_CODE,
   VOORZITTER_RMW_CODE,
 } from '../util/constants';
+import { resource } from '../types';
 
 export const checkLinkedMandataris = async (req) => {
   const mandatarisId = req.params.id;
@@ -123,30 +124,12 @@ export const createLinkedMandataris = async (req) => {
     await copyPersonOfMandataris(mandatarisId, destinationGraph);
   }
 
-  const fractie = await getOrCreateOCMWFractie(mandatarisId, destinationGraph);
-
-  const newMandataris = await createNewLinkedMandataris(
-    mandatarisId,
-    fractie,
+  handleCreationNewLinkedMandataris(
     destinationGraph,
-    getValueBindings(linkedMandaten),
-  );
-
-  // Update current fractie on person
-  await mandatarisUsecase.updateCurrentFractieSudo(
-    newMandataris.id,
-    destinationGraph,
-  );
-
-  await saveHistoryItem(
-    newMandataris.uri,
     userId,
-    'created by gemeente - ocmw mirror',
+    mandatarisId,
+    null,
   );
-
-  await linkInstances(mandatarisId, newMandataris.id);
-
-  return newMandataris;
 };
 
 export const correctMistakesLinkedMandataris = async (req) => {
@@ -240,35 +223,12 @@ export const changeStateLinkedMandataris = async (req) => {
     );
   }
 
-  const fractie = await getOrCreateOCMWFractie(
-    newMandatarisId,
+  handleCreationNewLinkedMandataris(
     destinationGraph,
-  );
-
-  // We are updating state, the linked mandatee needs a new instance for the updated state.
-  const newLinkedMandataris = await createNewLinkedMandataris(
-    newMandatarisId,
-    fractie,
-    destinationGraph,
-    getValueBindings(linkedMandaten),
-  );
-
-  // Copy over values that were in the original linked mandatee but are not set in the new linked mandatee
-  await copyExtraValues(linkedMandataris.uri, newLinkedMandataris.uri);
-
-  // Update current fractie on person
-  await mandatarisUsecase.updateCurrentFractieSudo(
-    newLinkedMandataris.id,
-    destinationGraph,
-  );
-
-  await saveHistoryItem(
-    newLinkedMandataris.uri,
     userId,
-    'created as update state by gemeente - ocmw mirror',
+    newMandatarisId,
+    linkedMandataris,
   );
-
-  await linkInstances(newMandatarisId, newLinkedMandataris.id);
 
   // End original linked mandatee
   const endDate = new Date();
@@ -324,6 +284,45 @@ export const getOrCreateOnafhankelijkeFractie = async (
     return onafhankelijk;
   }
   return await copyOnafhankelijkeFractieOfMandataris(mandatarisId, graph);
+};
+
+export const handleCreationNewLinkedMandataris = async (
+  destinationGraph: string,
+  userId: string,
+  newMandatarisId: string,
+  oldlinkedMandataris: resource | null,
+) => {
+  const fractie = await getOrCreateOCMWFractie(
+    newMandatarisId,
+    destinationGraph,
+  );
+
+  // We are updating state, the linked mandatee needs a new instance for the updated state.
+  const newLinkedMandataris = await createNewLinkedMandataris(
+    newMandatarisId,
+    fractie,
+    destinationGraph,
+    getValueBindings(linkedMandaten),
+  );
+
+  // Copy over values that were in the original linked mandatee but are not set in the new linked mandatee
+  if (oldlinkedMandataris) {
+    await copyExtraValues(oldlinkedMandataris.uri, newLinkedMandataris.uri);
+  }
+
+  // Update current fractie on person
+  await mandatarisUsecase.updateCurrentFractieSudo(
+    newLinkedMandataris.id,
+    destinationGraph,
+  );
+
+  await saveHistoryItem(
+    newLinkedMandataris.uri,
+    userId,
+    'created as update state by gemeente - ocmw mirror',
+  );
+
+  await linkInstances(newMandatarisId, newLinkedMandataris.id);
 };
 
 export const getLinkedMandates = () => {

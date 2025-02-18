@@ -71,3 +71,8 @@ export type MandatarisFullInfo = MandatarisBesluitLookup & {
   triples: Triple[];
   graph: string;
 };
+
+export type resource = {
+  uri: string;
+  id: string;
+};
