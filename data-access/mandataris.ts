@@ -939,3 +939,27 @@ async function bulkUpdateEndDate(mandatarisUris: Array<string>, endDate: Date) {
   `;
   await update(updateQuery);
 }
+
+export async function hasReplacement(
+  graph: string,
+  mandatarisId: string,
+): Promise<boolean> {
+  const getQuery = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+
+    ASK {
+      GRAPH ${sparqlEscapeUri(graph)} {
+        ?mandataris a mandaat:Mandataris ;
+          mu:uuid ${sparqlEscapeString(mandatarisId)} ;
+          mandaat:isTijdelijkVervangenDoor ?vervanger .
+      }
+    }
+  `;
+
+  const sparqlResult = await query(getQuery);
+
+  return getBooleanSparqlResult(sparqlResult);
+}

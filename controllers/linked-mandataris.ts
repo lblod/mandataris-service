@@ -18,7 +18,11 @@ import {
   unlinkInstance,
   linkedMandateAlreadyExists,
 } from '../data-access/linked-mandataris';
-import { endExistingMandataris, mandataris } from '../data-access/mandataris';
+import {
+  endExistingMandataris,
+  mandataris,
+  hasReplacement,
+} from '../data-access/mandataris';
 import {
   fetchUserIdFromSession,
   saveHistoryItem,
@@ -331,6 +335,11 @@ export const handleCreationNewLinkedMandataris = async (
   linkedMandataris: resource,
 ) => {
   // Check if replacement
+  const isReplaced = await hasReplacement(destinationGraph, mandatarisId);
+  if (!isReplaced) {
+    return;
+  }
+
   // Check if linked replacement
   // YES: Add link and replacement relation
   // NO: split cases update state vs corrigeer fouten
