@@ -124,7 +124,7 @@ export const createLinkedMandataris = async (req) => {
     await copyPersonOfMandataris(mandatarisId, destinationGraph);
   }
 
-  handleCreationNewLinkedMandataris(
+  await handleCreationNewLinkedMandataris(
     destinationGraph,
     userId,
     mandatarisId,
@@ -223,7 +223,7 @@ export const changeStateLinkedMandataris = async (req) => {
     );
   }
 
-  handleCreationNewLinkedMandataris(
+  await handleCreationNewLinkedMandataris(
     destinationGraph,
     userId,
     newMandatarisId,
