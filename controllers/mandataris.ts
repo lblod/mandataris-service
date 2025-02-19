@@ -2,6 +2,7 @@ import { fractie } from '../data-access/fractie';
 import {
   bulkBekrachtigMandatarissen,
   bulkSetPublicationStatusEffectief,
+  checkMandatarisOwnershipQuery,
   mandataris,
 } from '../data-access/mandataris';
 import { persoon } from '../data-access/persoon';
@@ -21,6 +22,7 @@ export const mandatarisUsecase = {
   copyOverNonResourceDomainPredicates,
   generateRows,
   setEndDateOfActiveMandatarissen,
+  checkMandatarisOwnership,
 };
 
 async function getMandatarisFracties(
@@ -237,4 +239,8 @@ async function setEndDateOfActiveMandatarissen(
     userId,
     `Mandatarissen voor persoon(${id}) beëindigd door gebruiker`,
   );
+}
+
+async function checkMandatarisOwnership(mandatarisIds: string[]) {
+  return checkMandatarisOwnershipQuery(mandatarisIds);
 }
