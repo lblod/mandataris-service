@@ -1050,6 +1050,7 @@ export async function checkMandatarisOwnershipQuery(mandatarisIds: string[]) {
   PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
   PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
   PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+  PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
 
   SELECT ?id ?bestuurseenheidId WHERE {
     VALUES ?id { ${escaped.mandatarisIds} }
@@ -1057,7 +1058,11 @@ export async function checkMandatarisOwnershipQuery(mandatarisIds: string[]) {
       ?mandataris a mandaat:Mandataris ;
                   mu:uuid ?id .
     }
-    ?g ext:ownedBy / mu:uuid ?bestuurseenheidId .
+    ?g ext:ownedBy ?bestuurseenheid.
+    ?bestuurseenheid mu:uuid ?bestuurseenheidId .
+
+    # gemeente code
+    ?bestuurseenheid besluit:classificatie  <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/5ab0e9b8a3b2ca7c5e000001>.
   }`;
 
   const result = await querySudo(selectQuery);

@@ -29,12 +29,7 @@ export async function handleDeltaPolitiezone(req: Request, res: Response) {
   const mandatarisOrPersonSubjects = Array.from(
     new Set(touchedTriples.map((quad: Quad) => quad.subject.value)),
   ).filter((s) => {
-    return (
-      s.startsWith('http://data.lblod.info/id/mandatarissen/') ||
-      s.startsWith('http://data.lblod.info/id/personen/') ||
-      s.startsWith('http://data.lblod.info/id/geboortes/') ||
-      s.startsWith('http://data.lblod.info/id/identificatoren/')
-    );
+    return s.startsWith('http://data.lblod.info/id/mandatarissen/');
   });
 
   await mirrorInstances(mandatarisOrPersonSubjects);
@@ -106,10 +101,64 @@ async function findBatchOfMissedInstances() {
 }
 
 async function mirrorInstances(instanceUri: string[]) {
+  if (instanceUri.length === 0) {
+    return;
+  }
   const safeInstanceUris = instanceUri
     .map((uri) => sparqlEscapeUri(uri))
     .join('\n');
-  const updateQuery = `
+
+  // first select instances that are of interest to police zones
+  const selectQuery = `
+  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+  PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+  PREFIX dct: <http://purl.org/dc/terms>
+  PREFIX org: <http://www.w3.org/ns/org#>
+  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+  PREFIX persoon: <http://www.w3.org/ns/person#>
+  PREFIX adms: <http://www.w3.org/ns/adms#>
+
+  SELECT DISTINCT ?target WHERE {
+    VALUES ?s {
+      ${safeInstanceUris}
+    }
+    GRAPH ?g {
+      ?s a ?thing.
+      ${safePathsToSubjectToMirror}
+
+      {{ ?s a ?thing.
+         BIND(?s as ?target)
+        } UNION {
+         ?s mandaat:isBestuurlijkeAliasVan ?target .
+        } UNION {
+         ?s mandaat:isBestuurlijkeAliasVan / ( persoon:heeftGeboorte | adms:identifier ) ?target .
+      }}
+    }
+    GRAPH ?policeZoneGraph {
+      ?orgT org:hasPost ?mandate.
+      ?orgT mandaat:isTijdspecialisatieVan ?org.
+      # politieraad
+      ?org besluit:classificatie <http://data.vlaanderen.be/id/concept/BestuursorgaanClassificatieCode/1afce932-53c1-46d8-8aab-90dcc331e67d> .
+    }
+    ?g ext:ownedBy ?localGovernment.
+    ?policeZoneGraph ext:ownedBy ?policeZone.
+    ?localGovernment ext:deeltBestuurVan ?policeZone.
+    # police zone classificatie
+    ?policeZone besluit:classificatie <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/a3922c6d-425b-474f-9a02-ffb71a436bfc> .
+  }`;
+
+  const relevantInstances = await querySudo(selectQuery);
+  const relevantInstanceUris = relevantInstances.results.bindings.map((r) => {
+    return sparqlEscapeUri(r.target.value);
+  });
+  const uniqueInstanceUris = Array.from(new Set(relevantInstanceUris)).join(
+    '\n',
+  );
+
+  // split into delete and insert for efficiency, else we have an optional s p o in the delete part
+  // this allows for the possibility of a temporary inconsistency (millisecond scale) in the police zone graph
+  // but eventually the graph will be consistent, so this is acceptable
+  const deleteQuery = `
   PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
   PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
   PREFIX dct: <http://purl.org/dc/terms>
@@ -123,16 +172,50 @@ async function mirrorInstances(instanceUri: string[]) {
       ?s ?p ?o .
     }
   }
+  WHERE {
+    VALUES ?s {
+      ${uniqueInstanceUris}
+    }
+    GRAPH ?g {
+      ?s a ?thing.
+    }
+    GRAPH ?policeZoneGraph {
+      ?orgT org:hasPost ?mandate.
+      ?orgT mandaat:isTijdspecialisatieVan ?org.
+      # politieraad
+      ?org besluit:classificatie <http://data.vlaanderen.be/id/concept/BestuursorgaanClassificatieCode/1afce932-53c1-46d8-8aab-90dcc331e67d> .
+      ?s ?p ?o.
+    }
+    ?g ext:ownedBy ?localGovernment.
+    ?policeZoneGraph ext:ownedBy ?policeZone.
+    ?localGovernment ext:deeltBestuurVan ?policeZone.
+    # police zone classificatie
+    ?policeZone besluit:classificatie <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/a3922c6d-425b-474f-9a02-ffb71a436bfc> .
+  }
+  `;
+
+  await updateSudo(deleteQuery);
+
+  const insertQuery = `
+  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+  PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+  PREFIX dct: <http://purl.org/dc/terms>
+  PREFIX org: <http://www.w3.org/ns/org#>
+  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+  PREFIX persoon: <http://www.w3.org/ns/person#>
+  PREFIX adms: <http://www.w3.org/ns/adms#>
+
   INSERT {
     GRAPH ?policeZoneGraph {
       ?s ?pNew ?oNew .
     }
   }
   WHERE {
-    VALUES ?target {
-      ${safeInstanceUris}
+    VALUES ?s {
+      ${uniqueInstanceUris}
     }
     GRAPH ?g {
+      ?s a ?thing.
       ?s ?pNew ?oNew.
     }
     GRAPH ?policeZoneGraph {
@@ -140,34 +223,16 @@ async function mirrorInstances(instanceUri: string[]) {
       ?orgT mandaat:isTijdspecialisatieVan ?org.
       # politieraad
       ?org besluit:classificatie <http://data.vlaanderen.be/id/concept/BestuursorgaanClassificatieCode/1afce932-53c1-46d8-8aab-90dcc331e67d> .
-
-    }
-    # this optional has to be outside of the graph statement above for some reason?
-    OPTIONAL {
-      GRAPH ?policeZoneGraph {
-        ?s ?p ?o.
-      }
     }
     ?g ext:ownedBy ?localGovernment.
     ?policeZoneGraph ext:ownedBy ?policeZone.
     ?localGovernment ext:deeltBestuurVan ?policeZone.
     # police zone classificatie
     ?policeZone besluit:classificatie <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/a3922c6d-425b-474f-9a02-ffb71a436bfc> .
-
-    # if we get a mandataris, let's check person, geboorte and identifier to be sure
-    { { ?target a ?thing.
-        BIND(?target AS ?s)
-      }
-      UNION
-      { ?target mandaat:isBestuurlijkeAliasVan / (adms:identifier | persoon:heeftGeboorte)* ?s. }
-    }
-
-   ${safePathsToSubjectToMirror}
-
   }
   `;
 
-  await updateSudo(updateQuery);
+  await updateSudo(insertQuery);
 }
 
 repairPolitiezoneData()
