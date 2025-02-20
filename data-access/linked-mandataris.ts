@@ -120,7 +120,7 @@ export async function linkedMandateAlreadyExists(
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
-    ASK WHERE {
+    SELECT DISTINCT ?linkedMandataris ?linkedId WHERE {
       GRAPH ?origin {
         ?currentMandataris a mandaat:Mandataris ;
           mu:uuid ${sparqlEscapeString(mandatarisId)} ;
@@ -135,6 +135,7 @@ export async function linkedMandateAlreadyExists(
 
       GRAPH ${sparqlEscapeUri(graph)} {
         ?linkedMandataris a mandaat:Mandataris ;
+          mu:uuid ?linkedId ;
           org:holds ?linkedMandaat ;
           mandaat:isBestuurlijkeAliasVan ?person .
         ?linkedMandaat a mandaat:Mandaat ;
@@ -147,11 +148,17 @@ export async function linkedMandateAlreadyExists(
         ${valueBindings}
       }
     }
+    LIMIT 1
     `;
 
   const result = await querySudo(q);
-
-  return getBooleanSparqlResult(result);
+  if (result.results.bindings.length == 0) {
+    return null;
+  }
+  return {
+    uri: result.results.bindings[0].linkedMandataris.value as string,
+    id: result.results.bindings[0].linkedId.value as string,
+  };
 }
 
 export async function findPersonForMandataris(mandatarisId) {
