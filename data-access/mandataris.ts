@@ -976,3 +976,43 @@ export async function hasReplacement(
     id: result.results.bindings[0].vervangerId.value as string,
   };
 }
+
+export async function addReplacement(
+  graph: string,
+  mandataris: resource,
+  replacementMandataris: resource,
+) {
+  const escaped = {
+    graph: sparqlEscapeUri(graph),
+    mandataris: sparqlEscapeUri(mandataris.uri),
+    replacement: sparqlEscapeUri(replacementMandataris.uri),
+    dateNow: sparqlEscapeDateTime(new Date()),
+  };
+  const query = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX dct: <http://purl.org/dc/terms/>
+
+    INSERT {
+      GRAPH ${escaped.graph} {
+        ?mandataris mandaat:isTijdelijkVervangenDoor ${escaped.replacement} .
+        ?mandataris dct:modified ${escaped.dateNow} .
+      }
+    }
+    DELETE {
+      GRAPH ${escaped.graph} {
+        ?mandataris dct:modified ?oldModified .
+      }
+    }
+    WHERE {
+      GRAPH ${escaped.graph} {
+        ?mandataris a mandaat:Mandataris ;
+        OPTIONAL {
+          ?mandataris dct:modified ?oldModified .
+        }
+        VALUES ?mandataris { ${escaped.mandataris} }
+
+      }
+    }
+  `;
+  await updateSudo(query);
+}

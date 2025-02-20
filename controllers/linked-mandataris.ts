@@ -22,6 +22,7 @@ import {
   endExistingMandataris,
   mandataris,
   hasReplacement,
+  addReplacement,
 } from '../data-access/mandataris';
 import {
   fetchUserIdFromSession,
@@ -347,7 +348,11 @@ export const handleReplacement = async (
     getValueBindings(linkedMandaten),
   );
 
-  // YES: Add link and replacement relation
+  // YES: Add replacement relation
+  if (linkedReplacement) {
+    await addReplacement(destinationGraph, linkedMandataris, linkedReplacement);
+  }
+
   // NO: split cases update state vs corrigeer fouten
   // Update state:
   // Check if mandataris exists that could be linked
