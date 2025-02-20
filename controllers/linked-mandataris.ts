@@ -335,12 +335,18 @@ export const handleReplacement = async (
   linkedMandataris: resource,
 ) => {
   // Check if replacement
-  const isReplaced = await hasReplacement(destinationGraph, mandatarisId);
-  if (!isReplaced) {
+  const replacement = await hasReplacement(destinationGraph, mandatarisId);
+  if (!replacement) {
     return;
   }
 
   // Check if linked replacement
+  const linkedReplacement = await linkedMandateAlreadyExists(
+    destinationGraph,
+    replacement.uri,
+    getValueBindings(linkedMandaten),
+  );
+
   // YES: Add link and replacement relation
   // NO: split cases update state vs corrigeer fouten
   // Update state:

@@ -9,7 +9,13 @@ import {
 import moment from 'moment';
 import { v4 as uuidv4 } from 'uuid';
 
-import { CSVRow, CsvUploadState, MandateHit, TermProperty } from '../types';
+import {
+  CSVRow,
+  CsvUploadState,
+  MandateHit,
+  resource,
+  TermProperty,
+} from '../types';
 
 import {
   MANDATARIS_STATUS,
@@ -943,23 +949,30 @@ async function bulkUpdateEndDate(mandatarisUris: Array<string>, endDate: Date) {
 export async function hasReplacement(
   graph: string,
   mandatarisId: string,
-): Promise<boolean> {
-  const getQuery = `
+): Promise<resource> {
+  const query = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
-    ASK {
+    SELECT DISTINCT ?vervanger ?vervangerId {
       GRAPH ${sparqlEscapeUri(graph)} {
         ?mandataris a mandaat:Mandataris ;
           mu:uuid ${sparqlEscapeString(mandatarisId)} ;
           mandaat:isTijdelijkVervangenDoor ?vervanger .
+        ?vervanger mu:uuid ?vervangerId
       }
     }
+    LIMIT 1
   `;
 
-  const sparqlResult = await query(getQuery);
-
-  return getBooleanSparqlResult(sparqlResult);
+  const result = await querySudo(query);
+  if (result.results.bindings.length == 0) {
+    return null;
+  }
+  return {
+    uri: result.results.bindings[0].vervanger.value as string,
+    id: result.results.bindings[0].vervangerId.value as string,
+  };
 }
