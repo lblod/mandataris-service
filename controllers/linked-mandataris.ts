@@ -121,20 +121,10 @@ export const createLinkedMandataris = async (req) => {
     );
   }
 
-  const personExists = await personOfMandatarisExistsInGraph(
-    mandatarisId,
-    destinationGraph,
-  );
-
-  if (!personExists) {
-    await copyPersonOfMandataris(mandatarisId, destinationGraph);
-  }
-
-  await handleCreationNewLinkedMandataris(
+  await handleCreationNewLinkedMandatarisAndPerson(
     destinationGraph,
     userId,
     mandatarisId,
-    null,
   );
 };
 
@@ -331,8 +321,31 @@ export const handleCreationNewLinkedMandataris = async (
   await linkInstances(newMandatarisId, newLinkedMandataris.id);
 };
 
+export const handleCreationNewLinkedMandatarisAndPerson = async (
+  destinationGraph: string,
+  userId: string,
+  newMandatarisId: string,
+) => {
+  const personExists = await personOfMandatarisExistsInGraph(
+    newMandatarisId,
+    destinationGraph,
+  );
+
+  if (!personExists) {
+    await copyPersonOfMandataris(newMandatarisId, destinationGraph);
+  }
+
+  await handleCreationNewLinkedMandataris(
+    destinationGraph,
+    userId,
+    newMandatarisId,
+    null,
+  );
+};
+
 export const handleReplacement = async (
   destinationGraph: string,
+  userId: string,
   mandatarisId: string,
   linkedMandataris: resource,
 ) => {
@@ -369,6 +382,12 @@ export const handleReplacement = async (
   }
 
   // NO: create it
+  await handleCreationNewLinkedMandatarisAndPerson(
+    destinationGraph,
+    userId,
+    mandatarisId,
+  );
+
   // Corrigeer fouten:
   // Create notification
 };
