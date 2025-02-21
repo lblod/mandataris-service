@@ -432,14 +432,13 @@ export const handleReplacementCorrectMistakes = async (
   // YES: Add replacement relation
   if (linkedReplacement) {
     await addReplacement(destinationGraph, linkedMandataris, linkedReplacement);
-    return;
+  } else {
+    // NO: notification warning
+    await createNotificationLinkedReplacementCorrectMistakes(
+      destinationGraph,
+      linkedMandataris.uri,
+    );
   }
-
-  // NO: notification warning
-  await createNotificationLinkedReplacementCorrectMistakes(
-    destinationGraph,
-    linkedMandataris.uri,
-  );
 
   await saveHistoryItem(
     linkedMandataris.uri,
