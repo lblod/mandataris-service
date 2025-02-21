@@ -521,13 +521,15 @@ export async function createNewLinkedMandataris(
         ?currentMandataris a mandaat:Mandataris ;
           mu:uuid ${escaped.mandatarisId} ;
           org:holds ?currentMandaat ;
-          org:hasMembership ?membership ;
           ?mandatarisp ?mandatariso .
         ?currentMandaat a mandaat:Mandaat ;
           org:role ?currentBestuursfunctie ;
           ^org:hasPost ?currentBestuursOrgaanIT .
         ?currentBestuursOrgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
-        ?membership ?memberp ?membero .
+        OPTIONAL {
+          ?currentMandataris org:hasMembership ?membership .
+          ?membership ?memberp ?membero .
+        }
       }
 
       GRAPH ${escaped.graph} {
