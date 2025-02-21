@@ -1004,7 +1004,7 @@ export async function addReplacement(
     }
     WHERE {
       GRAPH ${escaped.graph} {
-        ?mandataris a mandaat:Mandataris ;
+        ?mandataris a mandaat:Mandataris .
         OPTIONAL {
           ?mandataris dct:modified ?oldModified .
         }
