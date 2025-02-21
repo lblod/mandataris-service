@@ -948,7 +948,7 @@ async function bulkUpdateEndDate(mandatarisUris: Array<string>, endDate: Date) {
 
 export async function hasReplacement(
   mandatarisId: string,
-): Promise<instanceIdentifiers> {
+): Promise<instanceIdentifiers[]> {
   const q = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -963,17 +963,18 @@ export async function hasReplacement(
         ?vervanger mu:uuid ?vervangerId
       }
     }
-    LIMIT 1
   `;
 
   const result = await query(q);
   if (result.results.bindings.length == 0) {
     return null;
   }
-  return {
-    uri: result.results.bindings[0].vervanger.value as string,
-    id: result.results.bindings[0].vervangerId.value as string,
-  };
+  return result.bindings.map((binding) => {
+    return {
+      uri: binding.vervanger.value as string,
+      id: binding.vervangerId.value as string,
+    };
+  });
 }
 
 export async function addReplacement(

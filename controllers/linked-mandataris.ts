@@ -370,10 +370,11 @@ export const handleReplacement = async (
   linkedMandataris: instanceIdentifiers,
 ) => {
   // Check if replacement
-  const replacement = await hasReplacement(mandatarisId);
-  if (!replacement) {
+  const replacements = await hasReplacement(mandatarisId);
+  if (!replacements) {
     return;
   }
+  const replacement = replacements.at(0);
 
   // Check if linked replacement
   const linkedReplacement = await findLinkedInstance(replacement.id);
@@ -421,10 +422,11 @@ export const handleReplacementCorrectMistakes = async (
   linkedMandataris: instanceIdentifiers,
 ) => {
   // Check if replacement
-  const replacement = await hasReplacement(mandatarisId);
-  if (!replacement) {
+  const replacements = await hasReplacement(mandatarisId);
+  if (!replacements) {
     return;
   }
+  const replacement = replacements.at(0);
 
   // Check if linked replacement
   const linkedReplacement = await findLinkedInstance(replacement.id);
