@@ -111,14 +111,11 @@ export async function getDestinationGraphLinkedMandataris(
 }
 
 export async function linkedMandateAlreadyExists(
-  mandatarisId: string,
   graph: string,
+  mandatarisId: string,
   valueBindings,
 ) {
   const q = `
-
-
-
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>

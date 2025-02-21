@@ -109,8 +109,8 @@ export const createLinkedMandataris = async (req) => {
   }
 
   const mandateAlreadyExists = await linkedMandateAlreadyExists(
-    mandatarisId,
     destinationGraph,
+    mandatarisId,
     getValueBindings(linkedMandaten),
   );
 
