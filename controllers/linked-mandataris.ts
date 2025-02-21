@@ -381,7 +381,7 @@ export const handleReplacement = async (
   // Check if mandataris exists that could be linked
   const linkedReplacementWithoutLink = await linkedMandateAlreadyExists(
     destinationGraph,
-    replacement.uri,
+    replacement.id,
     getValueBindings(linkedMandaten),
   );
   // Yes: notification warning
