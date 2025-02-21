@@ -344,12 +344,13 @@ export const handleCreationNewLinkedMandatarisAndPerson = async (
     await copyPersonOfMandataris(newMandatarisId, destinationGraph);
   }
 
-  await handleCreationNewLinkedMandataris(
+  const newLinkedMandataris = await handleCreationNewLinkedMandataris(
     destinationGraph,
     userId,
     newMandatarisId,
     null,
   );
+  return newLinkedMandataris;
 };
 
 export const handleReplacement = async (
@@ -391,10 +392,15 @@ export const handleReplacement = async (
   }
 
   // NO: create it
-  await handleCreationNewLinkedMandatarisAndPerson(
+  const newLinkedReplacement = await handleCreationNewLinkedMandatarisAndPerson(
     destinationGraph,
     userId,
     mandatarisId,
+  );
+  await addReplacement(
+    destinationGraph,
+    linkedMandataris,
+    newLinkedReplacement,
   );
 
   // Corrigeer fouten:
