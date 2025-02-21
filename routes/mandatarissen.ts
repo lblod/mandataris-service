@@ -5,7 +5,7 @@ import multer from 'multer';
 
 import { mandatarisDownloadRequest } from '../Requests/mandataris-download';
 
-import { deleteInstanceWithTombstone } from '../data-access/delete';
+import { deleteMandatarisWithTombstone } from '../data-access/delete';
 
 import {
   addLinkLinkedMandataris,
@@ -31,7 +31,8 @@ const upload = multer({ dest: 'mandataris-uploads/' });
 const mandatarissenRouter = Router();
 
 mandatarissenRouter.delete('/:id', async (req: Request, res: Response) => {
-  await deleteInstanceWithTombstone(req.params.id);
+  const withLinked = req.query.withLinked === 'true';
+  await deleteMandatarisWithTombstone(req.params.id, withLinked);
   return res.status(204).send();
 });
 
