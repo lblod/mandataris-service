@@ -325,7 +325,7 @@ export const handleCreationNewLinkedMandataris = async (
   await saveHistoryItem(
     newLinkedMandataris.uri,
     userId,
-    'created as update state by gemeente - ocmw mirror',
+    'created by gemeente - ocmw mirror',
   );
 
   await linkInstances(newMandatarisId, newLinkedMandataris.id);
