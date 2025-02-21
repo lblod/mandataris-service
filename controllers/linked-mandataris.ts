@@ -359,7 +359,7 @@ export const handleReplacement = async (
   linkedMandataris: instanceIdentifiers,
 ) => {
   // Check if replacement
-  const replacement = await hasReplacement(destinationGraph, mandatarisId);
+  const replacement = await hasReplacement(mandatarisId);
   if (!replacement) {
     return;
   }

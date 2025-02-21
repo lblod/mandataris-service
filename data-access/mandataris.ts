@@ -947,17 +947,16 @@ async function bulkUpdateEndDate(mandatarisUris: Array<string>, endDate: Date) {
 }
 
 export async function hasReplacement(
-  graph: string,
   mandatarisId: string,
 ): Promise<instanceIdentifiers> {
-  const query = `
+  const q = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     SELECT DISTINCT ?vervanger ?vervangerId {
-      GRAPH ${sparqlEscapeUri(graph)} {
+      GRAPH ?g {
         ?mandataris a mandaat:Mandataris ;
           mu:uuid ${sparqlEscapeString(mandatarisId)} ;
           mandaat:isTijdelijkVervangenDoor ?vervanger .
@@ -967,7 +966,7 @@ export async function hasReplacement(
     LIMIT 1
   `;
 
-  const result = await querySudo(query);
+  const result = await query(q);
   if (result.results.bindings.length == 0) {
     return null;
   }
