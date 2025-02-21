@@ -13,7 +13,7 @@ import {
   CSVRow,
   CsvUploadState,
   MandateHit,
-  resource,
+  instanceIdentifiers,
   TermProperty,
 } from '../types';
 
@@ -949,7 +949,7 @@ async function bulkUpdateEndDate(mandatarisUris: Array<string>, endDate: Date) {
 export async function hasReplacement(
   graph: string,
   mandatarisId: string,
-): Promise<resource> {
+): Promise<instanceIdentifiers> {
   const query = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -979,8 +979,8 @@ export async function hasReplacement(
 
 export async function addReplacement(
   graph: string,
-  mandataris: resource,
-  replacementMandataris: resource,
+  mandataris: instanceIdentifiers,
+  replacementMandataris: instanceIdentifiers,
 ) {
   const escaped = {
     graph: sparqlEscapeUri(graph),
