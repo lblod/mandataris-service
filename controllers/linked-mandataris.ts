@@ -23,7 +23,7 @@ import {
 import {
   endExistingMandataris,
   mandataris,
-  hasReplacement,
+  getReplacements,
   addReplacement,
 } from '../data-access/mandataris';
 import {
@@ -370,7 +370,7 @@ export const handleReplacement = async (
   linkedMandataris: instanceIdentifiers,
 ) => {
   // Check if replacement
-  const replacements = await hasReplacement(mandatarisId);
+  const replacements = await getReplacements(mandatarisId);
   if (!replacements) {
     return;
   }
@@ -422,7 +422,7 @@ export const handleReplacementCorrectMistakes = async (
   linkedMandataris: instanceIdentifiers,
 ) => {
   // Check if replacement
-  const replacements = await hasReplacement(mandatarisId);
+  const replacements = await getReplacements(mandatarisId);
   if (!replacements) {
     return;
   }

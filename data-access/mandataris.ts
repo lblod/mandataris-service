@@ -946,7 +946,7 @@ async function bulkUpdateEndDate(mandatarisUris: Array<string>, endDate: Date) {
   await update(updateQuery);
 }
 
-export async function hasReplacement(
+export async function getReplacements(
   mandatarisId: string,
 ): Promise<instanceIdentifiers[]> {
   const q = `
