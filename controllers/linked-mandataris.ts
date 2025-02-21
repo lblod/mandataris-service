@@ -211,24 +211,31 @@ export const changeStateLinkedMandataris = async (req) => {
     throw new HttpError('No destination graph found', 500);
   }
 
-  const linkedMandataris = await findLinkedInstance(oldMandatarisId);
-  if (!linkedMandataris) {
+  const oldLinkedMandataris = await findLinkedInstance(oldMandatarisId);
+  if (!oldLinkedMandataris) {
     throw new HttpError(
       `No linked mandataris found for id ${oldMandatarisId}`,
       404,
     );
   }
 
-  await handleCreationNewLinkedMandataris(
+  const newLinkedMandataris = await handleCreationNewLinkedMandataris(
     destinationGraph,
     userId,
     newMandatarisId,
-    linkedMandataris,
+    oldLinkedMandataris,
   );
 
   // End original linked mandatee
   const endDate = new Date();
-  endExistingMandataris(destinationGraph, linkedMandataris.uri, endDate);
+  endExistingMandataris(destinationGraph, oldLinkedMandataris.uri, endDate);
+
+  await handleReplacement(
+    destinationGraph,
+    userId,
+    newMandatarisId,
+    newLinkedMandataris,
+  );
 };
 
 const preliminaryChecksLinkedMandataris = async (req) => {
@@ -319,6 +326,8 @@ export const handleCreationNewLinkedMandataris = async (
   );
 
   await linkInstances(newMandatarisId, newLinkedMandataris.id);
+
+  return newLinkedMandataris;
 };
 
 export const handleCreationNewLinkedMandatarisAndPerson = async (
