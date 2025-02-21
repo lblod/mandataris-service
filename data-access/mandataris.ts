@@ -1015,3 +1015,29 @@ export async function addReplacement(
   `;
   await updateSudo(query);
 }
+
+export async function removeReplacements(
+  graph: string,
+  mandataris: instanceIdentifiers,
+) {
+  const escaped = {
+    graph: sparqlEscapeUri(graph),
+    mandataris: sparqlEscapeUri(mandataris.uri),
+  };
+  const query = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+
+    DELETE {
+      GRAPH ${escaped.graph} {
+        ${escaped.mandataris} mandaat:isTijdelijkVervangenDoor ?vervanger .
+      }
+    }
+    WHERE {
+      GRAPH ${escaped.graph} {
+        ${escaped.mandataris} a mandaat:Mandataris .
+          mandaat:isTijdelijkVervangenDoor ?vervanger .
+      }
+    }
+  `;
+  await updateSudo(query);
+}

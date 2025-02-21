@@ -25,6 +25,7 @@ import {
   mandataris,
   getReplacements,
   addReplacement,
+  removeReplacements,
 } from '../data-access/mandataris';
 import {
   fetchUserIdFromSession,
@@ -433,6 +434,7 @@ export const handleReplacementCorrectMistakes = async (
 
   // YES: Add replacement relation
   if (linkedReplacement) {
+    await removeReplacements(destinationGraph, linkedMandataris);
     await addReplacement(destinationGraph, linkedMandataris, linkedReplacement);
   } else {
     // NO: notification warning
