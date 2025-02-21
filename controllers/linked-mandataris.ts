@@ -17,6 +17,7 @@ import {
   copyOnafhankelijkeFractieOfMandataris,
   unlinkInstance,
   linkedMandateAlreadyExists,
+  createNotificationLinkedReplacementAlreadyExists,
 } from '../data-access/linked-mandataris';
 import {
   endExistingMandataris,
@@ -359,6 +360,14 @@ export const handleReplacement = async (
     getValueBindings(linkedMandaten),
   );
   // Yes: notification warning
+  if (linkedReplacementWithoutLink) {
+    await createNotificationLinkedReplacementAlreadyExists(
+      destinationGraph,
+      linkedMandataris.uri,
+    );
+    return;
+  }
+
   // NO: create it
   // Corrigeer fouten:
   // Create notification

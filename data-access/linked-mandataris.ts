@@ -733,3 +733,22 @@ export async function findLinkedInstance(instance1: string): Promise<resource> {
     id: result.results.bindings[0].i2Id.value as string,
   };
 }
+
+export const createNotificationLinkedReplacementAlreadyExists = async (
+  graph: string,
+  mandatarisUri: string,
+) => {
+  await createNotification({
+    title: 'Vervanger kon niet automatisch toegekend worden',
+    description:
+      'Een mandataris uit de gemeente is verhinderd geraakt, hiervoor werd in de gemeente een vervanger aangesteld. Het corresponderende mandaat in de OCMW van de verhinderde mandataris werd ook op verhinderd gezet. Het was echter niet mogelijk hiervoor een vervanger aan te stellen. Gelieve dit dan ook na te kijken en zelf toe te voegen indien nodig.',
+    type: 'warning',
+    graph: graph,
+    links: [
+      {
+        type: 'mandataris',
+        uri: mandatarisUri,
+      },
+    ],
+  });
+};
