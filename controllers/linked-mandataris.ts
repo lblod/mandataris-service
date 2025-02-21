@@ -314,10 +314,12 @@ export const handleCreationNewLinkedMandataris = async (
   }
 
   // Update current fractie on person
-  await mandatarisUsecase.updateCurrentFractieSudo(
-    newLinkedMandataris.id,
-    destinationGraph,
-  );
+  if (fractie) {
+    await mandatarisUsecase.updateCurrentFractieSudo(
+      newLinkedMandataris.id,
+      destinationGraph,
+    );
+  }
 
   await saveHistoryItem(
     newLinkedMandataris.uri,
