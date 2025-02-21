@@ -158,8 +158,8 @@ export async function linkedMandateAlreadyExists(
       }
 
       FILTER (
-        (?start1 >= ?start2 && ?safEnd2 >= ?start1) ||
-        (?start1 <= ?start2 && ?safEnd1 >= ?start2)
+        (?start1 >= ?start2 && ?safeEnd2 >= ?start1) ||
+        (?start1 <= ?start2 && ?safeEnd1 >= ?start2)
       )
       BIND(IF(BOUND(?end1), ?end1, "3000-01-01T12:00:00.000Z"^^xsd:dateTime) AS ?safeEnd1 )
       BIND(IF(BOUND(?end2), ?end2, "3000-01-01T12:00:00.000Z"^^xsd:dateTime) AS ?safeEnd2 )
