@@ -342,20 +342,22 @@ export const handleReplacement = async (
   }
 
   // Check if linked replacement
-  const linkedReplacement = await linkedMandateAlreadyExists(
-    destinationGraph,
-    replacement.uri,
-    getValueBindings(linkedMandaten),
-  );
+  const linkedReplacement = await findLinkedInstance(replacement.id);
 
   // YES: Add replacement relation
   if (linkedReplacement) {
     await addReplacement(destinationGraph, linkedMandataris, linkedReplacement);
+    return;
   }
 
   // NO: split cases update state vs corrigeer fouten
   // Update state:
   // Check if mandataris exists that could be linked
+  const linkedReplacementWithoutLink = await linkedMandateAlreadyExists(
+    destinationGraph,
+    replacement.uri,
+    getValueBindings(linkedMandaten),
+  );
   // Yes: notification warning
   // NO: create it
   // Corrigeer fouten:
