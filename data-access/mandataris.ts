@@ -985,21 +985,20 @@ export async function addReplacement(
     graph: sparqlEscapeUri(graph),
     mandataris: sparqlEscapeUri(mandataris.uri),
     replacement: sparqlEscapeUri(replacementMandataris.uri),
-    dateNow: sparqlEscapeDateTime(new Date()),
   };
   const query = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX dct: <http://purl.org/dc/terms/>
 
-    INSERT {
-      GRAPH ${escaped.graph} {
-        ?mandataris mandaat:isTijdelijkVervangenDoor ${escaped.replacement} .
-        ?mandataris dct:modified ${escaped.dateNow} .
-      }
-    }
     DELETE {
       GRAPH ${escaped.graph} {
         ?mandataris dct:modified ?oldModified .
+      }
+    }
+    INSERT {
+      GRAPH ${escaped.graph} {
+        ?mandataris mandaat:isTijdelijkVervangenDoor ${escaped.replacement} .
+        ?mandataris dct:modified ?now .
       }
     }
     WHERE {
@@ -1009,7 +1008,7 @@ export async function addReplacement(
           ?mandataris dct:modified ?oldModified .
         }
         VALUES ?mandataris { ${escaped.mandataris} }
-
+        BIND(NOW() AS ?now)
       }
     }
   `;
