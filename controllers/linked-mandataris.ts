@@ -39,7 +39,7 @@ import {
   VOORZITTER_GEMEENTERAAD_FUNCTIE_CODE,
   VOORZITTER_RMW_CODE,
 } from '../util/constants';
-import { resource } from '../types';
+import { instanceIdentifiers } from '../types';
 
 export const checkLinkedMandataris = async (req) => {
   const mandatarisId = req.params.id;
@@ -293,7 +293,7 @@ export const handleCreationNewLinkedMandataris = async (
   destinationGraph: string,
   userId: string,
   newMandatarisId: string,
-  oldlinkedMandataris: resource | null,
+  oldlinkedMandataris: instanceIdentifiers | null,
 ) => {
   const fractie = await getOrCreateOCMWFractie(
     newMandatarisId,

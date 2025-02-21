@@ -6,7 +6,7 @@ import {
   getBooleanSparqlResult,
 } from '../util/sparql-result';
 import { v4 as uuidv4 } from 'uuid';
-import { resource } from '../types';
+import { instanceIdentifiers } from '../types';
 import { createNotification } from '../util/create-notification';
 
 export async function canAccessMandataris(id: string) {
@@ -473,7 +473,7 @@ export async function createNewLinkedMandataris(
   fractieUri: string,
   graph: string,
   valueBindings,
-): Promise<resource> {
+): Promise<instanceIdentifiers> {
   const newMandatarisUuid = uuidv4();
   const newMandatarisUri = `http://data.lblod.info/id/mandatarissen/${newMandatarisUuid}`;
   const escaped = {
@@ -706,7 +706,9 @@ export async function unlinkInstance(instance: string) {
   await updateSudo(query);
 }
 
-export async function findLinkedInstance(instance1: string): Promise<resource> {
+export async function findLinkedInstance(
+  instance1: string,
+): Promise<instanceIdentifiers> {
   const query = `
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>

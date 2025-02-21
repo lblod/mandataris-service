@@ -72,7 +72,7 @@ export type MandatarisFullInfo = MandatarisBesluitLookup & {
   graph: string;
 };
 
-export type resource = {
+export type instanceIdentifiers = {
   uri: string;
   id: string;
 };
