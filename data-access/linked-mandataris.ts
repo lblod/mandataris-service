@@ -7,6 +7,7 @@ import {
 } from '../util/sparql-result';
 import { v4 as uuidv4 } from 'uuid';
 import { resource } from '../types';
+import { createNotification } from '../util/create-notification';
 
 export async function canAccessMandataris(id: string) {
   const sparql = `
