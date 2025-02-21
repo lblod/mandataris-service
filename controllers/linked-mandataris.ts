@@ -395,7 +395,7 @@ export const handleReplacement = async (
   const newLinkedReplacement = await handleCreationNewLinkedMandatarisAndPerson(
     destinationGraph,
     userId,
-    mandatarisId,
+    replacement.id,
   );
   await addReplacement(
     destinationGraph,
