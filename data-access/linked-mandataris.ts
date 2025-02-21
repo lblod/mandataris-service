@@ -115,6 +115,9 @@ export async function linkedMandateAlreadyExists(
   valueBindings,
 ) {
   const q = `
+
+
+
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -125,7 +128,11 @@ export async function linkedMandateAlreadyExists(
         ?currentMandataris a mandaat:Mandataris ;
           mu:uuid ${sparqlEscapeString(mandatarisId)} ;
           org:holds ?currentMandaat ;
-          mandaat:isBestuurlijkeAliasVan ?person .
+          mandaat:isBestuurlijkeAliasVan ?person ;
+          mandaat:start ?start1 .
+        OPTIONAL {
+          ?currentMandataris mandaat:einde ?end1.
+        }
 
         ?currentMandaat a mandaat:Mandaat ;
           org:role ?currentBestuursfunctie ;
@@ -137,7 +144,11 @@ export async function linkedMandateAlreadyExists(
         ?linkedMandataris a mandaat:Mandataris ;
           mu:uuid ?linkedId ;
           org:holds ?linkedMandaat ;
-          mandaat:isBestuurlijkeAliasVan ?person .
+          mandaat:isBestuurlijkeAliasVan ?person ;
+          mandaat:start ?start2 .
+        OPTIONAL {
+          ?linkedMandataris mandaat:einde ?end2.
+        }
         ?linkedMandaat a mandaat:Mandaat ;
           org:role ?linkedBestuursfunctie ;
           ^org:hasPost ?linkedBestuursOrgaanIT .
@@ -147,6 +158,13 @@ export async function linkedMandateAlreadyExists(
       VALUES (?currentBestuursfunctie ?linkedBestuursfunctie) {
         ${valueBindings}
       }
+
+      FILTER (
+        (?start1 >= ?start2 && ?safEnd2 >= ?start1) ||
+        (?start1 <= ?start2 && ?safEnd1 >= ?start2)
+      )
+      BIND(IF(BOUND(?end1), ?end1, "3000-01-01T12:00:00.000Z"^^xsd:dateTime) AS ?safeEnd1 )
+      BIND(IF(BOUND(?end2), ?end2, "3000-01-01T12:00:00.000Z"^^xsd:dateTime) AS ?safeEnd2 )
     }
     LIMIT 1
     `;
