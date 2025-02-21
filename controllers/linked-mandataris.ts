@@ -18,6 +18,7 @@ import {
   unlinkInstance,
   linkedMandateAlreadyExists,
   createNotificationLinkedReplacementAlreadyExists,
+  createNotificationLinkedReplacementCorrectMistakes,
 } from '../data-access/linked-mandataris';
 import {
   endExistingMandataris,
@@ -175,6 +176,13 @@ export const correctMistakesLinkedMandataris = async (req) => {
   }
 
   await correctLinkedMandataris(mandatarisId, linkedMandataris.uri);
+
+  await handleReplacementCorrectMistakes(
+    destinationGraph,
+    userId,
+    mandatarisId,
+    linkedMandataris,
+  );
 
   await saveHistoryItem(
     linkedMandataris.uri,
@@ -404,9 +412,40 @@ export const handleReplacement = async (
     linkedMandataris,
     newLinkedReplacement,
   );
+};
 
-  // Corrigeer fouten:
-  // Create notification
+export const handleReplacementCorrectMistakes = async (
+  destinationGraph: string,
+  userId: string,
+  mandatarisId: string,
+  linkedMandataris: instanceIdentifiers,
+) => {
+  // Check if replacement
+  const replacement = await hasReplacement(mandatarisId);
+  if (!replacement) {
+    return;
+  }
+
+  // Check if linked replacement
+  const linkedReplacement = await findLinkedInstance(replacement.id);
+
+  // YES: Add replacement relation
+  if (linkedReplacement) {
+    await addReplacement(destinationGraph, linkedMandataris, linkedReplacement);
+    return;
+  }
+
+  // NO: notification warning
+  await createNotificationLinkedReplacementCorrectMistakes(
+    destinationGraph,
+    linkedMandataris.uri,
+  );
+
+  await saveHistoryItem(
+    linkedMandataris.uri,
+    userId,
+    'corrected by gemeente - ocmw mirror',
+  );
 };
 
 export const getLinkedMandates = () => {
