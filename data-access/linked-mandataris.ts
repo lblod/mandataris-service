@@ -757,7 +757,7 @@ export const createNotificationLinkedReplacementAlreadyExists = async (
 
 export const createNotificationLinkedReplacementCorrectMistakes = async (
   graph: string,
-  mandatarissen: instanceIdentifiers[],
+  mandataris: instanceIdentifiers,
 ) => {
   await createNotification({
     title: 'Vervangers konden niet automatisch toegekend worden',
@@ -765,11 +765,11 @@ export const createNotificationLinkedReplacementCorrectMistakes = async (
       'In de gemeente werd een vervanger (of meerdere) aangesteld voor een verhinderde mandataris. Deze vervangers konden niet automatisch toegekend worden aan de corresponderende mandataris in het OCMW. Gelieve dit dan ook na te kijken en zelf toe te voegen indien nodig.',
     type: 'warning',
     graph: graph,
-    links: mandatarissen.map((mandataris) => {
-      return {
+    links: [
+      {
         type: 'mandataris',
         uri: mandataris.uri,
-      };
-    }),
+      },
+    ],
   });
 };
