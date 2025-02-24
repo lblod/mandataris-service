@@ -587,7 +587,7 @@ export async function correctLinkedMandataris(
           mu:uuid ${escaped.current} ;
           ?mandatarisP ?ogMandatarisO .
       }
-      FILTER (?mandatarisP NOT IN (mu:uuid, org:holds, mandaat:isBestuurlijkeAliasVan, mandaat:rangorde, lmb:linkToBesluit, mandaat:beleidsdomein, org:hasMembership, lmb:hasPublicationStatus))
+      FILTER (?mandatarisP NOT IN (mu:uuid, org:holds, mandaat:isBestuurlijkeAliasVan, mandaat:rangorde, lmb:linkToBesluit, mandaat:isTijdelijkVervangenDoor, mandaat:beleidsdomein, org:hasMembership, lmb:hasPublicationStatus))
 
       GRAPH ?dest {
         ${escaped.linked} a mandaat:Mandataris .
