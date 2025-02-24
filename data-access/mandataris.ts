@@ -1034,7 +1034,7 @@ export async function removeReplacements(
     }
     WHERE {
       GRAPH ${escaped.graph} {
-        ${escaped.mandataris} a mandaat:Mandataris .
+        ${escaped.mandataris} a mandaat:Mandataris ;
           mandaat:isTijdelijkVervangenDoor ?vervanger .
       }
     }
