@@ -180,7 +180,6 @@ export const correctMistakesLinkedMandataris = async (req) => {
 
   await handleReplacementCorrectMistakes(
     destinationGraph,
-    userId,
     mandatarisId,
     linkedMandataris,
   );
@@ -418,7 +417,6 @@ export const handleReplacement = async (
 
 export const handleReplacementCorrectMistakes = async (
   destinationGraph: string,
-  userId: string,
   mandatarisId: string,
   linkedMandataris: instanceIdentifiers,
 ) => {
@@ -456,12 +454,6 @@ export const handleReplacementCorrectMistakes = async (
       linkedMandataris,
     );
   }
-
-  await saveHistoryItem(
-    linkedMandataris.uri,
-    userId,
-    'corrected by gemeente - ocmw mirror',
-  );
 };
 
 export const getLinkedMandates = () => {
