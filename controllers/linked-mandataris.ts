@@ -427,20 +427,33 @@ export const handleReplacementCorrectMistakes = async (
   if (!replacements) {
     return;
   }
-  const replacement = replacements.at(0);
 
   // Check if linked replacement
-  const linkedReplacement = await findLinkedInstance(replacement.id);
+  const linkedReplacements = await Promise.all(
+    replacements.map(async (replacement) => {
+      return await findLinkedInstance(replacement.id);
+    }),
+  );
 
   // YES: Add replacement relation
-  if (linkedReplacement) {
+  if (
+    linkedReplacements.every((linkedReplacement) => {
+      return linkedReplacement;
+    })
+  ) {
     await removeReplacements(destinationGraph, linkedMandataris);
-    await addReplacement(destinationGraph, linkedMandataris, linkedReplacement);
+    for (const linkedReplacement of linkedReplacements) {
+      await addReplacement(
+        destinationGraph,
+        linkedMandataris,
+        linkedReplacement,
+      );
+    }
   } else {
     // NO: notification warning
     await createNotificationLinkedReplacementCorrectMistakes(
       destinationGraph,
-      linkedMandataris.uri,
+      replacements,
     );
   }
 
