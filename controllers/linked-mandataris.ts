@@ -361,6 +361,76 @@ export const handleCreationNewLinkedMandatarisAndPerson = async (
   return newLinkedMandataris;
 };
 
+export const addSimpleReplacement = async (req) => {
+  const mandatarisId = req.params.id;
+
+  const userId = await preliminaryChecksLinkedMandataris(req);
+
+  const destinationGraph = await getDestinationGraphLinkedMandataris(
+    mandatarisId,
+    getValueBindings(linkedBestuurseenheden),
+  );
+
+  const linkedMandataris = await findLinkedInstance(mandatarisId);
+  if (!linkedMandataris) {
+    throw new HttpError(
+      `No linked mandataris found for id ${mandatarisId}`,
+      404,
+    );
+  }
+
+  if (!destinationGraph) {
+    throw new HttpError('No destination graph found', 500);
+  }
+  const replacements = await getReplacements(mandatarisId);
+  if (!replacements) {
+    throw new HttpError('No replacement found', 404);
+  }
+  const replacement = replacements.at(0);
+
+  const linkedReplacement = await findLinkedInstance(replacement.id);
+
+  if (linkedReplacement) {
+    await addReplacement(destinationGraph, linkedMandataris, linkedReplacement);
+    return;
+  }
+
+  const linkedReplacementWithoutLink = await linkedMandateAlreadyExists(
+    destinationGraph,
+    replacement.id,
+    getValueBindings(linkedMandaten),
+  );
+
+  if (linkedReplacementWithoutLink) {
+    await createNotificationLinkedReplacementAlreadyExists(
+      destinationGraph,
+      linkedMandataris.uri,
+    );
+    throw new HttpError(
+      'Vervanger kon niet toegevoegd worden aan corresponderende mandataris',
+      500,
+    );
+  }
+
+  const newLinkedReplacement = await handleCreationNewLinkedMandatarisAndPerson(
+    destinationGraph,
+    userId,
+    replacement.id,
+  );
+
+  await addReplacement(
+    destinationGraph,
+    linkedMandataris,
+    newLinkedReplacement,
+  );
+
+  await saveHistoryItem(
+    linkedMandataris.uri,
+    userId,
+    'Corrected by gemeente - ocmw mirror',
+  );
+};
+
 export const handleReplacement = async (
   destinationGraph: string,
   userId: string,
