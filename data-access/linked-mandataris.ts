@@ -722,6 +722,8 @@ export async function findLinkedInstance(
       GRAPH ?h {
         ?i2Uri mu:uuid ?i2Id .
       }
+      ?g ext:ownedBy ?someone.
+      ?h ext:ownedBy ?someoneElse.
     }
     LIMIT 1
   `;
