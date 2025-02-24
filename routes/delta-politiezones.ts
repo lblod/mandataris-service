@@ -100,11 +100,11 @@ async function findBatchOfMissedInstances() {
   return result.results.bindings.map((binding) => binding.s.value);
 }
 
-async function mirrorInstances(instanceUri: string[]) {
-  if (instanceUri.length === 0) {
+async function mirrorInstances(instanceUris: string[]) {
+  if (instanceUris.length === 0) {
     return;
   }
-  const safeInstanceUris = instanceUri
+  const safeInstanceUris = instanceUris
     .map((uri) => sparqlEscapeUri(uri))
     .join('\n');
 
