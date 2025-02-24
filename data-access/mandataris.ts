@@ -969,7 +969,7 @@ export async function getReplacements(
   if (result.results.bindings.length == 0) {
     return null;
   }
-  return result.bindings.map((binding) => {
+  return result.results.bindings.map((binding) => {
     return {
       uri: binding.vervanger.value as string,
       id: binding.vervangerId.value as string,
