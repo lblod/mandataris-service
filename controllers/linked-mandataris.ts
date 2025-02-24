@@ -453,7 +453,7 @@ export const handleReplacementCorrectMistakes = async (
     // NO: notification warning
     await createNotificationLinkedReplacementCorrectMistakes(
       destinationGraph,
-      replacements,
+      linkedMandataris,
     );
   }
 
