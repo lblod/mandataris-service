@@ -308,7 +308,6 @@ export const handleCreationNewLinkedMandataris = async (
     destinationGraph,
   );
 
-  // We are updating state, the linked mandatee needs a new instance for the updated state.
   const newLinkedMandataris = await createNewLinkedMandataris(
     newMandatarisId,
     fractie,
@@ -321,7 +320,6 @@ export const handleCreationNewLinkedMandataris = async (
     await copyExtraValues(oldlinkedMandataris.uri, newLinkedMandataris.uri);
   }
 
-  // Update current fractie on person
   if (fractie) {
     await mandatarisUsecase.updateCurrentFractieSudo(
       newLinkedMandataris.id,
@@ -369,31 +367,25 @@ export const handleReplacement = async (
   mandatarisId: string,
   linkedMandataris: instanceIdentifiers,
 ) => {
-  // Check if replacement
   const replacements = await getReplacements(mandatarisId);
   if (!replacements) {
     return;
   }
   const replacement = replacements.at(0);
 
-  // Check if linked replacement
   const linkedReplacement = await findLinkedInstance(replacement.id);
 
-  // YES: Add replacement relation
   if (linkedReplacement) {
     await addReplacement(destinationGraph, linkedMandataris, linkedReplacement);
     return;
   }
 
-  // NO: split cases update state vs corrigeer fouten
-  // Update state:
-  // Check if mandataris exists that could be linked
   const linkedReplacementWithoutLink = await linkedMandateAlreadyExists(
     destinationGraph,
     replacement.id,
     getValueBindings(linkedMandaten),
   );
-  // Yes: notification warning
+
   if (linkedReplacementWithoutLink) {
     await createNotificationLinkedReplacementAlreadyExists(
       destinationGraph,
@@ -402,7 +394,6 @@ export const handleReplacement = async (
     return;
   }
 
-  // NO: create it
   const newLinkedReplacement = await handleCreationNewLinkedMandatarisAndPerson(
     destinationGraph,
     userId,
@@ -420,20 +411,17 @@ export const handleReplacementCorrectMistakes = async (
   mandatarisId: string,
   linkedMandataris: instanceIdentifiers,
 ) => {
-  // Check if replacement
   const replacements = await getReplacements(mandatarisId);
   if (!replacements) {
     return;
   }
 
-  // Check if linked replacement
   const linkedReplacements = await Promise.all(
     replacements.map(async (replacement) => {
       return await findLinkedInstance(replacement.id);
     }),
   );
 
-  // YES: Add replacement relation
   if (
     linkedReplacements.every((linkedReplacement) => {
       return linkedReplacement;
@@ -448,7 +436,6 @@ export const handleReplacementCorrectMistakes = async (
       );
     }
   } else {
-    // NO: notification warning
     await createNotificationLinkedReplacementCorrectMistakes(
       destinationGraph,
       linkedMandataris,
