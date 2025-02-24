@@ -17,8 +17,16 @@ import {
   copyOnafhankelijkeFractieOfMandataris,
   unlinkInstance,
   linkedMandateAlreadyExists,
+  createNotificationLinkedReplacementAlreadyExists,
+  createNotificationLinkedReplacementCorrectMistakes,
 } from '../data-access/linked-mandataris';
-import { endExistingMandataris, mandataris } from '../data-access/mandataris';
+import {
+  endExistingMandataris,
+  mandataris,
+  getReplacements,
+  addReplacement,
+  removeReplacements,
+} from '../data-access/mandataris';
 import {
   fetchUserIdFromSession,
   saveHistoryItem,
@@ -33,6 +41,7 @@ import {
   VOORZITTER_GEMEENTERAAD_FUNCTIE_CODE,
   VOORZITTER_RMW_CODE,
 } from '../util/constants';
+import { instanceIdentifiers } from '../types';
 
 export const checkLinkedMandataris = async (req) => {
   const mandatarisId = req.params.id;
@@ -102,8 +111,8 @@ export const createLinkedMandataris = async (req) => {
   }
 
   const mandateAlreadyExists = await linkedMandateAlreadyExists(
-    mandatarisId,
     destinationGraph,
+    mandatarisId,
     getValueBindings(linkedMandaten),
   );
 
@@ -114,39 +123,11 @@ export const createLinkedMandataris = async (req) => {
     );
   }
 
-  const personExists = await personOfMandatarisExistsInGraph(
-    mandatarisId,
+  await handleCreationNewLinkedMandatarisAndPerson(
     destinationGraph,
-  );
-
-  if (!personExists) {
-    await copyPersonOfMandataris(mandatarisId, destinationGraph);
-  }
-
-  const fractie = await getOrCreateOCMWFractie(mandatarisId, destinationGraph);
-
-  const newMandataris = await createNewLinkedMandataris(
-    mandatarisId,
-    fractie,
-    destinationGraph,
-    getValueBindings(linkedMandaten),
-  );
-
-  // Update current fractie on person
-  await mandatarisUsecase.updateCurrentFractieSudo(
-    newMandataris.id,
-    destinationGraph,
-  );
-
-  await saveHistoryItem(
-    newMandataris.uri,
     userId,
-    'created by gemeente - ocmw mirror',
+    mandatarisId,
   );
-
-  await linkInstances(mandatarisId, newMandataris.id);
-
-  return newMandataris;
 };
 
 export const correctMistakesLinkedMandataris = async (req) => {
@@ -197,6 +178,12 @@ export const correctMistakesLinkedMandataris = async (req) => {
 
   await correctLinkedMandataris(mandatarisId, linkedMandataris.uri);
 
+  await handleReplacementCorrectMistakes(
+    destinationGraph,
+    mandatarisId,
+    linkedMandataris,
+  );
+
   await saveHistoryItem(
     linkedMandataris.uri,
     userId,
@@ -232,47 +219,31 @@ export const changeStateLinkedMandataris = async (req) => {
     throw new HttpError('No destination graph found', 500);
   }
 
-  const linkedMandataris = await findLinkedInstance(oldMandatarisId);
-  if (!linkedMandataris) {
+  const oldLinkedMandataris = await findLinkedInstance(oldMandatarisId);
+  if (!oldLinkedMandataris) {
     throw new HttpError(
       `No linked mandataris found for id ${oldMandatarisId}`,
       404,
     );
   }
 
-  const fractie = await getOrCreateOCMWFractie(
-    newMandatarisId,
+  const newLinkedMandataris = await handleCreationNewLinkedMandataris(
     destinationGraph,
-  );
-
-  // We are updating state, the linked mandatee needs a new instance for the updated state.
-  const newLinkedMandataris = await createNewLinkedMandataris(
-    newMandatarisId,
-    fractie,
-    destinationGraph,
-    getValueBindings(linkedMandaten),
-  );
-
-  // Copy over values that were in the original linked mandatee but are not set in the new linked mandatee
-  await copyExtraValues(linkedMandataris.uri, newLinkedMandataris.uri);
-
-  // Update current fractie on person
-  await mandatarisUsecase.updateCurrentFractieSudo(
-    newLinkedMandataris.id,
-    destinationGraph,
-  );
-
-  await saveHistoryItem(
-    newLinkedMandataris.uri,
     userId,
-    'created as update state by gemeente - ocmw mirror',
+    newMandatarisId,
+    oldLinkedMandataris,
   );
-
-  await linkInstances(newMandatarisId, newLinkedMandataris.id);
 
   // End original linked mandatee
   const endDate = new Date();
-  endExistingMandataris(destinationGraph, linkedMandataris.uri, endDate);
+  endExistingMandataris(destinationGraph, oldLinkedMandataris.uri, endDate);
+
+  await handleReplacement(
+    destinationGraph,
+    userId,
+    newMandatarisId,
+    newLinkedMandataris,
+  );
 };
 
 const preliminaryChecksLinkedMandataris = async (req) => {
@@ -324,6 +295,222 @@ export const getOrCreateOnafhankelijkeFractie = async (
     return onafhankelijk;
   }
   return await copyOnafhankelijkeFractieOfMandataris(mandatarisId, graph);
+};
+
+export const handleCreationNewLinkedMandataris = async (
+  destinationGraph: string,
+  userId: string,
+  newMandatarisId: string,
+  oldlinkedMandataris: instanceIdentifiers | null,
+) => {
+  const fractie = await getOrCreateOCMWFractie(
+    newMandatarisId,
+    destinationGraph,
+  );
+
+  const newLinkedMandataris = await createNewLinkedMandataris(
+    newMandatarisId,
+    fractie,
+    destinationGraph,
+    getValueBindings(linkedMandaten),
+  );
+
+  // Copy over values that were in the original linked mandatee but are not set in the new linked mandatee
+  if (oldlinkedMandataris) {
+    await copyExtraValues(oldlinkedMandataris.uri, newLinkedMandataris.uri);
+  }
+
+  if (fractie) {
+    await mandatarisUsecase.updateCurrentFractieSudo(
+      newLinkedMandataris.id,
+      destinationGraph,
+    );
+  }
+
+  await saveHistoryItem(
+    newLinkedMandataris.uri,
+    userId,
+    'created by gemeente - ocmw mirror',
+  );
+
+  await linkInstances(newMandatarisId, newLinkedMandataris.id);
+
+  return newLinkedMandataris;
+};
+
+export const handleCreationNewLinkedMandatarisAndPerson = async (
+  destinationGraph: string,
+  userId: string,
+  newMandatarisId: string,
+) => {
+  const personExists = await personOfMandatarisExistsInGraph(
+    newMandatarisId,
+    destinationGraph,
+  );
+
+  if (!personExists) {
+    await copyPersonOfMandataris(newMandatarisId, destinationGraph);
+  }
+
+  const newLinkedMandataris = await handleCreationNewLinkedMandataris(
+    destinationGraph,
+    userId,
+    newMandatarisId,
+    null,
+  );
+  return newLinkedMandataris;
+};
+
+export const addSimpleReplacement = async (req) => {
+  const mandatarisId = req.params.id;
+
+  const userId = await preliminaryChecksLinkedMandataris(req);
+
+  const destinationGraph = await getDestinationGraphLinkedMandataris(
+    mandatarisId,
+    getValueBindings(linkedBestuurseenheden),
+  );
+
+  const linkedMandataris = await findLinkedInstance(mandatarisId);
+  if (!linkedMandataris) {
+    throw new HttpError(
+      `No linked mandataris found for id ${mandatarisId}`,
+      404,
+    );
+  }
+
+  if (!destinationGraph) {
+    throw new HttpError('No destination graph found', 500);
+  }
+  const replacements = await getReplacements(mandatarisId);
+  if (!replacements) {
+    throw new HttpError('No replacement found', 404);
+  }
+  const replacement = replacements.at(0);
+
+  const linkedReplacement = await findLinkedInstance(replacement.id);
+
+  if (linkedReplacement) {
+    await addReplacement(destinationGraph, linkedMandataris, linkedReplacement);
+    return;
+  }
+
+  const linkedReplacementWithoutLink = await linkedMandateAlreadyExists(
+    destinationGraph,
+    replacement.id,
+    getValueBindings(linkedMandaten),
+  );
+
+  if (linkedReplacementWithoutLink) {
+    await createNotificationLinkedReplacementAlreadyExists(
+      destinationGraph,
+      linkedMandataris.uri,
+    );
+    throw new HttpError(
+      'Vervanger kon niet toegevoegd worden aan corresponderende mandataris',
+      500,
+    );
+  }
+
+  const newLinkedReplacement = await handleCreationNewLinkedMandatarisAndPerson(
+    destinationGraph,
+    userId,
+    replacement.id,
+  );
+
+  await addReplacement(
+    destinationGraph,
+    linkedMandataris,
+    newLinkedReplacement,
+  );
+
+  await saveHistoryItem(
+    linkedMandataris.uri,
+    userId,
+    'Corrected by gemeente - ocmw mirror',
+  );
+};
+
+export const handleReplacement = async (
+  destinationGraph: string,
+  userId: string,
+  mandatarisId: string,
+  linkedMandataris: instanceIdentifiers,
+) => {
+  const replacements = await getReplacements(mandatarisId);
+  if (!replacements) {
+    return;
+  }
+  const replacement = replacements.at(0);
+
+  const linkedReplacement = await findLinkedInstance(replacement.id);
+
+  if (linkedReplacement) {
+    await addReplacement(destinationGraph, linkedMandataris, linkedReplacement);
+    return;
+  }
+
+  const linkedReplacementWithoutLink = await linkedMandateAlreadyExists(
+    destinationGraph,
+    replacement.id,
+    getValueBindings(linkedMandaten),
+  );
+
+  if (linkedReplacementWithoutLink) {
+    await createNotificationLinkedReplacementAlreadyExists(
+      destinationGraph,
+      linkedMandataris.uri,
+    );
+    return;
+  }
+
+  const newLinkedReplacement = await handleCreationNewLinkedMandatarisAndPerson(
+    destinationGraph,
+    userId,
+    replacement.id,
+  );
+  await addReplacement(
+    destinationGraph,
+    linkedMandataris,
+    newLinkedReplacement,
+  );
+};
+
+export const handleReplacementCorrectMistakes = async (
+  destinationGraph: string,
+  mandatarisId: string,
+  linkedMandataris: instanceIdentifiers,
+) => {
+  const replacements = await getReplacements(mandatarisId);
+  if (!replacements) {
+    return;
+  }
+
+  const linkedReplacements = await Promise.all(
+    replacements.map(async (replacement) => {
+      return await findLinkedInstance(replacement.id);
+    }),
+  );
+
+  if (
+    linkedReplacements.every((linkedReplacement) => {
+      return linkedReplacement;
+    })
+  ) {
+    await removeReplacements(destinationGraph, linkedMandataris);
+    for (const linkedReplacement of linkedReplacements) {
+      await addReplacement(
+        destinationGraph,
+        linkedMandataris,
+        linkedReplacement,
+      );
+    }
+  } else {
+    await createNotificationLinkedReplacementCorrectMistakes(
+      destinationGraph,
+      linkedMandataris,
+    );
+  }
 };
 
 export const getLinkedMandates = () => {

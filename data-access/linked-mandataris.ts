@@ -6,6 +6,8 @@ import {
   getBooleanSparqlResult,
 } from '../util/sparql-result';
 import { v4 as uuidv4 } from 'uuid';
+import { instanceIdentifiers } from '../types';
+import { createNotification } from '../util/create-notification';
 
 export async function canAccessMandataris(id: string) {
   const sparql = `
@@ -109,8 +111,8 @@ export async function getDestinationGraphLinkedMandataris(
 }
 
 export async function linkedMandateAlreadyExists(
-  mandatarisId: string,
   graph: string,
+  mandatarisId: string,
   valueBindings,
 ) {
   const q = `
@@ -119,12 +121,16 @@ export async function linkedMandateAlreadyExists(
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
-    ASK WHERE {
+    SELECT DISTINCT ?linkedMandataris ?linkedId WHERE {
       GRAPH ?origin {
         ?currentMandataris a mandaat:Mandataris ;
           mu:uuid ${sparqlEscapeString(mandatarisId)} ;
           org:holds ?currentMandaat ;
-          mandaat:isBestuurlijkeAliasVan ?person .
+          mandaat:isBestuurlijkeAliasVan ?person ;
+          mandaat:start ?start1 .
+        OPTIONAL {
+          ?currentMandataris mandaat:einde ?end1.
+        }
 
         ?currentMandaat a mandaat:Mandaat ;
           org:role ?currentBestuursfunctie ;
@@ -134,8 +140,13 @@ export async function linkedMandateAlreadyExists(
 
       GRAPH ${sparqlEscapeUri(graph)} {
         ?linkedMandataris a mandaat:Mandataris ;
+          mu:uuid ?linkedId ;
           org:holds ?linkedMandaat ;
-          mandaat:isBestuurlijkeAliasVan ?person .
+          mandaat:isBestuurlijkeAliasVan ?person ;
+          mandaat:start ?start2 .
+        OPTIONAL {
+          ?linkedMandataris mandaat:einde ?end2.
+        }
         ?linkedMandaat a mandaat:Mandaat ;
           org:role ?linkedBestuursfunctie ;
           ^org:hasPost ?linkedBestuursOrgaanIT .
@@ -145,12 +156,25 @@ export async function linkedMandateAlreadyExists(
       VALUES (?currentBestuursfunctie ?linkedBestuursfunctie) {
         ${valueBindings}
       }
+
+      FILTER (
+        (?start1 >= ?start2 && ?safeEnd2 >= ?start1) ||
+        (?start1 <= ?start2 && ?safeEnd1 >= ?start2)
+      )
+      BIND(IF(BOUND(?end1), ?end1, "3000-01-01T12:00:00.000Z"^^xsd:dateTime) AS ?safeEnd1 )
+      BIND(IF(BOUND(?end2), ?end2, "3000-01-01T12:00:00.000Z"^^xsd:dateTime) AS ?safeEnd2 )
     }
+    LIMIT 1
     `;
 
   const result = await querySudo(q);
-
-  return getBooleanSparqlResult(result);
+  if (result.results.bindings.length == 0) {
+    return null;
+  }
+  return {
+    uri: result.results.bindings[0].linkedMandataris.value as string,
+    id: result.results.bindings[0].linkedId.value as string,
+  };
 }
 
 export async function findPersonForMandataris(mandatarisId) {
@@ -446,7 +470,7 @@ export async function createNewLinkedMandataris(
   fractieUri: string,
   graph: string,
   valueBindings,
-) {
+): Promise<instanceIdentifiers> {
   const newMandatarisUuid = uuidv4();
   const newMandatarisUri = `http://data.lblod.info/id/mandatarissen/${newMandatarisUuid}`;
   const escaped = {
@@ -494,13 +518,15 @@ export async function createNewLinkedMandataris(
         ?currentMandataris a mandaat:Mandataris ;
           mu:uuid ${escaped.mandatarisId} ;
           org:holds ?currentMandaat ;
-          org:hasMembership ?membership ;
           ?mandatarisp ?mandatariso .
         ?currentMandaat a mandaat:Mandaat ;
           org:role ?currentBestuursfunctie ;
           ^org:hasPost ?currentBestuursOrgaanIT .
         ?currentBestuursOrgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
-        ?membership ?memberp ?membero .
+        OPTIONAL {
+          ?currentMandataris org:hasMembership ?membership .
+          ?membership ?memberp ?membero .
+        }
       }
 
       GRAPH ${escaped.graph} {
@@ -679,7 +705,9 @@ export async function unlinkInstance(instance: string) {
   await updateSudo(query);
 }
 
-export async function findLinkedInstance(instance1: string) {
+export async function findLinkedInstance(
+  instance1: string,
+): Promise<instanceIdentifiers> {
   const query = `
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -707,3 +735,41 @@ export async function findLinkedInstance(instance1: string) {
     id: result.results.bindings[0].i2Id.value as string,
   };
 }
+
+export const createNotificationLinkedReplacementAlreadyExists = async (
+  graph: string,
+  mandatarisUri: string,
+) => {
+  await createNotification({
+    title: 'Vervanger kon niet automatisch toegekend worden',
+    description:
+      'Een mandataris uit de gemeente is verhinderd geraakt, hiervoor werd in de gemeente een vervanger aangesteld. Het corresponderende mandaat in de OCMW van de verhinderde mandataris werd ook op verhinderd gezet. Het was echter niet mogelijk hiervoor een vervanger aan te stellen. Gelieve dit dan ook na te kijken en zelf toe te voegen indien nodig.',
+    type: 'warning',
+    graph: graph,
+    links: [
+      {
+        type: 'mandataris',
+        uri: mandatarisUri,
+      },
+    ],
+  });
+};
+
+export const createNotificationLinkedReplacementCorrectMistakes = async (
+  graph: string,
+  mandataris: instanceIdentifiers,
+) => {
+  await createNotification({
+    title: 'Vervangers konden niet automatisch toegekend worden',
+    description:
+      'In de gemeente werd een vervanger (of meerdere) aangesteld voor een verhinderde mandataris. Deze vervangers konden niet automatisch toegekend worden aan de corresponderende mandataris in het OCMW. Gelieve dit dan ook na te kijken en zelf toe te voegen indien nodig.',
+    type: 'warning',
+    graph: graph,
+    links: [
+      {
+        type: 'mandataris',
+        uri: mandataris.uri,
+      },
+    ],
+  });
+};

@@ -9,7 +9,13 @@ import {
 import moment from 'moment';
 import { v4 as uuidv4 } from 'uuid';
 
-import { CSVRow, CsvUploadState, MandateHit, TermProperty } from '../types';
+import {
+  CSVRow,
+  CsvUploadState,
+  MandateHit,
+  instanceIdentifiers,
+  TermProperty,
+} from '../types';
 
 import {
   MANDATARIS_STATUS,
@@ -938,4 +944,100 @@ async function bulkUpdateEndDate(mandatarisUris: Array<string>, endDate: Date) {
     }
   `;
   await update(updateQuery);
+}
+
+export async function getReplacements(
+  mandatarisId: string,
+): Promise<instanceIdentifiers[]> {
+  const q = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+
+    SELECT DISTINCT ?vervanger ?vervangerId {
+      GRAPH ?g {
+        ?mandataris a mandaat:Mandataris ;
+          mu:uuid ${sparqlEscapeString(mandatarisId)} ;
+          mandaat:isTijdelijkVervangenDoor ?vervanger .
+        ?vervanger mu:uuid ?vervangerId
+      }
+    }
+  `;
+
+  const result = await query(q);
+  if (result.results.bindings.length == 0) {
+    return null;
+  }
+  return result.results.bindings.map((binding) => {
+    return {
+      uri: binding.vervanger.value as string,
+      id: binding.vervangerId.value as string,
+    };
+  });
+}
+
+export async function addReplacement(
+  graph: string,
+  mandataris: instanceIdentifiers,
+  replacementMandataris: instanceIdentifiers,
+) {
+  const escaped = {
+    graph: sparqlEscapeUri(graph),
+    mandataris: sparqlEscapeUri(mandataris.uri),
+    replacement: sparqlEscapeUri(replacementMandataris.uri),
+  };
+  const query = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX dct: <http://purl.org/dc/terms/>
+
+    DELETE {
+      GRAPH ${escaped.graph} {
+        ?mandataris dct:modified ?oldModified .
+      }
+    }
+    INSERT {
+      GRAPH ${escaped.graph} {
+        ?mandataris mandaat:isTijdelijkVervangenDoor ${escaped.replacement} .
+        ?mandataris dct:modified ?now .
+      }
+    }
+    WHERE {
+      GRAPH ${escaped.graph} {
+        ?mandataris a mandaat:Mandataris .
+        OPTIONAL {
+          ?mandataris dct:modified ?oldModified .
+        }
+        VALUES ?mandataris { ${escaped.mandataris} }
+        BIND(NOW() AS ?now)
+      }
+    }
+  `;
+  await updateSudo(query);
+}
+
+export async function removeReplacements(
+  graph: string,
+  mandataris: instanceIdentifiers,
+) {
+  const escaped = {
+    graph: sparqlEscapeUri(graph),
+    mandataris: sparqlEscapeUri(mandataris.uri),
+  };
+  const query = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+
+    DELETE {
+      GRAPH ${escaped.graph} {
+        ${escaped.mandataris} mandaat:isTijdelijkVervangenDoor ?vervanger .
+      }
+    }
+    WHERE {
+      GRAPH ${escaped.graph} {
+        ${escaped.mandataris} a mandaat:Mandataris ;
+          mandaat:isTijdelijkVervangenDoor ?vervanger .
+      }
+    }
+  `;
+  await updateSudo(query);
 }

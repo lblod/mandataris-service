@@ -9,6 +9,7 @@ import { deleteInstanceWithTombstone } from '../data-access/delete';
 
 import {
   addLinkLinkedMandataris,
+  addSimpleReplacement,
   changeStateLinkedMandataris,
   checkLinkedMandataris,
   correctMistakesLinkedMandataris,
@@ -103,6 +104,22 @@ mandatarissenRouter.put(
       const message =
         error.message ??
         `Something went wrong while changing state of duplicate mandate of: ${req.params.id}. Please try again later.`;
+      const statusCode = error.status ?? 500;
+      return res.status(statusCode).send({ message });
+    }
+  },
+);
+
+mandatarissenRouter.put(
+  '/:id/add-linked-replacement',
+  async (req: Request, res: Response) => {
+    try {
+      await addSimpleReplacement(req);
+      return res.status(200).send({ status: 'ok' });
+    } catch (error) {
+      const message =
+        error.message ??
+        `Something went wrong while adding replacement to duplicate mandate for: ${req.params.id}. Please try again later.`;
       const statusCode = error.status ?? 500;
       return res.status(statusCode).send({ message });
     }
