@@ -1053,3 +1053,38 @@ export async function removeReplacements(
   `;
   await updateSudo(query);
 }
+export async function checkMandatarisOwnershipQuery(mandatarisIds: string[]) {
+  const escaped = {
+    mandatarisIds: mandatarisIds.map((id) => sparqlEscapeString(id)).join('\n'),
+  };
+
+  const selectQuery = `
+  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+  PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+  PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+
+  SELECT ?id ?bestuurseenheidId WHERE {
+    VALUES ?id { ${escaped.mandatarisIds} }
+    GRAPH ?g {
+      ?mandataris a mandaat:Mandataris ;
+                  mu:uuid ?id .
+    }
+    ?g ext:ownedBy ?bestuurseenheid.
+    ?bestuurseenheid mu:uuid ?bestuurseenheidId .
+
+    # gemeente code
+    ?bestuurseenheid besluit:classificatie  <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/5ab0e9b8a3b2ca7c5e000001>.
+  }`;
+
+  const result = await querySudo(selectQuery);
+  const results = getSparqlResults(result);
+
+  const mandatarisToBestuurseenheidIds: { [key: string]: string[] } = {};
+  results.forEach((r) => {
+    mandatarisToBestuurseenheidIds[r.id.value] =
+      mandatarisToBestuurseenheidIds[r.id.value] || [];
+    mandatarisToBestuurseenheidIds[r.id.value].push(r.bestuurseenheidId.value);
+  });
+  return mandatarisToBestuurseenheidIds;
+}

@@ -1,8 +1,7 @@
 services:
   mandataris:
-    image: local-js-template
     #build: ./
-    #image: semtech/mu-javascript-template:1.8.0
+    image: semtech/mu-javascript-template:latest
     restart: no
     labels:
       - logging=true
@@ -18,9 +17,7 @@ services:
       - ../app-lokaal-mandatenbeheer/config/mandataris:/config
       - ../app-lokaal-mandatenbeheer/data/files/burgemeester-benoemingen:/uploads
       - ./:/app
-      # ignore app/dist because this is where we map the built files to, otherwise we get an infinite loop of creating files (on mac)
-      - /app/dist
-      - ./dist:/usr/src/dist
+
     networks:
       - debug
 

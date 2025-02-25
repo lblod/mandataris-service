@@ -26,6 +26,7 @@ import { uploadCsv } from '../controllers/mandataris-upload';
 import { CsvUploadState } from '../types';
 
 import { STATUS_CODE } from '../util/constants';
+import { HttpError } from '../util/http-error';
 
 const upload = multer({ dest: 'mandataris-uploads/' });
 
@@ -43,7 +44,23 @@ mandatarissenRouter.post(
   async (req: Request, res: Response) => {
     const state: CsvUploadState & { status?: string } = await uploadCsv(req);
     state.status = state.errors.length > 0 ? 'error' : 'ok';
-    return res.status(200).send(state);
+    res.status(200).send(state);
+  },
+);
+
+mandatarissenRouter.get(
+  '/check-ownership',
+  async (req: Request, res: Response) => {
+    let mandatarisIds = req.query.mandatarisIds;
+    if (mandatarisIds?.split) {
+      mandatarisIds = mandatarisIds.split(',').filter((id) => id && id !== '');
+    }
+    if (mandatarisIds.length === 0) {
+      throw new HttpError('No mandatarisIds provided', STATUS_CODE.BAD_REQUEST);
+    }
+    const result =
+      await mandatarisUsecase.checkMandatarisOwnership(mandatarisIds);
+    res.status(200).send(result);
   },
 );
 
