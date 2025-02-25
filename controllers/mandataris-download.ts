@@ -96,9 +96,7 @@ async function validateQueryParams(queryParams) {
 }
 
 function getSortingPropertyForQuery(sort?: string) {
-  if (!sort) {
-    return null;
-  }
+  sort = sort ? sort : 'is-bestuurlijke-alias-van.achternaam';
 
   const mapping = {
     'is-bestuurlijke-alias-van.gebruikte-voornaam': '?fName',
