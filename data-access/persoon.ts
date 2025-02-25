@@ -1,11 +1,5 @@
 import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
-import {
-  query,
-  sparqlEscapeDateTime,
-  sparqlEscapeString,
-  sparqlEscapeUri,
-  update,
-} from 'mu';
+import { query, sparqlEscapeString, sparqlEscapeUri, update } from 'mu';
 import { v4 as uuidv4 } from 'uuid';
 import {
   findFirstSparqlResult,
@@ -18,7 +12,6 @@ export const persoon = {
   getFractie,
   removeFractieFromCurrent,
   removeFractieFromCurrentWithGraph,
-  setEndDateOfActiveMandatarissen,
 };
 
 export const findPerson = async (rrn: string) => {
@@ -214,45 +207,6 @@ async function removeFractieFromCurrentWithGraph(
   `;
 
   await updateSudo(deleteQuery);
-}
-
-async function setEndDateOfActiveMandatarissen(
-  id: string,
-  endDate: Date,
-): Promise<void> {
-  const escaped = {
-    persoonId: sparqlEscapeString(id),
-    endDate: sparqlEscapeDateTime(endDate),
-    dateNow: sparqlEscapeDateTime(new Date()),
-  };
-  const updateQuery = `
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-
-    DELETE {
-      ?mandataris mandaat:einde ?endDate.
-    }
-    INSERT {
-      ?mandataris mandaat:einde ${escaped.endDate}.
-    }
-    WHERE {
-      ?mandataris a mandaat:Mandataris ;
-        mandaat:isBestuurlijkeAliasVan ?persoon;
-        mandaat:start ?startDate;
-        mandaat:status ?mandatarisStatus.
-      ?persoon mu:uuid ${escaped.persoonId}.
-      OPTIONAL {
-        ?mandataris mandaat:einde ?endDate.
-      }
-      FILTER (
-          ${escaped.dateNow} >= xsd:dateTime(?startDate) &&
-          ${escaped.dateNow} <= ?safeEnd
-      )
-      BIND(IF(BOUND(?endDate), ?endDate,  ${escaped.dateNow}) as ?safeEnd )
-    }
-  `;
-  await query(updateQuery);
 }
 
 export async function shouldPersonBeCopied(
