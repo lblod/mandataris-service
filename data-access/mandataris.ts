@@ -878,31 +878,40 @@ async function generateMandatarissen(
   }
 }
 
-async function getActiveMandatarissenForPerson(persoonId: string) {
+async function getActiveMandatarissenForPerson(
+  persoonId: string,
+  bestuursperiodeId: string,
+  date?: Date,
+) {
+  const activeAt = date ? date : new Date();
   const escaped = {
     persoonId: sparqlEscapeString(persoonId),
-    dateNow: sparqlEscapeDateTime(new Date()),
+    bestuursperiodeId: sparqlEscapeString(bestuursperiodeId),
+    date: sparqlEscapeDateTime(activeAt),
   };
   const updateQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
     SELECT DISTINCT ?mandataris
     WHERE {
       ?mandataris a mandaat:Mandataris ;
         mandaat:isBestuurlijkeAliasVan ?persoon;
         mandaat:start ?startDate;
-        mandaat:status ?mandatarisStatus.
+        mandaat:status ?mandatarisStatus;
+        org:holds / ^org:hasPost / lmb:heeftBestuursperiode / mu:uuid ${escaped.bestuursperiodeId} .
       ?persoon mu:uuid ${escaped.persoonId}.
       OPTIONAL {
         ?mandataris mandaat:einde ?endDate.
       }
       FILTER (
-          ${escaped.dateNow} >= xsd:dateTime(?startDate) &&
-          ${escaped.dateNow} <= ?safeEnd
+          ${escaped.date} >= xsd:dateTime(?startDate) &&
+          ${escaped.date} <= ?safeEnd
       )
-      BIND(IF(BOUND(?endDate), ?endDate,  ${escaped.dateNow}) as ?safeEnd )
+      BIND(IF(BOUND(?endDate), ?endDate, "3000-01-01T12:00:00.000Z"^^xsd:dateTime) AS ?safeEnd )
     }
   `;
   const sparqlResult = await query(updateQuery);
@@ -917,30 +926,33 @@ async function bulkUpdateEndDate(mandatarisUris: Array<string>, endDate: Date) {
 
   const escaped = {
     endDate: sparqlEscapeDateTime(endDate),
-    dateNow: sparqlEscapeDateTime(new Date()),
   };
   const updateQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
     DELETE {
       ?mandataris mandaat:einde ?endDate.
+      ?mandataris dct:modified ?oldModified .
     }
     INSERT {
       ?mandataris mandaat:einde ${escaped.endDate}.
+      ?mandataris dct:modified ?now .
     }
     WHERE {
-        VALUES ?mandataris {
-          ${mandatarisUris.map((uri) => sparqlEscapeUri(uri)).join('\n')}
-        }
-
-        ?mandataris a mandaat:Mandataris.
-
-        OPTIONAL {
-          ?mandataris mandaat:einde ?endDate.
+      VALUES ?mandataris {
+        ${mandatarisUris.map((uri) => sparqlEscapeUri(uri)).join('\n')}
       }
-      BIND(IF(BOUND(?endDate), ?endDate,  ${escaped.dateNow}) as ?safeEnd )
+      ?mandataris a mandaat:Mandataris.
+
+      OPTIONAL {
+        ?mandataris dct:modified ?oldModified .
+      }
+
+      OPTIONAL {
+        ?mandataris mandaat:einde ?endDate .
+      }
+
+      BIND(NOW() AS ?now)
     }
   `;
   await update(updateQuery);
