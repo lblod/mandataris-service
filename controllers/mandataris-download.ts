@@ -96,27 +96,25 @@ async function validateQueryParams(queryParams) {
 }
 
 function getSortingPropertyForQuery(sort?: string) {
-  if (!sort) {
-    return null;
-  }
+  sort = sort ? sort : 'is-bestuurlijke-alias-van.achternaam';
 
   const mapping = {
-    'is-bestuurlijke-alias-van.gebruikte-voornaam': '?fName',
-    '-is-bestuurlijke-alias-van.gebruikte-voornaam': '?fName',
-    'is-bestuurlijke-alias-van.achternaam': '?saveLName',
-    '-is-bestuurlijke-alias-van.achternaam': '?saveLName',
+    'is-bestuurlijke-alias-van.gebruikte-voornaam': '?Voornaam',
+    '-is-bestuurlijke-alias-van.gebruikte-voornaam': '?Voornaam',
+    'is-bestuurlijke-alias-van.achternaam': '?Naam',
+    '-is-bestuurlijke-alias-van.achternaam': '?Naam',
     'heeft-lidmaatschap.binnen-fractie.naam': '?fractieLabel',
     '-heeft-lidmaatschap.binnen-fractie.naam': '?fractieLabel',
     'bekleedt.bestuursfunctie.label': '?mandaatLabel',
     '-bekleedt.bestuursfunctie.label': '?mandaatLabel',
     start: '?start',
     '-start': '?start',
-    einde: '?saveEinde',
-    '-einde': '?saveEinde',
+    einde: '?einde',
+    '-einde': '?einde',
     'status.label': '?statusLabel',
     '-status.label': '?statusLabel',
-    'publication-status': '?savePublicatieStatusLabel',
-    '-publication-status': '?savePublicatieStatusLabel',
+    'publication-status': '?publicatieStatusLabel',
+    '-publication-status': '?publicatieStatusLabel',
   };
 
   if (!Object.keys(mapping).includes(sort)) {

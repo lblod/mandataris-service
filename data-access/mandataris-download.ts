@@ -1,9 +1,4 @@
-import {
-  query,
-  sparqlEscapeString,
-  sparqlEscapeDateTime,
-  sparqlEscapeUri,
-} from 'mu';
+import { query, sparqlEscapeString, sparqlEscapeUri } from 'mu';
 import { getSparqlResults } from '../util/sparql-result';
 import { queryResultToJson } from '../util/json-to-csv';
 
@@ -31,24 +26,13 @@ async function getUrisForFilters(filters) {
     `;
   }
   if (filters.activeOnly) {
-    const escapedTodaysDate = sparqlEscapeDateTime(new Date());
-    // the str() call is necessary because otherwise the comparison fails in virtuoso (datatype issue?)
     onlyActiveFilter = `
       OPTIONAL {
         ?mandataris mandaat:einde ?einde.
       }
-      ?bestuursorgaanInTijd mandaat:bindingStart ?startBestuursorgaan.
-      OPTIONAL {
-        ?bestuursorgaanInTijd mandaat:bindingEinde ?eindeBestuursorgaan.
-      }
-
-      BIND(IF(BOUND(?eindeBestuursorgaan), ?eindeBestuursorgaan, ${escapedTodaysDate}) AS ?safeEindeBestuursorgaan).
-      BIND(IF(BOUND(?einde), ?einde, ${escapedTodaysDate}) AS ?safeEinde).
-      FILTER (
-        STR(?safeEinde) <= STR(?safeEindeBestuursorgaan) &&
-        STR(?safeEinde) >= STR(?startBestuursorgaan) &&
-        STR(?safeEinde) >= STR(${escapedTodaysDate})
-      )
+      BIND(IF(BOUND(?einde), ?einde, "3000-01-01"^^xsd:dateTime) AS ?safeEinde)
+      BIND(NOW() AS ?now)
+      FILTER (?now <= ?safeEinde)
     `;
   }
 
