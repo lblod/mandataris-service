@@ -17,6 +17,7 @@ import {
   GEMEENTERAADSLID_FUNCTIE_CODE,
   LID_OCMW_FUNCTIE_CODE,
   LID_VB_FUNCTIE_CODE,
+  PUBLICATION_STATUS,
   SCHEPEN_FUNCTIE_CODE,
   TOEGEVOEGDE_SCHEPEN_FUNCTIE_CODE,
   VOORZITTER_GEMEENTERAAD_FUNCTIE_CODE,
@@ -52,7 +53,7 @@ installatievergaderingRouter.post(
     await moveOcmwOrgans(installatievergaderingId);
     await movePersons(installatievergaderingId);
     await setLinkedIVToBehandeld(installatievergaderingId);
-    await setMandatarisenToEffectief(installatievergaderingId);
+    await setMandatarissenToNietBekrachtigd(installatievergaderingId);
     return res.status(200).send({ status: 'ok' });
   },
 );
@@ -421,8 +422,9 @@ async function movePersons(installatievergaderingId: string) {
   await updateSudo(sparql);
 }
 
-async function setMandatarisenToEffectief(installatievergaderingId) {
+async function setMandatarissenToNietBekrachtigd(installatievergaderingId) {
   const escapedId = sparqlEscapeString(installatievergaderingId);
+  const nietBekrachtigd = sparqlEscapeUri(PUBLICATION_STATUS.NIET_BEKRACHTIGD);
   const sparql = `
   PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
   PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
@@ -446,7 +448,7 @@ async function setMandatarisenToEffectief(installatievergaderingId) {
   }
   INSERT {
     GRAPH ?target {
-      ?mandataris lmb:hasPublicationStatus <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/d3b12468-3720-4cb0-95b4-6aa2996ab188>.
+      ?mandataris lmb:hasPublicationStatus ${nietBekrachtigd} .
       ?mandataris lmb:effectiefAt ?now.
       ?mandataris dct:modified ?now.
     }

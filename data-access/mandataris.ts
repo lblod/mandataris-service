@@ -583,7 +583,7 @@ export async function updatePublicationStatusOfMandataris(
   }
 }
 
-export async function bulkSetPublicationStatusEffectief(
+export async function bulkSetPublicationStatusNietBekrachtigd(
   mandatarissen: string[],
 ): Promise<void> {
   const escaped = {
@@ -838,7 +838,7 @@ async function generateMandatarissen(
     endDate: sparqlEscapeDateTime(endDate),
     mandaat: sparqlEscapeUri(mandaatUri),
     effectief: sparqlEscapeUri(MANDATARIS_STATUS.EFFECTIEF),
-    publication: sparqlEscapeUri(PUBLICATION_STATUS.DRAFT),
+    nietBekrachtigd: sparqlEscapeUri(PUBLICATION_STATUS.NIET_BEKRACHTIGD),
   };
 
   const createQuery = `
@@ -860,7 +860,7 @@ async function generateMandatarissen(
           ${endDate ? `mandaat:einde ${escapedCommon.endDate};` : ''}
           org:holds ${escapedCommon.mandaat} ;
           mandaat:status ${escapedCommon.effectief} ;
-          lmb:hasPublicationStatus ${escapedCommon.publication} .
+          lmb:hasPublicationStatus ${escapedCommon.nietBekrachtigd} .
       }
     }
     WHERE {

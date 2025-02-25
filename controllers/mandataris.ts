@@ -1,8 +1,8 @@
 import { fractie } from '../data-access/fractie';
 import {
   bulkBekrachtigMandatarissen,
-  bulkSetPublicationStatusEffectief,
   checkMandatarisOwnershipQuery,
+  bulkSetPublicationStatusNietBekrachtigd,
   mandataris,
 } from '../data-access/mandataris';
 import { persoon } from '../data-access/persoon';
@@ -177,8 +177,8 @@ export async function handleBulkSetPublicationStatus(
     throw new HttpError('Unauthorized', 401);
   }
 
-  if (status == 'Effectief') {
-    await bulkSetPublicationStatusEffectief(mandatarissen);
+  if (status == 'Niet bekrachtigd') {
+    await bulkSetPublicationStatusNietBekrachtigd(mandatarissen);
     return;
   }
   if (status == 'Bekrachtigd') {
@@ -192,7 +192,7 @@ export async function handleBulkSetPublicationStatus(
     return;
   }
   throw new HttpError(
-    `The provided status: ${status} is not a valid publication status, please provide Effectief or Bekrachtigd.`,
+    `The provided status: ${status} is not a valid publication status, please provide "Niet bekrachtigd" or "Bekrachtigd".`,
     STATUS_CODE.BAD_REQUEST,
   );
 }
