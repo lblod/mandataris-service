@@ -12,7 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { Request, Response } from 'express';
 
-import { STATUS_CODE } from '../util/constants';
+import { PUBLICATION_STATUS, STATUS_CODE } from '../util/constants';
 import { HttpError } from '../util/http-error';
 import { sparqlEscapeQueryBinding } from '../util/sparql-escape';
 
@@ -273,7 +273,7 @@ async function insertNewMandatarisData(
       return `( ${safeUri} ${safeNewUuid} ${safeRangorde} )`;
     })
     .join('\n');
-
+  const nietBekrachtigd = sparqlEscapeUri(PUBLICATION_STATUS.NIET_BEKRACHTIGD);
   const updateQuery = `
       PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
       PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -284,7 +284,7 @@ async function insertNewMandatarisData(
         GRAPH ?g {
           ?mandataris mu:uuid ?newUuid .
           ?mandataris mandaat:rangorde ?rangorde .
-          ?mandataris lmb:hasPublicationStatus <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/588ce330-4abb-4448-9776-a17d9305df07> .
+          ?mandataris lmb:hasPublicationStatus ${nietBekrachtigd} .
           ?mandataris mandaat:start ${sparqlEscapeDateTime(date)} .
         }
       } WHERE {

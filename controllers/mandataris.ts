@@ -1,14 +1,14 @@
 import { fractie } from '../data-access/fractie';
 import {
   bulkBekrachtigMandatarissen,
-  bulkSetPublicationStatusEffectief,
   checkMandatarisOwnershipQuery,
+  bulkSetPublicationStatusNietBekrachtigd,
   mandataris,
 } from '../data-access/mandataris';
 import { persoon } from '../data-access/persoon';
 import { saveBulkHistoryItem } from '../data-access/form-queries';
 
-import { STATUS_CODE } from '../util/constants';
+import { PUBLICATION_STATUS, STATUS_CODE } from '../util/constants';
 import { HttpError } from '../util/http-error';
 import { createRangorde } from '../util/rangorde';
 
@@ -161,7 +161,7 @@ async function copyOverNonResourceDomainPredicates(
 
 export async function handleBulkSetPublicationStatus(
   mandatarissen: string[],
-  status: string,
+  statusUri: string,
   link?: string,
 ): Promise<void> {
   if (!mandatarissen || mandatarissen.length == 0) {
@@ -177,11 +177,11 @@ export async function handleBulkSetPublicationStatus(
     throw new HttpError('Unauthorized', 401);
   }
 
-  if (status == 'Effectief') {
-    await bulkSetPublicationStatusEffectief(mandatarissen);
+  if (statusUri === PUBLICATION_STATUS.NIET_BEKRACHTIGD) {
+    await bulkSetPublicationStatusNietBekrachtigd(mandatarissen);
     return;
   }
-  if (status == 'Bekrachtigd') {
+  if (statusUri === PUBLICATION_STATUS.BEKRACHTIGD) {
     if (!link) {
       throw new HttpError(
         'No link to publication was provided',
@@ -192,7 +192,7 @@ export async function handleBulkSetPublicationStatus(
     return;
   }
   throw new HttpError(
-    `The provided status: ${status} is not a valid publication status, please provide Effectief or Bekrachtigd.`,
+    `The provided status: ${statusUri} is not a valid publication status, please provide a correct publication status uri.`,
     STATUS_CODE.BAD_REQUEST,
   );
 }

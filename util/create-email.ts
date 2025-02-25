@@ -2,6 +2,9 @@ import { v4 as uuid } from 'uuid';
 import { sparqlEscapeDateTime, sparqlEscapeString } from 'mu';
 import { updateSudo } from '@lblod/mu-auth-sudo';
 
+// These notifications/emails are not sent atm
+// A ticket was created to update this logic
+// TODO: update all effectief to be Niet bekrachtigd
 const EMAIL_FROM_MANDATARIS_EFFECTIEF =
   process.env.EMAIL_FROM_MANDATARIS_EFFECTIEF;
 export const SEND_EMAILS =
@@ -35,7 +38,7 @@ export async function sendMissingBekrachtigingsmail(
   const to = sparqlEscapeString(emailTo);
   const htmlMessage = `
     <p>Beste,</p>
-    <p>Er zijn een aantal mandatarissen die al meer dan 10 dagen de publicatiestatus ‘Effectief’ hebben zonder koppeling met een besluit. Voor uw gemeente zijn dit er ${mandatarissen.length}.</p>
+    <p>Er zijn een aantal mandatarissen die al meer dan 10 dagen de publicatiestatus ‘Niet bekrachtigd’ hebben zonder koppeling met een besluit. Voor uw gemeente zijn dit er ${mandatarissen.length}.</p>
     <p> Hieronder vindt u een overzicht van al deze mandatarissen: <p>
     <table>
       <tr>
