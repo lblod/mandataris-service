@@ -903,7 +903,7 @@ async function getActiveMandatarissenForPerson(persoonId: string, date?: Date) {
           ${escaped.date} >= xsd:dateTime(?startDate) &&
           ${escaped.date} <= ?safeEnd
       )
-      BIND(IF(BOUND(?endDate), ?endDate, ${escaped.date}) as ?safeEnd )
+      BIND(IF(BOUND(?endDate), ?endDate, "3000-01-01T12:00:00.000Z"^^xsd:dateTime) AS ?safeEnd )
     }
   `;
   const sparqlResult = await query(updateQuery);
