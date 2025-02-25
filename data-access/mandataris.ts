@@ -838,7 +838,7 @@ async function generateMandatarissen(
     endDate: sparqlEscapeDateTime(endDate),
     mandaat: sparqlEscapeUri(mandaatUri),
     effectief: sparqlEscapeUri(MANDATARIS_STATUS.EFFECTIEF),
-    nietBekrachtigd: sparqlEscapeUri(PUBLICATION_STATUS.NIET_BEKRACHTIGD),
+    publication: sparqlEscapeUri(PUBLICATION_STATUS.DRAFT),
   };
 
   const createQuery = `
@@ -860,7 +860,7 @@ async function generateMandatarissen(
           ${endDate ? `mandaat:einde ${escapedCommon.endDate};` : ''}
           org:holds ${escapedCommon.mandaat} ;
           mandaat:status ${escapedCommon.effectief} ;
-          lmb:hasPublicationStatus ${escapedCommon.nietBekrachtigd} .
+          lmb:hasPublicationStatus ${escapedCommon.publication} .
       }
     }
     WHERE {
