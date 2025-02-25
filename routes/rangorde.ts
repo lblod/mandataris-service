@@ -273,9 +273,7 @@ async function insertNewMandatarisData(
       return `( ${safeUri} ${safeNewUuid} ${safeRangorde} )`;
     })
     .join('\n');
-  const nietBekrachtigd = sparqlEscapeUri(
-    sparqlEscapeUri(PUBLICATION_STATUS.NIET_BEKRACHTIGD),
-  );
+  const nietBekrachtigd = sparqlEscapeUri(PUBLICATION_STATUS.NIET_BEKRACHTIGD);
   const updateQuery = `
       PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
       PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
