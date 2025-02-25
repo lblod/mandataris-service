@@ -1,13 +1,15 @@
-import { HttpError } from '../util/http-error';
 import { query, sparqlEscapeString, sparqlEscapeUri } from 'mu';
 import { updateSudo, querySudo } from '@lblod/mu-auth-sudo';
+import { v4 as uuidv4 } from 'uuid';
+
+import { HttpError } from '../util/http-error';
 import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
 } from '../util/sparql-result';
-import { v4 as uuidv4 } from 'uuid';
 import { instanceIdentifiers } from '../types';
 import { createNotification } from '../util/create-notification';
+import { PUBLICATION_STATUS } from '../util/constants';
 
 export async function canAccessMandataris(id: string) {
   const sparql = `
@@ -478,6 +480,7 @@ export async function createNewLinkedMandataris(
     newMandatarisUuid: sparqlEscapeString(newMandatarisUuid),
     newMandataris: sparqlEscapeUri(newMandatarisUri),
     graph: sparqlEscapeUri(graph),
+    publicationStatus: sparqlEscapeUri(PUBLICATION_STATUS.EFFECTIEF),
   };
   let fractieTriples = '';
   if (fractieUri) {
@@ -508,7 +511,7 @@ export async function createNewLinkedMandataris(
         ${escaped.newMandataris} a mandaat:Mandataris ;
           mu:uuid ${escaped.newMandatarisUuid} ;
           org:holds ?linkedMandaat ;
-          lmb:hasPublicationStatus <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/588ce330-4abb-4448-9776-a17d9305df07> ;
+          lmb:hasPublicationStatus ${escaped.publicationStatus} ;
           ?mandatarisp ?mandatariso .
         ${fractieTriples}
       }
