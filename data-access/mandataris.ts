@@ -932,20 +932,27 @@ async function bulkUpdateEndDate(mandatarisUris: Array<string>, endDate: Date) {
 
     DELETE {
       ?mandataris mandaat:einde ?endDate.
+      ?mandataris dct:modified ?oldModified .
     }
     INSERT {
       ?mandataris mandaat:einde ${escaped.endDate}.
+      ?mandataris dct:modified ?now .
     }
     WHERE {
-        VALUES ?mandataris {
-          ${mandatarisUris.map((uri) => sparqlEscapeUri(uri)).join('\n')}
-        }
-
-        ?mandataris a mandaat:Mandataris.
-
-        OPTIONAL {
-          ?mandataris mandaat:einde ?endDate.
+      VALUES ?mandataris {
+        ${mandatarisUris.map((uri) => sparqlEscapeUri(uri)).join('\n')}
       }
+      ?mandataris a mandaat:Mandataris.
+
+      OPTIONAL {
+        ?mandataris dct:modified ?oldModified .
+      }
+
+      OPTIONAL {
+        ?mandataris mandaat:einde ?endDate .
+      }
+
+      BIND(NOW() AS ?now)
     }
   `;
   await update(updateQuery);
