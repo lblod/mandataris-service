@@ -128,11 +128,11 @@ export const createBurgemeesterFromScratch = async (
   const newMandatarisUri = `http://data.lblod.info/id/mandatarissen/${uuid}`;
   const formattedNewMandatarisUri = sparqlEscapeUri(newMandatarisUri);
   const escapedBenoemingUri = sparqlEscapeUri(benoemingUri);
-  const nietBekrachtigd = sparqlEscapeUri(PUBLICATION_STATUS.NIET_BEKRACHTIGD);
   await updateSudo(`
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX mps: <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
     PREFIX org: <http://www.w3.org/ns/org#>
 
@@ -144,7 +144,7 @@ export const createBurgemeesterFromScratch = async (
           mandaat:isBestuurlijkeAliasVan ${sparqlEscapeUri(burgemeesterUri)} ;
           mandaat:start ${sparqlEscapeDateTime(date)} ;
           mandaat:status <http://data.vlaanderen.be/id/concept/MandatarisStatusCode/21063a5b-912c-4241-841c-cc7fb3c73e75> ;
-          lmb:hasPublicationStatus ${nietBekrachtigd} .
+          lmb:hasPublicationStatus mps:9d8fd14d-95d0-4f5e-b3a5-a56a126227b6 .
         ${escapedBenoemingUri} ext:approves ${formattedNewMandatarisUri} .
       }
     }`);
