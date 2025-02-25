@@ -590,7 +590,7 @@ export async function bulkSetPublicationStatusEffectief(
     mandatarissenUuids: mandatarissen
       .map((uri) => sparqlEscapeString(uri))
       .join(' '),
-    effectief: sparqlEscapeUri(PUBLICATION_STATUS.EFFECTIEF),
+    nietBekrachtigd: sparqlEscapeUri(PUBLICATION_STATUS.NIET_BEKRACHTIGD),
     bekrachtigd: sparqlEscapeUri(PUBLICATION_STATUS.BEKRACHTIGD),
     todaysDate: sparqlEscapeDateTime(new Date()),
   };
@@ -607,7 +607,7 @@ export async function bulkSetPublicationStatusEffectief(
     }
     INSERT {
       GRAPH ?graph {
-        ?mandataris lmb:hasPublicationStatus ${escaped.effectief} .
+        ?mandataris lmb:hasPublicationStatus ${escaped.nietBekrachtigd} .
         ?mandataris lmb:effectiefAt ${escaped.todaysDate} .
       }
     }

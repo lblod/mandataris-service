@@ -273,8 +273,8 @@ async function insertNewMandatarisData(
       return `( ${safeUri} ${safeNewUuid} ${safeRangorde} )`;
     })
     .join('\n');
-  const publicationStatus = sparqlEscapeUri(
-    sparqlEscapeUri(PUBLICATION_STATUS.EFFECTIEF),
+  const nietBekrachtigd = sparqlEscapeUri(
+    sparqlEscapeUri(PUBLICATION_STATUS.NIET_BEKRACHTIGD),
   );
   const updateQuery = `
       PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -286,7 +286,7 @@ async function insertNewMandatarisData(
         GRAPH ?g {
           ?mandataris mu:uuid ?newUuid .
           ?mandataris mandaat:rangorde ?rangorde .
-          ?mandataris lmb:hasPublicationStatus ${publicationStatus} .
+          ?mandataris lmb:hasPublicationStatus ${nietBekrachtigd} .
           ?mandataris mandaat:start ${sparqlEscapeDateTime(date)} .
         }
       } WHERE {

@@ -480,7 +480,7 @@ export async function createNewLinkedMandataris(
     newMandatarisUuid: sparqlEscapeString(newMandatarisUuid),
     newMandataris: sparqlEscapeUri(newMandatarisUri),
     graph: sparqlEscapeUri(graph),
-    publicationStatus: sparqlEscapeUri(PUBLICATION_STATUS.EFFECTIEF),
+    nietBekrachtigd: sparqlEscapeUri(PUBLICATION_STATUS.NIET_BEKRACHTIGD),
   };
   let fractieTriples = '';
   if (fractieUri) {
@@ -511,7 +511,7 @@ export async function createNewLinkedMandataris(
         ${escaped.newMandataris} a mandaat:Mandataris ;
           mu:uuid ${escaped.newMandatarisUuid} ;
           org:holds ?linkedMandaat ;
-          lmb:hasPublicationStatus ${escaped.publicationStatus} ;
+          lmb:hasPublicationStatus ${escaped.nietBekrachtigd} ;
           ?mandatarisp ?mandatariso .
         ${fractieTriples}
       }
