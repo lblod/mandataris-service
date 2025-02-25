@@ -203,10 +203,10 @@ mandatarissenRouter.put(
 mandatarissenRouter.post(
   '/bulk-set-publication-status/',
   async (req: Request, res: Response) => {
-    const { decision, status, mandatarissen } = req.body;
+    const { decision, statusUri, mandatarissen } = req.body;
 
     try {
-      await handleBulkSetPublicationStatus(mandatarissen, status, decision);
+      await handleBulkSetPublicationStatus(mandatarissen, statusUri, decision);
       return res.status(200).send({ status: 'ok' });
     } catch (error) {
       const message =
