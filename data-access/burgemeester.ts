@@ -125,7 +125,7 @@ export const createBurgemeesterFromScratch = async (
   benoemingUri: string,
 ) => {
   const uuid = uuidv4();
-  const newMandatarisUri = `http://mu.semte.ch/vocabularies/ext/mandatarissen/${uuid}`;
+  const newMandatarisUri = `http://data.lblod.info/id/mandatarissen/${uuid}`;
   const formattedNewMandatarisUri = sparqlEscapeUri(newMandatarisUri);
   const escapedBenoemingUri = sparqlEscapeUri(benoemingUri);
   await updateSudo(`
