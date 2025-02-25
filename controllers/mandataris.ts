@@ -220,6 +220,7 @@ async function setEndDateOfActiveMandatarissen(
   userId: string,
   persoonId: string,
   date: Date,
+  bestuursPeriod: string,
 ): Promise<void> {
   const isPersoon = await areIdsValid(RDF_TYPE.PERSON, [persoonId]);
   if (!isPersoon) {
@@ -231,6 +232,7 @@ async function setEndDateOfActiveMandatarissen(
 
   const activeMandatarisUris = await mandataris.getActiveMandatarissenForPerson(
     persoonId,
+    bestuursPeriod,
     date,
   );
 

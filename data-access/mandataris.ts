@@ -878,23 +878,31 @@ async function generateMandatarissen(
   }
 }
 
-async function getActiveMandatarissenForPerson(persoonId: string, date?: Date) {
+async function getActiveMandatarissenForPerson(
+  persoonId: string,
+  bestuursPeriod: string,
+  date?: Date,
+) {
   const activeAt = date ? date : new Date();
   const escaped = {
     persoonId: sparqlEscapeString(persoonId),
+    bestuursperiode: sparqlEscapeUri(bestuursPeriod),
     date: sparqlEscapeDateTime(activeAt),
   };
   const updateQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
     SELECT DISTINCT ?mandataris
     WHERE {
       ?mandataris a mandaat:Mandataris ;
         mandaat:isBestuurlijkeAliasVan ?persoon;
         mandaat:start ?startDate;
-        mandaat:status ?mandatarisStatus.
+        mandaat:status ?mandatarisStatus;
+        org:holds / ^org:hasPost / lmb:heeftBestuursperiode ${escaped.bestuursperiode} .
       ?persoon mu:uuid ${escaped.persoonId}.
       OPTIONAL {
         ?mandataris mandaat:einde ?endDate.
