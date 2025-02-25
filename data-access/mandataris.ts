@@ -918,12 +918,9 @@ async function bulkUpdateEndDate(mandatarisUris: Array<string>, endDate: Date) {
 
   const escaped = {
     endDate: sparqlEscapeDateTime(endDate),
-    dateNow: sparqlEscapeDateTime(new Date()),
   };
   const updateQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
     DELETE {
       ?mandataris mandaat:einde ?endDate.
@@ -941,7 +938,6 @@ async function bulkUpdateEndDate(mandatarisUris: Array<string>, endDate: Date) {
         OPTIONAL {
           ?mandataris mandaat:einde ?endDate.
       }
-      BIND(IF(BOUND(?endDate), ?endDate,  ${escaped.dateNow}) as ?safeEnd )
     }
   `;
   await update(updateQuery);
