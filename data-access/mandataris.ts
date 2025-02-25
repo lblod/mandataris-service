@@ -424,7 +424,7 @@ export const copyFromPreviousMandataris = async (
   mandateUri?: string,
 ) => {
   const uuid = uuidv4();
-  const newMandatarisUri = `http://mu.semte.ch/vocabularies/ext/mandatarissen/${uuid}`;
+  const newMandatarisUri = `http://data.lblod.info/id/mandatarissen/${uuid}`;
 
   const filter = `FILTER (?p NOT IN (mandaat:start, lmb:hasPublicationStatus, mu:uuid
     ${mandateUri ? ', org:holds' : ''}))`;
