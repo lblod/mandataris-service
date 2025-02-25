@@ -1,9 +1,4 @@
-import {
-  query,
-  sparqlEscapeString,
-  sparqlEscapeDateTime,
-  sparqlEscapeUri,
-} from 'mu';
+import { query, sparqlEscapeString, sparqlEscapeUri } from 'mu';
 import { getSparqlResults } from '../util/sparql-result';
 import { queryResultToJson } from '../util/json-to-csv';
 
