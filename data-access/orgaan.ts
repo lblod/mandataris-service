@@ -9,7 +9,7 @@ import moment from 'moment';
 import { PUBLICATION_STATUS } from '../util/constants';
 
 export async function getActivePersonen(bestuursorgaanId: string) {
-  const nietBekrachtigd = sparqlEscapeUri(PUBLICATION_STATUS.NIET_BEKRACHTIGD);
+  const draftPublicationStatus = sparqlEscapeUri(PUBLICATION_STATUS.DRAFT);
   const safeStatussen = [
     sparqlEscapeUri(
       'http://data.vlaanderen.be/id/concept/MandatarisStatusCode/21063a5b-912c-4241-841c-cc7fb3c73e75', // Effectief
@@ -66,7 +66,7 @@ export async function getActivePersonen(bestuursorgaanId: string) {
       }
 
       FILTER NOT EXISTS {
-        ?mandataris lmb:hasPublicationStatus ${nietBekrachtigd} .
+        ?mandataris lmb:hasPublicationStatus ${draftPublicationStatus} .
       }
       VALUES ?dateToCheck {
         ${sparqlEscapeDateTime(effectiveEndDateWithMargin)}
