@@ -880,13 +880,13 @@ async function generateMandatarissen(
 
 async function getActiveMandatarissenForPerson(
   persoonId: string,
-  bestuursPeriod: string,
+  bestuursperiodeId: string,
   date?: Date,
 ) {
   const activeAt = date ? date : new Date();
   const escaped = {
     persoonId: sparqlEscapeString(persoonId),
-    bestuursperiode: sparqlEscapeUri(bestuursPeriod),
+    bestuursperiodeId: sparqlEscapeString(bestuursperiodeId),
     date: sparqlEscapeDateTime(activeAt),
   };
   const updateQuery = `
@@ -902,7 +902,7 @@ async function getActiveMandatarissenForPerson(
         mandaat:isBestuurlijkeAliasVan ?persoon;
         mandaat:start ?startDate;
         mandaat:status ?mandatarisStatus;
-        org:holds / ^org:hasPost / lmb:heeftBestuursperiode ${escaped.bestuursperiode} .
+        org:holds / ^org:hasPost / lmb:heeftBestuursperiode / mu:uuid ${escaped.bestuursperiodeId} .
       ?persoon mu:uuid ${escaped.persoonId}.
       OPTIONAL {
         ?mandataris mandaat:einde ?endDate.

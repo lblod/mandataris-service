@@ -33,14 +33,13 @@ personenRouter.get(
 );
 
 personenRouter.get(
-  '/:id/has-active-mandates',
+  '/:id/has-active-mandates/:bestuursperiodeId',
   async (req: Request, res: Response) => {
-    const { bestuursPeriod } = req.body;
     try {
       const actieveMandatarissen =
         await mandataris.getActiveMandatarissenForPerson(
           req.params.id,
-          bestuursPeriod,
+          req.params.bestuursperiodeId,
         );
 
       return res
@@ -60,7 +59,7 @@ personenRouter.put(
   '/:id/end-active-mandates',
   async (req: Request, res: Response) => {
     const personId = req.params.id;
-    const { bestuursPeriod, date } = req.body;
+    const { bestuursperiodeId, date } = req.body;
 
     try {
       const userId = await fetchUserIdFromSession(req.get('mu-session-id'));
@@ -73,7 +72,7 @@ personenRouter.put(
         userId,
         personId,
         date,
-        bestuursPeriod,
+        bestuursperiodeId,
       );
 
       return res.status(STATUS_CODE.OK).send({});
