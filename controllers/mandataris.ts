@@ -217,24 +217,27 @@ async function generateRows(config): Promise<Array<string>> {
 }
 
 async function setEndDateOfActiveMandatarissen(
-  id: string,
   userId: string,
+  persoonId: string,
+  date: Date,
 ): Promise<void> {
-  const isPersoon = await areIdsValid(RDF_TYPE.PERSON, [id]);
+  const isPersoon = await areIdsValid(RDF_TYPE.PERSON, [persoonId]);
   if (!isPersoon) {
     throw new HttpError(
-      `Person with id ${id} was not found.`,
+      `Person with id ${persoonId} was not found.`,
       STATUS_CODE.BAD_REQUEST,
     );
   }
 
-  const activeMandatarisUris =
-    await mandataris.getActiveMandatarissenForPerson(id);
+  const activeMandatarisUris = await mandataris.getActiveMandatarissenForPerson(
+    persoonId,
+    date,
+  );
 
-  await mandataris.bulkUpdateEndDate(activeMandatarisUris, new Date());
+  await mandataris.bulkUpdateEndDate(activeMandatarisUris, date);
   await saveBulkHistoryItem(
     activeMandatarisUris,
     userId,
-    `Mandatarissen voor persoon(${id}) beëindigd door gebruiker`,
+    `Mandatarissen voor persoon(${persoonId}) beëindigd door gebruiker`,
   );
 }

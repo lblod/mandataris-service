@@ -56,6 +56,7 @@ personenRouter.put(
   '/:id/end-active-mandates',
   async (req: Request, res: Response) => {
     const personId = req.params.id;
+    const { date } = req.body;
 
     try {
       const userId = await fetchUserIdFromSession(req.get('mu-session-id'));
@@ -64,7 +65,11 @@ personenRouter.put(
           .status(STATUS_CODE.FORBIDDEN)
           .send({ message: 'Not authenticated' });
       }
-      await mandatarisUsecase.setEndDateOfActiveMandatarissen(personId, userId);
+      await mandatarisUsecase.setEndDateOfActiveMandatarissen(
+        userId,
+        personId,
+        date,
+      );
 
       return res.status(STATUS_CODE.OK).send({});
     } catch (error) {
