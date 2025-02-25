@@ -878,10 +878,11 @@ async function generateMandatarissen(
   }
 }
 
-async function getActiveMandatarissenForPerson(persoonId: string) {
+async function getActiveMandatarissenForPerson(persoonId: string, date?: Date) {
+  const activeAt = date ? date : new Date();
   const escaped = {
     persoonId: sparqlEscapeString(persoonId),
-    dateNow: sparqlEscapeDateTime(new Date()),
+    date: sparqlEscapeDateTime(activeAt),
   };
   const updateQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
@@ -899,10 +900,10 @@ async function getActiveMandatarissenForPerson(persoonId: string) {
         ?mandataris mandaat:einde ?endDate.
       }
       FILTER (
-          ${escaped.dateNow} >= xsd:dateTime(?startDate) &&
-          ${escaped.dateNow} <= ?safeEnd
+          ${escaped.date} >= xsd:dateTime(?startDate) &&
+          ${escaped.date} <= ?safeEnd
       )
-      BIND(IF(BOUND(?endDate), ?endDate,  ${escaped.dateNow}) as ?safeEnd )
+      BIND(IF(BOUND(?endDate), ?endDate, ${escaped.date}) as ?safeEnd )
     }
   `;
   const sparqlResult = await query(updateQuery);
