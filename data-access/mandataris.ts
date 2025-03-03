@@ -929,6 +929,7 @@ async function bulkUpdateEndDate(mandatarisUris: Array<string>, endDate: Date) {
   };
   const updateQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX dct: <http://purl.org/dc/terms/>
 
     DELETE {
       ?mandataris mandaat:einde ?endDate.
