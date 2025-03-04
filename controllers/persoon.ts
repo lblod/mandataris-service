@@ -3,6 +3,7 @@ import {
   copyPersonToGraph,
   getDestinationGraphPerson,
   persoon,
+  personHasActiveMandate,
 } from '../data-access/persoon';
 
 import { areIdsValid, isValidId, RDF_TYPE } from '../util/valid-id';
@@ -71,4 +72,19 @@ export async function putPersonInRightGraph(
   }
 
   await copyPersonToGraph(personId, destinationGraph);
+}
+
+export async function hasActiveMandate(
+  personId: string,
+  mandaatId: string,
+): Promise<boolean> {
+  const isValidPerson = await isValidId(RDF_TYPE.PERSON, personId);
+  if (!isValidPerson) {
+    throw new HttpError(
+      `Person with id ${personId} not found.`,
+      STATUS_CODE.BAD_REQUEST,
+    );
+  }
+
+  return await personHasActiveMandate(personId, mandaatId);
 }

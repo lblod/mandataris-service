@@ -3,7 +3,11 @@ import Router from 'express-promise-router';
 import { Request, Response } from 'express';
 
 import { STATUS_CODE } from '../util/constants';
-import { persoonUsecase, putPersonInRightGraph } from '../controllers/persoon';
+import {
+  hasActiveMandate,
+  persoonUsecase,
+  putPersonInRightGraph,
+} from '../controllers/persoon';
 import { mandatarisUsecase } from '../controllers/mandataris';
 import { fetchUserIdFromSession } from '../data-access/form-queries';
 import { mandataris } from '../data-access/mandataris';
@@ -49,6 +53,26 @@ personenRouter.get(
       const message =
         error.message ??
         `Something went wrong while checking if person with id: ${req.params.id} has active mandates.`;
+      const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
+      return res.status(statusCode).send({ message });
+    }
+  },
+);
+
+personenRouter.get(
+  '/:id/has-active-mandate/:mandaatId',
+  async (req: Request, res: Response) => {
+    try {
+      const isTrue = await hasActiveMandate(
+        req.params.id,
+        req.params.mandaatId,
+      );
+
+      return res.status(STATUS_CODE.OK).send({ isTrue });
+    } catch (error) {
+      const message =
+        error.message ??
+        `Something went wrong while checking if person with id: ${req.params.id} has an active mandate with id: ${req.params.mandaatId}.`;
       const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
       return res.status(statusCode).send({ message });
     }
