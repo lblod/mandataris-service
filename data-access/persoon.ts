@@ -343,7 +343,6 @@ export async function personHasActiveMandate(
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX org: <http://www.w3.org/ns/org#>
-    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
     ASK WHERE {
       ?mandataris a mandaat:Mandataris ;
