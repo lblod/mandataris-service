@@ -1,9 +1,16 @@
 import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
-import { query, sparqlEscapeString, sparqlEscapeUri, update } from 'mu';
+import {
+  query,
+  sparqlEscapeDateTime,
+  sparqlEscapeString,
+  sparqlEscapeUri,
+  update,
+} from 'mu';
 import { v4 as uuidv4 } from 'uuid';
 import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
+  getSparqlResults,
 } from '../util/sparql-result';
 
 // note since we use the regular query, not sudo queries, be sure to log in when using this endpoint. E.g. use the vendor login
@@ -319,4 +326,44 @@ export async function copyPersonToGraph(personId: string, graph: string) {
   } catch (error) {
     throw Error(`Could not copy person with id: ${escaped.person}`);
   }
+}
+
+export async function getActivePersonMandateesWithMandate(
+  persoonId: string,
+  mandaatId: string,
+  date?: Date,
+) {
+  const activeAt = date ? date : new Date();
+  const escaped = {
+    persoonId: sparqlEscapeString(persoonId),
+    mandaatId: sparqlEscapeString(mandaatId),
+    date: sparqlEscapeDateTime(activeAt),
+  };
+  const q = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+
+    SELECT DISTINCT ?mandataris WHERE {
+      ?mandataris a mandaat:Mandataris ;
+        mu:uuid ?mandatarisId ;
+        mandaat:isBestuurlijkeAliasVan ?persoon ;
+        mandaat:start ?start ;
+        org:holds ?mandaat .
+      ?mandaat mu:uuid ${escaped.mandaatId} .
+      ?persoon mu:uuid ${escaped.persoonId} .
+      OPTIONAL {
+        ?mandataris mandaat:einde ?end .
+      }
+      FILTER (
+          ${escaped.date} >= xsd:dateTime(?start) &&
+          ${escaped.date} <= ?safeEnd
+      )
+      BIND(IF(BOUND(?end), ?end, "3000-01-01T12:00:00.000Z"^^xsd:dateTime) AS ?safeEnd )
+    }
+  `;
+  const sparqlResult = await query(q);
+
+  return getSparqlResults(sparqlResult).map((b) => b.mandataris?.value);
 }
