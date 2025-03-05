@@ -215,7 +215,7 @@ const findMandatesByName = async (row: CSVRow) => {
   const from = sparqlEscapeDateTime(startDateTime);
   const to = endDateTime
     ? sparqlEscapeDateTime(endDateTime)
-    : new Date('3000-01-01').toISOString();
+    : sparqlEscapeDateTime(new Date('3000-01-01'));
   const safeFractionName = fractieName
     ? sparqlEscapeString(fractieName)
     : 'mu:doesNotExist';
