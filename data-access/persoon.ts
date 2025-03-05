@@ -345,7 +345,7 @@ export async function getActivePersonMandateesWithMandate(
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX org: <http://www.w3.org/ns/org#>
 
-    SELECT DISTINCT ?mandatarisId WHERE {
+    SELECT DISTINCT ?mandataris WHERE {
       ?mandataris a mandaat:Mandataris ;
         mu:uuid ?mandatarisId ;
         mandaat:isBestuurlijkeAliasVan ?persoon ;
@@ -365,5 +365,5 @@ export async function getActivePersonMandateesWithMandate(
   `;
   const sparqlResult = await query(q);
 
-  return getSparqlResults(sparqlResult).map((b) => b.mandatarisId?.value);
+  return getSparqlResults(sparqlResult).map((b) => b.mandataris?.value);
 }

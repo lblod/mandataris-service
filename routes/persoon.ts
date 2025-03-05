@@ -63,12 +63,12 @@ personenRouter.get(
   '/:id/active-mandates/:mandaatId',
   async (req: Request, res: Response) => {
     try {
-      const mandatarisIds = await getActiveMandateesWithMandate(
+      const mandatarisUris = await getActiveMandateesWithMandate(
         req.params.id,
         req.params.mandaatId,
       );
 
-      return res.status(STATUS_CODE.OK).send({ mandatarissen: mandatarisIds });
+      return res.status(STATUS_CODE.OK).send({ mandatarissen: mandatarisUris });
     } catch (error) {
       const message =
         error.message ??
