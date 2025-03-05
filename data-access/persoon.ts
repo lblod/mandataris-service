@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import {
   findFirstSparqlResult,
   getBooleanSparqlResult,
+  getSparqlResults,
 } from '../util/sparql-result';
 
 // note since we use the regular query, not sudo queries, be sure to log in when using this endpoint. E.g. use the vendor login
@@ -327,7 +328,7 @@ export async function copyPersonToGraph(personId: string, graph: string) {
   }
 }
 
-export async function personHasActiveMandate(
+export async function getActivePersonMandateesWithMandate(
   persoonId: string,
   mandaatId: string,
   date?: Date,
@@ -338,14 +339,15 @@ export async function personHasActiveMandate(
     mandaatId: sparqlEscapeString(mandaatId),
     date: sparqlEscapeDateTime(activeAt),
   };
-  const askQuery = `
+  const q = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX org: <http://www.w3.org/ns/org#>
 
-    ASK WHERE {
+    SELECT DISTINCT ?mandatarisId WHERE {
       ?mandataris a mandaat:Mandataris ;
+        mu:uuid ?mandatarisId ;
         mandaat:isBestuurlijkeAliasVan ?persoon ;
         mandaat:start ?start ;
         org:holds ?mandaat .
@@ -361,7 +363,7 @@ export async function personHasActiveMandate(
       BIND(IF(BOUND(?end), ?end, "3000-01-01T12:00:00.000Z"^^xsd:dateTime) AS ?safeEnd )
     }
   `;
-  const sparqlResult = await query(askQuery);
+  const sparqlResult = await query(q);
 
-  return getBooleanSparqlResult(sparqlResult);
+  return getSparqlResults(sparqlResult).map((b) => b.mandatarisId?.value);
 }

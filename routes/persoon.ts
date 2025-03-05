@@ -4,7 +4,7 @@ import { Request, Response } from 'express';
 
 import { STATUS_CODE } from '../util/constants';
 import {
-  hasActiveMandate,
+  getActiveMandateesWithMandate,
   persoonUsecase,
   putPersonInRightGraph,
 } from '../controllers/persoon';
@@ -60,15 +60,15 @@ personenRouter.get(
 );
 
 personenRouter.get(
-  '/:id/has-active-mandate/:mandaatId',
+  '/:id/active-mandates/:mandaatId',
   async (req: Request, res: Response) => {
     try {
-      const isTrue = await hasActiveMandate(
+      const mandatarisIds = await getActiveMandateesWithMandate(
         req.params.id,
         req.params.mandaatId,
       );
 
-      return res.status(STATUS_CODE.OK).send({ isTrue });
+      return res.status(STATUS_CODE.OK).send({ mandatarissen: mandatarisIds });
     } catch (error) {
       const message =
         error.message ??

@@ -3,7 +3,7 @@ import {
   copyPersonToGraph,
   getDestinationGraphPerson,
   persoon,
-  personHasActiveMandate,
+  getActivePersonMandateesWithMandate,
 } from '../data-access/persoon';
 
 import { areIdsValid, isValidId, RDF_TYPE } from '../util/valid-id';
@@ -74,7 +74,7 @@ export async function putPersonInRightGraph(
   await copyPersonToGraph(personId, destinationGraph);
 }
 
-export async function hasActiveMandate(
+export async function getActiveMandateesWithMandate(
   personId: string,
   mandaatId: string,
 ): Promise<boolean> {
@@ -86,5 +86,5 @@ export async function hasActiveMandate(
     );
   }
 
-  return await personHasActiveMandate(personId, mandaatId);
+  return await getActivePersonMandateesWithMandate(personId, mandaatId);
 }
