@@ -1101,6 +1101,6 @@ export async function getMandatarisEndDate(mandatarisId) {
                 mandaat:einde ?endDate .
   } LIMIT 1`;
   const result = await query(selectQuery);
-  const endDate = getSparqlResults(result)[0].endDate?.value;
+  const endDate = findFirstSparqlResult(result)?.endDate?.value;
   return moment(endDate).toDate();
 }
