@@ -43,7 +43,6 @@ import {
   VOORZITTER_RMW_CODE,
 } from '../util/constants';
 import { instanceIdentifiers } from '../types';
-import { endOfDay } from '../util/date-manipulation';
 
 export const checkLinkedMandataris = async (req) => {
   const mandatarisId = req.params.id;
