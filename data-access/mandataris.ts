@@ -1092,6 +1092,9 @@ export async function checkMandatarisOwnershipQuery(mandatarisIds: string[]) {
 
 export async function getMandatarisEndDate(mandatarisId) {
   const selectQuery = `
+  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+  PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
   SELECT ?endDate WHERE {
     ?mandataris a mandaat:Mandataris ;
                 mu:uuid ${sparqlEscapeString(mandatarisId)} ;
