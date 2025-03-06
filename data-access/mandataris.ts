@@ -1089,3 +1089,15 @@ export async function checkMandatarisOwnershipQuery(mandatarisIds: string[]) {
   });
   return mandatarisToBestuurseenheidIds;
 }
+
+export async function getMandatarisEndDate(mandatarisId) {
+  const selectQuery = `
+  SELECT ?endDate WHERE {
+    ?mandataris a mandaat:Mandataris ;
+                mu:uuid ${sparqlEscapeString(mandatarisId)} ;
+                mandaat:einde ?endDate .
+  } LIMIT 1`;
+  const result = await query(selectQuery);
+  const endDate = getSparqlResults(result)[0].endDate?.value;
+  return moment(endDate).toDate();
+}

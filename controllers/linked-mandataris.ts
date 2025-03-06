@@ -26,6 +26,7 @@ import {
   getReplacements,
   addReplacement,
   removeReplacements,
+  getMandatarisEndDate,
 } from '../data-access/mandataris';
 import {
   fetchUserIdFromSession,
@@ -235,8 +236,8 @@ export const changeStateLinkedMandataris = async (req) => {
     oldLinkedMandataris,
   );
 
+  const endDate = await getMandatarisEndDate(oldMandatarisId);
   // End original linked mandatee
-  const endDate = endOfDay();
   endExistingMandataris(destinationGraph, oldLinkedMandataris.uri, endDate);
 
   await handleReplacement(
