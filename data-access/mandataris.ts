@@ -1089,3 +1089,18 @@ export async function checkMandatarisOwnershipQuery(mandatarisIds: string[]) {
   });
   return mandatarisToBestuurseenheidIds;
 }
+
+export async function getMandatarisEndDate(mandatarisId) {
+  const selectQuery = `
+  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+  PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+  SELECT ?endDate WHERE {
+    ?mandataris a mandaat:Mandataris ;
+                mu:uuid ${sparqlEscapeString(mandatarisId)} ;
+                mandaat:einde ?endDate .
+  } LIMIT 1`;
+  const result = await query(selectQuery);
+  const endDate = findFirstSparqlResult(result)?.endDate?.value;
+  return moment(endDate).toDate();
+}
