@@ -101,6 +101,7 @@ async function getContactEmailForMandataris(mandatarisUri?: string) {
 }
 
 async function fetchEffectiveMandatarissenWithoutBesluitAndNotification() {
+  // TODO: fix this method so it gets active mandatarissen after 10 days
   const momentTenDaysAgo = moment(new Date()).subtract(10, 'days');
   const escapedTenDaysBefore = sparqlEscapeDateTime(momentTenDaysAgo.toDate());
   const nietBekrachtigd = sparqlEscapeUri(PUBLICATION_STATUS.NIET_BEKRACHTIGD);
@@ -124,9 +125,6 @@ async function fetchEffectiveMandatarissenWithoutBesluitAndNotification() {
             org:holds / org:role ?bestuursfunctie .
           ?person persoon:gebruikteVoornaam ?fName ;
             foaf:familyName ?lName .
-          OPTIONAL {
-            ?mandataris lmb:effectiefAt ?effectiefAt .
-          }
 
           FILTER NOT EXISTS {
             ?notification a ext:SystemNotification;
@@ -140,9 +138,6 @@ async function fetchEffectiveMandatarissenWithoutBesluitAndNotification() {
         FILTER NOT EXISTS {
           ?graph a <http://mu.semte.ch/graphs/public>
         }
-
-        BIND(IF(BOUND(?effectiefAt), ?effectiefAt, ${escapedTenDaysBefore}) AS ?saveEffectiefAt).
-        FILTER(${escapedTenDaysBefore} >= ?saveEffectiefAt)
       }
       ORDER BY ?bestuursfunctieName ?lName
   `;

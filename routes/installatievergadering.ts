@@ -442,14 +442,12 @@ async function setMandatarissenToNietBekrachtigd(installatievergaderingId) {
   DELETE {
     GRAPH ?target {
       ?mandataris lmb:hasPublicationStatus ?old.
-      ?mandataris lmb:effectiefAt ?oldDate.
       ?mandataris dct:modified ?oldMod.
     }
   }
   INSERT {
     GRAPH ?target {
       ?mandataris lmb:hasPublicationStatus ${nietBekrachtigd} .
-      ?mandataris lmb:effectiefAt ?now.
       ?mandataris dct:modified ?now.
     }
   } WHERE {
@@ -473,9 +471,6 @@ async function setMandatarissenToNietBekrachtigd(installatievergaderingId) {
 
       OPTIONAL {
         ?mandataris lmb:hasPublicationStatus ?old.
-      }
-      OPTIONAL {
-        ?mandataris lmb:effectiefAt ?oldDate.
       }
       OPTIONAL {
         ?mandataris dct:modified ?oldMod.
