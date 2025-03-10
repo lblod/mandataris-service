@@ -2,6 +2,7 @@ import { CronJob } from 'cron';
 
 import moment from 'moment';
 import { querySudo } from '@lblod/mu-auth-sudo';
+import { sparqlEscapeDateTime, sparqlEscapeString, sparqlEscapeUri } from 'mu';
 
 import { findFirstSparqlResult, getSparqlResults } from '../util/sparql-result';
 import { PUBLICATION_STATUS } from '../util/constants';
@@ -11,7 +12,6 @@ import {
   SEND_EMAILS,
   sendMissingBekrachtigingsmail,
 } from '../util/create-email';
-import { sparqlEscapeDateTime, sparqlEscapeString, sparqlEscapeUri } from 'mu';
 
 const SUBJECT = 'Actieve mandatarissen zonder besluit';
 const NOTIFICATION_CRON_PATTERN =

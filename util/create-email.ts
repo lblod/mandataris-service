@@ -5,7 +5,9 @@ import { updateSudo } from '@lblod/mu-auth-sudo';
 const EMAIL_FROM_MANDATARIS_WITHOUT_DECISION =
   process.env.EMAIL_FROM_MANDATARIS_WITHOUT_DECISION;
 export const SEND_EMAILS =
-  process.env.SEND_EMAIL_FOR_MANDATARIS_WITHOUT_DECISION ?? false;
+  process.env.SEND_EMAIL_FOR_MANDATARIS_WITHOUT_DECISION === 'true'
+    ? true
+    : false;
 
 if (SEND_EMAILS && !EMAIL_FROM_MANDATARIS_WITHOUT_DECISION) {
   throw 'Please set the email adres to the value set in the LMB app EMAIL_FROM_MANDATARIS_WITHOUT_DECISION must equal to EMAIL_ADDRESS';
