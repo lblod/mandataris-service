@@ -13,7 +13,7 @@ import {
   sendMissingBekrachtigingsmail,
 } from '../util/create-email';
 
-const SUBJECT = 'Actieve mandatarissen zonder besluit';
+export const SUBJECT_DECISION = 'Actieve mandatarissen zonder besluit';
 const NOTIFICATION_CRON_PATTERN =
   process.env.NOTIFICATION_CRON_PATTERN || '0 8 * * 1-5'; // Every weekday at 8am
 console.log(`NOTIFICATION CRON TIME SET TO: ${NOTIFICATION_CRON_PATTERN}`);
@@ -42,7 +42,7 @@ export async function handleMandatarissen() {
   }
 
   await createBulkNotificationMandatarissenWithoutBesluit(
-    SUBJECT,
+    SUBJECT_DECISION,
     mandatarissen,
   );
   if (SEND_EMAILS) {
@@ -134,7 +134,7 @@ async function fetchActiveMandatarissenWithoutBesluit() {
 
           FILTER NOT EXISTS {
             ?notification a ext:SystemNotification;
-              dct:subject ${sparqlEscapeString(SUBJECT)};
+              dct:subject ${sparqlEscapeString(SUBJECT_DECISION)};
               ext:notificationLink ?notificationLink.
             ?notificationLink ext:linkedTo ?mandataris.
           }
