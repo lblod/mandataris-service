@@ -94,9 +94,15 @@ async function getContactEmailForMandataris(mandatarisUri?: string) {
 
     } LIMIT 1
   `;
-  const sparqlResult = await querySudo(query);
+  try {
+    const sparqlResult = await querySudo(query);
 
-  return findFirstSparqlResult(sparqlResult)?.email?.value;
+    return findFirstSparqlResult(sparqlResult)?.email?.value;
+  } catch (error) {
+    throw new HttpError(
+      'Something went wrong while trying to get the contact email for the mandataris.',
+    );
+  }
 }
 
 async function fetchActiveMandatarissenWithoutBesluit() {
