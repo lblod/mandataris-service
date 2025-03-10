@@ -3,6 +3,7 @@ import { sparqlEscapeDateTime, sparqlEscapeString } from 'mu';
 import { updateSudo } from '@lblod/mu-auth-sudo';
 
 import { HttpError } from './http-error';
+import { SUBJECT_DECISION } from '../cron/notification-for-bekrachtigde-mandataris';
 
 const EMAIL_FROM_MANDATARIS_WITHOUT_DECISION =
   process.env.EMAIL_FROM_MANDATARIS_WITHOUT_DECISION;
@@ -68,7 +69,7 @@ export async function sendMissingBekrachtigingsmail(
       <http://data.lblod.info/id/emails/${uuid()}> a nmo:Email;
         nmo:messageFrom ${from};
         nmo:emailTo ${to};
-        nmo:messageSubject "Besluit voor mandataris";
+        nmo:messageSubject ${sparqlEscapeString(SUBJECT_DECISION)};
         nmo:htmlMessageContent ${sparqlEscapeString(htmlMessage)} ;
         nmo:sentDate ${sparqlEscapeDateTime(new Date())};
         nmo:isPartOf <http://data.lblod.info/id/mail-folders/2>.
