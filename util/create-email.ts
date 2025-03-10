@@ -2,21 +2,20 @@ import { v4 as uuid } from 'uuid';
 import { sparqlEscapeDateTime, sparqlEscapeString } from 'mu';
 import { updateSudo } from '@lblod/mu-auth-sudo';
 
-// These notifications/emails are not sent atm
-// A ticket was created to update this logic
-// TODO: update all effectief to be Niet bekrachtigd
-const EMAIL_FROM_MANDATARIS_EFFECTIEF =
-  process.env.EMAIL_FROM_MANDATARIS_EFFECTIEF;
+const EMAIL_FROM_MANDATARIS_WITHOUT_DECISION =
+  process.env.EMAIL_FROM_MANDATARIS_WITHOUT_DECISION;
 export const SEND_EMAILS =
-  process.env.SEND_EMAIL_FOR_MANDATARIS_EFFECTIEF ?? false;
+  process.env.SEND_EMAIL_FOR_MANDATARIS_WITHOUT_DECISION ?? false;
 
-if (SEND_EMAILS && !EMAIL_FROM_MANDATARIS_EFFECTIEF) {
-  throw 'Please set the email adres to the value set in the LMB app EMAIL_FROM_MANDATARIS_EFFECTIEF must equal to EMAIL_ADDRESS';
+if (SEND_EMAILS && !EMAIL_FROM_MANDATARIS_WITHOUT_DECISION) {
+  throw 'Please set the email adres to the value set in the LMB app EMAIL_FROM_MANDATARIS_WITHOUT_DECISION must equal to EMAIL_ADDRESS';
 }
 console.log(
-  `EMAIL_FROM_MANDATARIS_EFFECTIEF SET TO: ${EMAIL_FROM_MANDATARIS_EFFECTIEF}`,
+  `EMAIL_FROM_MANDATARIS_WITHOUT_DECISION SET TO: ${EMAIL_FROM_MANDATARIS_WITHOUT_DECISION}`,
 );
-console.log(`SEND_EMAIL_FOR_MANDATARIS_EFFECTIEF SET TO: ${SEND_EMAILS}`);
+console.log(
+  `SEND_EMAIL_FOR_MANDATARIS_WITHOUT_DECISION SET TO: ${SEND_EMAILS}`,
+);
 
 export async function sendMissingBekrachtigingsmail(
   emailTo: string,
@@ -34,11 +33,13 @@ export async function sendMissingBekrachtigingsmail(
       </tr>
     `;
   }
-  const from = sparqlEscapeString(EMAIL_FROM_MANDATARIS_EFFECTIEF as string);
+  const from = sparqlEscapeString(
+    EMAIL_FROM_MANDATARIS_WITHOUT_DECISION as string,
+  );
   const to = sparqlEscapeString(emailTo);
   const htmlMessage = `
     <p>Beste,</p>
-    <p>Er zijn een aantal mandatarissen die al meer dan 10 dagen de publicatiestatus ‘Niet bekrachtigd’ hebben zonder koppeling met een besluit. Voor uw gemeente zijn dit er ${mandatarissen.length}.</p>
+    <p>Er zijn een aantal mandatarissen die al meer dan 10 dagen actief zijn zonder dat er een koppeling met een besluit is gemaakt. Voor uw gemeente zijn dit er ${mandatarissen.length}.</p>
     <p> Hieronder vindt u een overzicht van al deze mandatarissen: <p>
     <table>
       <tr>
