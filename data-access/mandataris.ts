@@ -602,13 +602,11 @@ export async function bulkSetPublicationStatusNietBekrachtigd(
     DELETE {
       GRAPH ?graph {
         ?mandataris lmb:hasPublicationStatus ?status .
-        ?mandataris lmb:effectiefAt ?effectiefAt .
       }
     }
     INSERT {
       GRAPH ?graph {
         ?mandataris lmb:hasPublicationStatus ${escaped.nietBekrachtigd} .
-        ?mandataris lmb:effectiefAt ${escaped.todaysDate} .
       }
     }
     WHERE {
@@ -617,9 +615,6 @@ export async function bulkSetPublicationStatusNietBekrachtigd(
           mu:uuid ?uuid .
         OPTIONAL {
           ?mandataris lmb:hasPublicationStatus ?status .
-        }
-        OPTIONAL {
-          ?mandataris lmb:effectiefAt ?effectiefAt .
         }
         VALUES ?uuid { ${escaped.mandatarissenUuids} }
         FILTER (!BOUND(?status) || ?status NOT IN (${escaped.bekrachtigd}))
