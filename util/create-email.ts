@@ -2,6 +2,8 @@ import { v4 as uuid } from 'uuid';
 import { sparqlEscapeDateTime, sparqlEscapeString } from 'mu';
 import { updateSudo } from '@lblod/mu-auth-sudo';
 
+import { HttpError } from './http-error';
+
 const EMAIL_FROM_MANDATARIS_WITHOUT_DECISION =
   process.env.EMAIL_FROM_MANDATARIS_WITHOUT_DECISION;
 export const SEND_EMAILS =
@@ -76,8 +78,8 @@ export async function sendMissingBekrachtigingsmail(
   try {
     await updateSudo(insertQuery);
   } catch (error) {
-    console.log(
-      `Something went wrong when sending an email to ${to} for mandataris in effectief status without decision..`,
+    throw new HttpError(
+      `Something went wrong while creating the email to ${to} for active mandatarissen without decision.`,
     );
   }
 }
