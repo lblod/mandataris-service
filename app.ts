@@ -11,10 +11,11 @@ import { burgemeesterRouter } from './routes/burgemeester-benoeming';
 import { installatievergaderingRouter } from './routes/installatievergadering';
 import { organenRouter } from './routes/organen';
 import { mockRouter } from './routes/mock';
-
-import { cronjob as harvestBekrachtigingenCron } from './cron/fetch-bekrachtigingen';
 import { electionResultsRouter } from './routes/verkiezingsresultaten';
 import { rangordeRouter } from './routes/rangorde';
+
+import { cronjob as harvestBekrachtigingenCron } from './cron/fetch-bekrachtigingen';
+import { cronjob as notificationActiveMandateesWithoutBesluitCron } from './cron/notification-for-bekrachtigde-mandataris';
 
 app.use(
   bodyParser.json({
@@ -52,7 +53,6 @@ const errorHandler: ErrorRequestHandler = function (err, _req, res, _next) {
 
 app.use(errorHandler);
 
-//FIXME disable notifications for now
-//notificationBekrachtigdMandataris.start();
+notificationActiveMandateesWithoutBesluitCron.start();
 // FIXME disabled handling of decision queue because the publications are broken right now. Reactivate when we have decent publications again
 harvestBekrachtigingenCron.start();
