@@ -1,0 +1,19 @@
+{
+  "scripts": {
+    "test": "jest --runInBand",
+    "test-u": "jest -u --runInBand"
+  },
+  "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "dotenv": "^16.4.7",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.6",
+    "ts-node": "^10.9.2"
+  },
+  "dependencies": {
+    "@lblod/mu-auth-sudo": "^0.6.1",
+    "body-parser": "^1.20.3",
+    "express": "^4.21.2",
+    "express-http-context": "^1.2.4"
+  }
+}

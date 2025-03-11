@@ -1,0 +1,3 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`index hello world 1`] = `"{"fracties":["6729D13BA12BA678FC887193"]}"`;
