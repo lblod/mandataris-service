@@ -1,0 +1,9 @@
+FROM docker:28.0.1-dind
+# install dependencies
+RUN apk add --update --no-cache curl bash git python3 make g++ gcc linux-headers udev nodejs npm
+RUN apk add --update npm
+ENV DOCKER_HOST=tcp://docker:2376
+COPY runTests.sh /scripts/runTests.sh
+RUN ["chmod", "+x", "/scripts/runTests.sh"]
+WORKDIR /scripts
+#ENTRYPOINT [ "/scripts/runTests.sh" ]
