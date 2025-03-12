@@ -12,6 +12,8 @@ async function waitForDatabase() {
     try {
       const result = await querySudo('SELECT * WHERE { ?s ?p ?o } LIMIT 1');
       if (result.results.bindings.length > 0) {
+        // somehow we still get failed queries for a bit after the db is ready
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         console.log('Database ready');
         return;
       } else {
@@ -41,15 +43,13 @@ class ExpressEnvironment extends NodeEnvironment {
     app.post('/delta', (req, res) => {
       res.send('ok').status(200);
       const body = req.body;
-      console.log('>>>>>>>>>>> received delta: ', body);
       deltas.push(body);
     });
     await new Promise(function (resolve) {
       server = app.listen(80, function () {
         let address = server.address();
         console.log(` Running server on '${JSON.stringify(address)}'...`);
-        setTimeout(resolve, 10000);
-        //resolve();
+        resolve();
       });
     });
     let address = server.address();
