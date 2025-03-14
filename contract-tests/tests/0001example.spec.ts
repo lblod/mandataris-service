@@ -1,14 +1,16 @@
 import 'dotenv/config';
 
-import { describe, expect, test, it, beforeAll } from '@jest/globals';
-import { mockLogin, userRequest } from './requestUtils';
+import { describe, expect, test, beforeAll } from '@jest/globals';
 import {
+  mockLogin,
+  userRequest,
   clearDeltas,
   expectQueryToHaveNoResults,
   getDeltas,
   runSudoQuery,
-} from './sparqlUtils';
+} from 'contract-tests';
 import { beforeEach } from 'node:test';
+import { sparqlEscapeUri } from 'mu';
 
 describe('fractions', () => {
   beforeAll(async () => {
@@ -46,10 +48,10 @@ describe('fractions', () => {
 
       SELECT * WHERE {
         VALUES ?mandataris {
-          ${mandatarisUris.map((uri) => `<${uri}>`).join('\n')}
+          ${mandatarisUris.map((uri) => sparqlEscapeUri(uri)).join('\n')}
         }
         GRAPH ?g {
-          ?mandataris lmb:hasPublicationStatus <${bekrachtigd}> .
+          ?mandataris lmb:hasPublicationStatus ${sparqlEscapeUri(bekrachtigd)} .
         }
         ?g ext:ownedBy ?someone.
       } ORDER by ?mandataris
@@ -74,21 +76,21 @@ describe('fractions', () => {
     // change someone's fraction before
     await runSudoQuery(`
       PREFIX org: <http://www.w3.org/ns/org#>
-      INSERT {
-        GRAPH ?g {
-          ?membership org:organization <http://data.lblod.info/id/fracties/673C4FDF9AA6EE1DF1856B4E> .
-        }
-      }
       DELETE {
         GRAPH ?g {
           ?membership org:organization ?old .
         }
       }
-      WHERE {
+      INSERT {
         GRAPH ?g {
-          VALUES ?membership {
-            <http://data.lblod.info/id/lidmaatschappen/391c5846-659e-4742-86b6-b1b6f30883ff>
-          }
+          ?membership org:organization <http://data.lblod.info/id/fracties/673C4FDF9AA6EE1DF1856B4E> .
+        }
+      }
+      WHERE {
+        VALUES ?membership {
+          <http://data.lblod.info/id/lidmaatschappen/391c5846-659e-4742-86b6-b1b6f30883ff>
+        }
+        GRAPH ?g {
           ?membership org:organization ?old .
         }
       }`);
