@@ -1,6 +1,7 @@
 {
   "name": "mandataris-service",
   "version": "0.0.3",
+  "type": "module",
   "description": "Service to handle backend business logic for mandataris instances",
   "main": "app.js",
   "author": "redpencil.io",

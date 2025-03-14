@@ -2,17 +2,18 @@ import { CronJob } from 'cron';
 
 import moment from 'moment';
 import { querySudo } from '@lblod/mu-auth-sudo';
+import { sparqlEscapeDateTime, sparqlEscapeString, sparqlEscapeUri } from 'mu';
 
 import { findFirstSparqlResult, getSparqlResults } from '../util/sparql-result';
 import { PUBLICATION_STATUS } from '../util/constants';
+import { HttpError } from '../util/http-error';
 import { createBulkNotificationMandatarissenWithoutBesluit } from '../util/create-notification';
 import {
   SEND_EMAILS,
   sendMissingBekrachtigingsmail,
 } from '../util/create-email';
-import { sparqlEscapeDateTime, sparqlEscapeString, sparqlEscapeUri } from 'mu';
 
-const SUBJECT = 'Mandataris zonder besluit';
+export const SUBJECT_DECISION = 'Actieve mandatarissen zonder besluit';
 const NOTIFICATION_CRON_PATTERN =
   process.env.NOTIFICATION_CRON_PATTERN || '0 8 * * 1-5'; // Every weekday at 8am
 console.log(`NOTIFICATION CRON TIME SET TO: ${NOTIFICATION_CRON_PATTERN}`);
@@ -22,30 +23,28 @@ export const cronjob = CronJob.from({
   cronTime: NOTIFICATION_CRON_PATTERN,
   onTick: async () => {
     console.log(
-      'DEBUG: Starting cronjob to send notifications for effective mandatees without besluit.',
+      'DEBUG: Starting cronjob to send notifications for active mandatarissen without besluit.',
     );
     if (running) {
       return;
     }
     running = true;
-    await handleEffectieveMandatarissen();
+    await handleMandatarissen();
     running = false;
   },
 });
 
-async function handleEffectieveMandatarissen() {
-  const mandatarissen =
-    await fetchEffectiveMandatarissenWithoutBesluitAndNotification();
+export async function handleMandatarissen() {
+  const mandatarissen = await fetchActiveMandatarissenWithoutBesluit();
 
   if (mandatarissen.length == 0) {
     return;
   }
 
   await createBulkNotificationMandatarissenWithoutBesluit(
-    SUBJECT,
+    SUBJECT_DECISION,
     mandatarissen,
   );
-
   if (SEND_EMAILS) {
     const grouped_mandatarissen = mandatarissen.reduce((acc, mandataris) => {
       const { graph } = mandataris;
@@ -95,15 +94,22 @@ async function getContactEmailForMandataris(mandatarisUri?: string) {
 
     } LIMIT 1
   `;
-  const sparqlResult = await querySudo(query);
+  try {
+    const sparqlResult = await querySudo(query);
 
-  return findFirstSparqlResult(sparqlResult)?.email?.value;
+    return findFirstSparqlResult(sparqlResult)?.email?.value;
+  } catch (error) {
+    throw new HttpError(
+      'Something went wrong while trying to get the contact email for the mandataris.',
+    );
+  }
 }
 
-async function fetchEffectiveMandatarissenWithoutBesluitAndNotification() {
+async function fetchActiveMandatarissenWithoutBesluit() {
   const momentTenDaysAgo = moment(new Date()).subtract(10, 'days');
   const escapedTenDaysBefore = sparqlEscapeDateTime(momentTenDaysAgo.toDate());
   const nietBekrachtigd = sparqlEscapeUri(PUBLICATION_STATUS.NIET_BEKRACHTIGD);
+  const today = sparqlEscapeDateTime(moment(new Date()).toDate());
   const query = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX dct: <http://purl.org/dc/terms/>
@@ -120,42 +126,46 @@ async function fetchEffectiveMandatarissenWithoutBesluitAndNotification() {
         GRAPH ?graph {
           ?mandataris a mandaat:Mandataris ;
             lmb:hasPublicationStatus ${nietBekrachtigd} ;
+            mandaat:start ?startMandaat ;
             mandaat:isBestuurlijkeAliasVan ?person ;
             org:holds / org:role ?bestuursfunctie .
           ?person persoon:gebruikteVoornaam ?fName ;
             foaf:familyName ?lName .
-          OPTIONAL {
-            ?mandataris lmb:effectiefAt ?effectiefAt .
-          }
 
           FILTER NOT EXISTS {
             ?notification a ext:SystemNotification;
-              dct:subject ${sparqlEscapeString(SUBJECT)};
+              dct:subject ${sparqlEscapeString(SUBJECT_DECISION)};
               ext:notificationLink ?notificationLink.
             ?notificationLink ext:linkedTo ?mandataris.
           }
+          OPTIONAL {
+            ?mandataris mandaat:einde ?eindeMandaat .
+          }
+
+          BIND(IF(BOUND(?eindeMandaat), ?eindeMandaat, ${escapedTenDaysBefore}) AS ?saveEindeMandaat).
+          FILTER(${escapedTenDaysBefore} >= ?startMandaat && ?saveEindeMandaat <= ${today})
         }
         ?bestuursfunctie skos:prefLabel ?bestuursfunctieName .
         ?graph ext:ownedBy ?owningEenheid.
-        FILTER NOT EXISTS {
-          ?graph a <http://mu.semte.ch/graphs/public>
-        }
-
-        BIND(IF(BOUND(?effectiefAt), ?effectiefAt, ${escapedTenDaysBefore}) AS ?saveEffectiefAt).
-        FILTER(${escapedTenDaysBefore} >= ?saveEffectiefAt)
       }
       ORDER BY ?bestuursfunctieName ?lName
   `;
 
-  const sparqlResult = await querySudo(query);
-  const results = getSparqlResults(sparqlResult);
+  try {
+    const sparqlResult = await querySudo(query);
+    const results = getSparqlResults(sparqlResult);
 
-  return results.map((term) => {
-    return {
-      uri: term.mandataris.value,
-      name: `${term.fName.value} ${term.lName.value}`,
-      mandate: term.bestuursfunctieName.value,
-      graph: term.graph.value,
-    };
-  });
+    return results.map((term) => {
+      return {
+        uri: term.mandataris.value,
+        name: `${term.fName.value} ${term.lName.value}`,
+        mandate: term.bestuursfunctieName.value,
+        graph: term.graph.value,
+      };
+    });
+  } catch (error) {
+    throw new HttpError(
+      'Something went wrong while fetching active mandatarissen without besluit',
+    );
+  }
 }
