@@ -1,9 +1,8 @@
 import 'dotenv/config';
 
 import { describe, expect, test, beforeAll } from '@jest/globals';
-import { mockLogin, userRequest } from './requestUtils';
+import { mockLogin, userRequest, clearDeltas, getDeltas } from 'contract-tests';
 import { beforeEach } from 'node:test';
-import { clearDeltas, getDeltas } from './sparqlUtils';
 
 describe('index', () => {
   beforeAll(async () => {
@@ -17,10 +16,10 @@ describe('index', () => {
     await clearDeltas();
   });
 
-  test('hello world after', async () => {
+  test('count active mandatarissen in organ', async () => {
     const { body } = await userRequest(
       'GET',
-      'http://target/mandataris-api/organen/0921318d-c195-4fbf-aadf-2534cdd63c7d/activeMembers',
+      'http://target/organen/0921318d-c195-4fbf-aadf-2534cdd63c7d/activeMembers',
     );
     expect(body).toMatchSnapshot();
     expect(await getDeltas()).toHaveLength(0);
