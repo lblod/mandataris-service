@@ -106,10 +106,10 @@ async function getContactEmailForMandataris(mandatarisUri?: string) {
 }
 
 async function fetchActiveMandatarissenWithoutBesluit() {
-  const momentTenDaysAgo = moment(new Date()).subtract(10, 'days');
+  const momentTenDaysAgo = moment().subtract(10, 'days');
   const escapedTenDaysBefore = sparqlEscapeDateTime(momentTenDaysAgo.toDate());
   const nietBekrachtigd = sparqlEscapeUri(PUBLICATION_STATUS.NIET_BEKRACHTIGD);
-  const today = sparqlEscapeDateTime(moment(new Date()).toDate());
+  const today = sparqlEscapeDateTime(moment().toDate());
   const query = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX dct: <http://purl.org/dc/terms/>
