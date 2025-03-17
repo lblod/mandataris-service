@@ -14,7 +14,6 @@ import { mockRouter } from './routes/mock';
 import { electionResultsRouter } from './routes/verkiezingsresultaten';
 import { rangordeRouter } from './routes/rangorde';
 
-import { cronjob as harvestBekrachtigingenCron } from './cron/fetch-bekrachtigingen';
 import { cronjob as notificationActiveMandateesWithoutBesluitCron } from './cron/notification-for-bekrachtigde-mandataris';
 
 app.use(
@@ -54,5 +53,3 @@ const errorHandler: ErrorRequestHandler = function (err, _req, res, _next) {
 app.use(errorHandler);
 
 notificationActiveMandateesWithoutBesluitCron.start();
-// FIXME disabled handling of decision queue because the publications are broken right now. Reactivate when we have decent publications again
-harvestBekrachtigingenCron.start();
