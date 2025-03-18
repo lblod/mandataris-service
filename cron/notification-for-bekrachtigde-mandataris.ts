@@ -201,6 +201,16 @@ async function fetchActiveMandatarissenWithoutBesluit() {
             org:holds / org:role ?bestuursfunctie .
           ?person persoon:gebruikteVoornaam ?fName ;
             foaf:familyName ?lName .
+          VALUES ?bestuursfunctie {
+            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000011>
+            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000014>
+            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000019>
+            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000012>
+            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e00001a>
+            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/59a90e03-4f22-4bb9-8c91-132618db4b38>
+            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/7b038cc40bba10bec833ecfe6f15bc7a>
+            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000013>
+          }
 
           FILTER NOT EXISTS {
             ?notification a ext:SystemNotification;
@@ -240,3 +250,4 @@ async function fetchActiveMandatarissenWithoutBesluit() {
     );
   }
 }
+setTimeout(() => handleMandatarissen(), 10000);
