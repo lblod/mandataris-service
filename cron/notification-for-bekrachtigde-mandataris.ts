@@ -20,23 +20,31 @@ import {
 
 export const SUBJECT_DECISION = 'Actieve mandataris zonder besluit';
 const BATCH_SIZE = 100;
-const NOTIFICATION_CRON_PATTERN =
-  process.env.NOTIFICATION_CRON_PATTERN || '0 8 * * 1-5'; // Every weekday at 8am
-console.log(`NOTIFICATION CRON TIME SET TO: ${NOTIFICATION_CRON_PATTERN}`);
+const NOTIFICATION_CRON_PATTERN = process.env.NOTIFICATION_CRON_PATTERN; // disable by default
+console.log(
+  `NOTIFICATION CRON TIME SET TO: ${NOTIFICATION_CRON_PATTERN ?? 'DISABLED'}`,
+);
 let running = false;
 
-export const cronjob = CronJob.from({
-  cronTime: NOTIFICATION_CRON_PATTERN,
-  onTick: async () => {
-    console.log(
-      'DEBUG: Starting cronjob to send notifications for active mandatarissen without besluit.',
-    );
-    if (running) {
-      return;
-    }
-    await handleMandatarissen();
-  },
-});
+let job = {
+  start: () => {},
+};
+if (NOTIFICATION_CRON_PATTERN) {
+  job = CronJob.from({
+    cronTime: NOTIFICATION_CRON_PATTERN,
+    onTick: async () => {
+      console.log(
+        'DEBUG: Starting cronjob to send notifications for active mandatarissen without besluit.',
+      );
+      if (running) {
+        return;
+      }
+      await handleMandatarissen();
+    },
+  });
+}
+
+export const cronjob = job;
 
 async function handleBatchOfMandatarissen(keyOfRun: string) {
   const mandatarissen = await fetchActiveMandatarissenWithoutBesluit();
@@ -250,4 +258,3 @@ async function fetchActiveMandatarissenWithoutBesluit() {
     );
   }
 }
-setTimeout(() => handleMandatarissen(), 10000);
