@@ -11,6 +11,10 @@ import {
 } from 'contract-tests';
 import { beforeEach } from 'node:test';
 import { sparqlEscapeUri } from 'mu';
+import {
+  expectDeltaDelete,
+  expectDeltaInsert,
+} from 'contract-tests/sparqlUtils';
 
 describe('fractions', () => {
   beforeAll(async () => {
@@ -70,6 +74,17 @@ describe('fractions', () => {
     const result = await runSudoQuery(query);
     expect(result).toMatchSnapshot();
     expect(await getDeltas()).toMatchSnapshot();
+    await expectDeltaDelete({
+      object: {
+        type: 'uri',
+        value:
+          'http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/d3b12468-3720-4cb0-95b4-6aa2996ab188',
+      },
+      predicate: {
+        type: 'uri',
+        value: 'http://lblod.data.gift/vocabularies/lmb/hasPublicationStatus',
+      },
+    });
   });
 
   test('update-mandataris-fractie', async () => {
@@ -102,5 +117,16 @@ describe('fractions', () => {
     );
     expect(body).toMatchSnapshot();
     expect(await getDeltas()).toMatchSnapshot();
+    await expectDeltaInsert({
+      predicate: {
+        type: 'uri',
+        value: 'http://mu.semte.ch/vocabularies/ext/lmb/currentFracties',
+      },
+      subject: {
+        type: 'uri',
+        value:
+          'http://data.lblod.info/id/personen/f5979b66f11984b5d21da224a3ce9fddda42e0c883fa1cdab8e1ff6c19179e3a',
+      },
+    });
   });
 });
