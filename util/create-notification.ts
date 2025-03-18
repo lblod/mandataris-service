@@ -117,6 +117,7 @@ export async function getMandatarisNotificationGraph(mandataris: string) {
 export async function createBulkNotificationMandatarissenWithoutBesluit(
   title: string,
   mandatarissen,
+  key: string,
 ) {
   const data = mandatarissen
     .map((mandataris) => {
@@ -137,6 +138,7 @@ export async function createBulkNotificationMandatarissenWithoutBesluit(
             dct:subject ${sparqlEscapeString(title)} ;
             schema:description ${sparqlEscapeString(description)} ;
             dct:created ${sparqlEscapeDateTime(new Date())} ;
+            ext:generatedByRun ${sparqlEscapeString(key)} ;
             dct:type ${sparqlEscapeUri(notificationTypes['warning'])} ;
             ext:notificationLink ${link} .
           ${link} a ext:SystemNotificationLink ;

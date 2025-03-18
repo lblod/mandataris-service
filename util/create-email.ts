@@ -3,7 +3,8 @@ import { sparqlEscapeDateTime, sparqlEscapeString } from 'mu';
 import { updateSudo } from '@lblod/mu-auth-sudo';
 
 import { HttpError } from './http-error';
-import { SUBJECT_DECISION } from '../cron/notification-for-bekrachtigde-mandataris';
+
+const SUBJECT_DECISION = 'Actieve mandatarissen zonder besluit';
 
 const EMAIL_FROM_MANDATARIS_WITHOUT_DECISION =
   process.env.EMAIL_FROM_MANDATARIS_WITHOUT_DECISION;

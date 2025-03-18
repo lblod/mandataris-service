@@ -2,7 +2,12 @@ import { CronJob } from 'cron';
 
 import moment from 'moment';
 import { querySudo } from '@lblod/mu-auth-sudo';
-import { sparqlEscapeDateTime, sparqlEscapeString, sparqlEscapeUri } from 'mu';
+import {
+  sparqlEscapeDateTime,
+  sparqlEscapeString,
+  sparqlEscapeUri,
+  uuid,
+} from 'mu';
 
 import { findFirstSparqlResult, getSparqlResults } from '../util/sparql-result';
 import { PUBLICATION_STATUS } from '../util/constants';
@@ -13,7 +18,8 @@ import {
   sendMissingBekrachtigingsmail,
 } from '../util/create-email';
 
-export const SUBJECT_DECISION = 'Actieve mandatarissen zonder besluit';
+export const SUBJECT_DECISION = 'Actieve mandataris zonder besluit';
+const BATCH_SIZE = 100;
 const NOTIFICATION_CRON_PATTERN =
   process.env.NOTIFICATION_CRON_PATTERN || '0 8 * * 1-5'; // Every weekday at 8am
 console.log(`NOTIFICATION CRON TIME SET TO: ${NOTIFICATION_CRON_PATTERN}`);
@@ -28,43 +34,107 @@ export const cronjob = CronJob.from({
     if (running) {
       return;
     }
-    running = true;
     await handleMandatarissen();
-    running = false;
   },
 });
 
-export async function handleMandatarissen() {
+async function handleBatchOfMandatarissen(keyOfRun: string) {
   const mandatarissen = await fetchActiveMandatarissenWithoutBesluit();
 
   if (mandatarissen.length == 0) {
-    return;
+    return mandatarissen;
   }
 
   await createBulkNotificationMandatarissenWithoutBesluit(
     SUBJECT_DECISION,
     mandatarissen,
+    keyOfRun,
   );
-  if (SEND_EMAILS) {
-    const grouped_mandatarissen = mandatarissen.reduce((acc, mandataris) => {
-      const { graph } = mandataris;
-      if (!acc[graph]) {
-        acc[graph] = [];
-      }
-      acc[graph].push(mandataris);
-      return acc;
-    }, {});
-    for (const key in grouped_mandatarissen) {
-      const mandataris_group = grouped_mandatarissen[key];
-      const email = await getContactEmailForMandataris(
-        mandataris_group.at(0)?.uri,
-      );
-      if (email) {
-        await sendMissingBekrachtigingsmail(email, mandataris_group);
-      }
+
+  return mandatarissen;
+}
+
+export async function handleMandatarissen() {
+  running = true;
+  const keyOfRun = uuid();
+  let moreToDo = true;
+  while (moreToDo) {
+    const processed = await handleBatchOfMandatarissen(keyOfRun);
+    moreToDo = processed.length > 0;
+  }
+  await sendEmailsForNotifications(keyOfRun);
+  running = false;
+}
+
+async function sendEmailsForNotifications(keyOfRun: string) {
+  if (!SEND_EMAILS) {
+    return;
+  }
+  const graphs = await getGraphsWithMandatarissenRequiringMail(keyOfRun);
+  for (const graph of graphs) {
+    const mandatarissen = await getMandatarissenToNotifyAbout(graph, keyOfRun);
+    const email = await getContactEmailForMandataris(mandatarissen[0]?.uri);
+    if (email) {
+      await sendMissingBekrachtigingsmail(email, mandatarissen);
     }
   }
-  running = false;
+}
+
+async function getGraphsWithMandatarissenRequiringMail(keyOfRun: string) {
+  const query = `
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX dct: <http://purl.org/dc/terms/>
+
+    SELECT DISTINCT ?g WHERE {
+      GRAPH ?g {
+        ?mandataris a mandaat:Mandataris .
+        ?notification a ext:SystemNotification ;
+          dct:subject ${sparqlEscapeString(SUBJECT_DECISION)} ;
+          ext:generatedByRun ${sparqlEscapeString(keyOfRun)} ;
+          ext:notificationLink / ext:linkedTo ?mandataris .
+      }
+      ?g ext:ownedBy ?eenheid.
+    }
+  `;
+  const result = await querySudo(query);
+  return getSparqlResults(result).map((term) => term.g.value);
+}
+
+async function getMandatarissenToNotifyAbout(graph: string, keyOfRun: string) {
+  const query = `
+  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
+
+    SELECT DISTINCT ?mandataris ?fName ?lName ?bestuursfunctieName WHERE {
+      GRAPH ${sparqlEscapeUri(graph)} {
+        ?mandataris a mandaat:Mandataris ;
+            mandaat:isBestuurlijkeAliasVan ?person ;
+            org:holds / org:role ?bestuursfunctie .
+        ?person persoon:gebruikteVoornaam ?fName ;
+            foaf:familyName ?lName .
+
+        ?notification a ext:SystemNotification ;
+          dct:subject ${sparqlEscapeString(SUBJECT_DECISION)} ;
+          ext:generatedByRun ${sparqlEscapeString(keyOfRun)} ;
+          ext:notificationLink / ext:linkedTo ?mandataris .
+      }
+      ?bestuursfunctie skos:prefLabel ?bestuursfunctieName .
+      ?g ext:ownedBy ?eenheid.
+    } ORDER BY ?bestuursfunctieName ?lName ?fName
+  `;
+  const result = await querySudo(query);
+  return getSparqlResults(result).map((term) => {
+    return {
+      uri: term.mandataris.value,
+      name: `${term.fName.value} ${term.lName.value}`,
+      mandate: term.bestuursfunctieName.value,
+    };
+  });
 }
 
 async function getContactEmailForMandataris(mandatarisUri?: string) {
@@ -149,6 +219,7 @@ async function fetchActiveMandatarissenWithoutBesluit() {
         ?graph ext:ownedBy ?owningEenheid.
       }
       ORDER BY ?bestuursfunctieName ?lName
+      LIMIT ${BATCH_SIZE}
   `;
 
   try {
