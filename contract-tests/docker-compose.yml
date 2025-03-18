@@ -49,7 +49,7 @@ services:
     volumes:
       - ./config/delta:/config
   tests:
-    image: local-contract-tests
+    image: lblod/contract-testing
     environment:
       NODE_ENV: 'development'
       MU_SPARQL_ENDPOINT: 'http://database:8890/sparql'
