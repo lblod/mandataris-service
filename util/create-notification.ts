@@ -117,6 +117,7 @@ export async function getMandatarisNotificationGraph(mandataris: string) {
 export async function createBulkNotificationMandatarissenWithoutBesluit(
   title: string,
   mandatarissen,
+  key: string,
 ) {
   const data = mandatarissen
     .map((mandataris) => {
@@ -128,7 +129,7 @@ export async function createBulkNotificationMandatarissenWithoutBesluit(
       const link = sparqlEscapeUri(
         `http://data.lblod.info/id/SystemNotificationLink/${linkId}`,
       );
-      const description = `De publicatie status van ${mandataris.name} met mandaat ${mandataris.mandate} staat al 10 dagen of meer op effectief zonder dat er een besluit is toegevoegd. Gelieve deze mandataris manueel te bekrachtigen en een besluit toe te voegen of publiceer het besluit van de installatievergadering via een notuleringspakket.`;
+      const description = `De mandataris van ${mandataris.name} met mandaat ${mandataris.mandate} is al 10 dagen actief zonder dat er een besluit is toegevoegd. Gelieve deze mandataris manueel te bekrachtigen en een besluit toe te voegen of publiceer het besluit van de installatievergadering via een notuleringspakket.`;
 
       return `
         GRAPH ${sparqlEscapeUri(mandataris.graph)} {
@@ -137,6 +138,7 @@ export async function createBulkNotificationMandatarissenWithoutBesluit(
             dct:subject ${sparqlEscapeString(title)} ;
             schema:description ${sparqlEscapeString(description)} ;
             dct:created ${sparqlEscapeDateTime(new Date())} ;
+            ext:generatedByRun ${sparqlEscapeString(key)} ;
             dct:type ${sparqlEscapeUri(notificationTypes['warning'])} ;
             ext:notificationLink ${link} .
           ${link} a ext:SystemNotificationLink ;

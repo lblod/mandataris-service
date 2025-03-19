@@ -8,8 +8,9 @@ services:
     environment:
       NODE_ENV: development
       NO_BABEL_NODE: true
-      EMAIL_FROM_MANDATARIS_EFFECTIEF: email@address.com
-      SEND_EMAIL_FOR_MANDATARIS_EFFECTIEF: false
+      EMAIL_FROM_MANDATARIS_WITHOUT_DECISION: email@address.com
+      SEND_EMAIL_FOR_MANDATARIS_WITHOUT_DECISION: false
+      NOTIFICATION_CRON_PATTERN: '0 0 0 * * *'
     ports:
       - '8082:80'
       - '9225:9229'
@@ -17,7 +18,6 @@ services:
       - ../app-lokaal-mandatenbeheer/config/mandataris:/config
       - ../app-lokaal-mandatenbeheer/data/files/burgemeester-benoemingen:/uploads
       - ./:/app
-
     networks:
       - debug
 
