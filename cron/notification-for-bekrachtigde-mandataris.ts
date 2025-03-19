@@ -198,6 +198,7 @@ async function fetchActiveMandatarissenWithoutBesluit() {
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
 
     SELECT DISTINCT ?mandataris ?fName ?lName ?bestuursfunctieName ?graph
       WHERE {
@@ -206,18 +207,21 @@ async function fetchActiveMandatarissenWithoutBesluit() {
             lmb:hasPublicationStatus ${nietBekrachtigd} ;
             mandaat:start ?startMandaat ;
             mandaat:isBestuurlijkeAliasVan ?person ;
-            org:holds / org:role ?bestuursfunctie .
+            org:holds ?mandaat.
+          ?mandaat org:role ?bestuursfunctie .
+          ?orgT org:hasPost ?mandaat .
+          ?orgT mandaat:isTijdspecialisatieVan / besluit:bestuurt ?eenheid .
           ?person persoon:gebruikteVoornaam ?fName ;
             foaf:familyName ?lName .
           VALUES ?bestuursfunctie {
-            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000011>
-            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000014>
-            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000019>
-            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000012>
-            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e00001a>
-            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/59a90e03-4f22-4bb9-8c91-132618db4b38>
-            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/7b038cc40bba10bec833ecfe6f15bc7a>
-            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000013>
+            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000011> # Gemeenteraadslid
+            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000014> # Schepen
+            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000019> # Lid van het Bijzonder Comité voor de Sociale Dienst
+            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000012> # Voorzitter van de gemeenteraad
+            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e00001a> # Voorzitter van het Bijzonder Comité voor de Sociale Dienst
+            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/59a90e03-4f22-4bb9-8c91-132618db4b38> # Toegevoegde schepen
+            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/7b038cc40bba10bec833ecfe6f15bc7a> # Aangewezen burgemeester
+            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000013> # Burgemeester
           }
 
           FILTER NOT EXISTS {
@@ -258,3 +262,5 @@ async function fetchActiveMandatarissenWithoutBesluit() {
     );
   }
 }
+
+setTimeout(() => handleMandatarissen(), 10000);
