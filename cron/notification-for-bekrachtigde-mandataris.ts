@@ -262,5 +262,3 @@ async function fetchActiveMandatarissenWithoutBesluit() {
     );
   }
 }
-
-setTimeout(() => handleMandatarissen(), 10000);
