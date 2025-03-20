@@ -1,0 +1,191 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`fractions get mandataris fraction 1`] = `"{"fracties":["673C4FDF9AA6EE1DF1856B4E"]}"`;
+
+exports[`fractions update mandataris publication status 1`] = `"{"status":"ok"}"`;
+
+exports[`fractions update mandataris publication status 2`] = `
+[
+  {
+    "g": {
+      "type": "uri",
+      "value": "http://mu.semte.ch/graphs/organizations/5116efa8-e96e-46a2-aba6-c077e9056a96/LoketLB-mandaatGebruiker",
+    },
+    "mandataris": {
+      "type": "uri",
+      "value": "http://data.lblod.info/id/mandatarissen/231e42a4-25a6-424b-9885-c16bea74a545",
+    },
+    "someone": {
+      "type": "uri",
+      "value": "http://data.lblod.info/id/bestuurseenheden/5116efa8-e96e-46a2-aba6-c077e9056a96",
+    },
+  },
+  {
+    "g": {
+      "type": "uri",
+      "value": "http://mu.semte.ch/graphs/organizations/5116efa8-e96e-46a2-aba6-c077e9056a96/LoketLB-mandaatGebruiker",
+    },
+    "mandataris": {
+      "type": "uri",
+      "value": "http://data.lblod.info/id/mandatarissen/2f40df94-a8c6-47bc-8771-493c6b5f29bc",
+    },
+    "someone": {
+      "type": "uri",
+      "value": "http://data.lblod.info/id/bestuurseenheden/5116efa8-e96e-46a2-aba6-c077e9056a96",
+    },
+  },
+]
+`;
+
+exports[`fractions update mandataris publication status 3`] = `
+[
+  [
+    {
+      "deletes": [
+        {
+          "graph": {
+            "type": "uri",
+            "value": "http://mu.semte.ch/graphs/organizations/5116efa8-e96e-46a2-aba6-c077e9056a96/LoketLB-mandaatGebruiker",
+          },
+          "object": {
+            "type": "uri",
+            "value": "http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/d3b12468-3720-4cb0-95b4-6aa2996ab188",
+          },
+          "predicate": {
+            "type": "uri",
+            "value": "http://lblod.data.gift/vocabularies/lmb/hasPublicationStatus",
+          },
+          "subject": {
+            "type": "uri",
+            "value": "http://data.lblod.info/id/mandatarissen/231e42a4-25a6-424b-9885-c16bea74a545",
+          },
+        },
+        {
+          "graph": {
+            "type": "uri",
+            "value": "http://mu.semte.ch/graphs/organizations/5116efa8-e96e-46a2-aba6-c077e9056a96/LoketLB-mandaatGebruiker",
+          },
+          "object": {
+            "type": "uri",
+            "value": "http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/d3b12468-3720-4cb0-95b4-6aa2996ab188",
+          },
+          "predicate": {
+            "type": "uri",
+            "value": "http://lblod.data.gift/vocabularies/lmb/hasPublicationStatus",
+          },
+          "subject": {
+            "type": "uri",
+            "value": "http://data.lblod.info/id/mandatarissen/2f40df94-a8c6-47bc-8771-493c6b5f29bc",
+          },
+        },
+      ],
+      "inserts": [
+        {
+          "graph": {
+            "type": "uri",
+            "value": "http://mu.semte.ch/graphs/organizations/5116efa8-e96e-46a2-aba6-c077e9056a96/LoketLB-mandaatGebruiker",
+          },
+          "object": {
+            "type": "literal",
+            "value": "http://data.lblod.info/id/besluit/1",
+          },
+          "predicate": {
+            "type": "uri",
+            "value": "http://lblod.data.gift/vocabularies/lmb/linkToBesluit",
+          },
+          "subject": {
+            "type": "uri",
+            "value": "http://data.lblod.info/id/mandatarissen/231e42a4-25a6-424b-9885-c16bea74a545",
+          },
+        },
+        {
+          "graph": {
+            "type": "uri",
+            "value": "http://mu.semte.ch/graphs/organizations/5116efa8-e96e-46a2-aba6-c077e9056a96/LoketLB-mandaatGebruiker",
+          },
+          "object": {
+            "type": "uri",
+            "value": "http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/9d8fd14d-95d0-4f5e-b3a5-a56a126227b6",
+          },
+          "predicate": {
+            "type": "uri",
+            "value": "http://lblod.data.gift/vocabularies/lmb/hasPublicationStatus",
+          },
+          "subject": {
+            "type": "uri",
+            "value": "http://data.lblod.info/id/mandatarissen/231e42a4-25a6-424b-9885-c16bea74a545",
+          },
+        },
+        {
+          "graph": {
+            "type": "uri",
+            "value": "http://mu.semte.ch/graphs/organizations/5116efa8-e96e-46a2-aba6-c077e9056a96/LoketLB-mandaatGebruiker",
+          },
+          "object": {
+            "type": "literal",
+            "value": "http://data.lblod.info/id/besluit/1",
+          },
+          "predicate": {
+            "type": "uri",
+            "value": "http://lblod.data.gift/vocabularies/lmb/linkToBesluit",
+          },
+          "subject": {
+            "type": "uri",
+            "value": "http://data.lblod.info/id/mandatarissen/2f40df94-a8c6-47bc-8771-493c6b5f29bc",
+          },
+        },
+        {
+          "graph": {
+            "type": "uri",
+            "value": "http://mu.semte.ch/graphs/organizations/5116efa8-e96e-46a2-aba6-c077e9056a96/LoketLB-mandaatGebruiker",
+          },
+          "object": {
+            "type": "uri",
+            "value": "http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/9d8fd14d-95d0-4f5e-b3a5-a56a126227b6",
+          },
+          "predicate": {
+            "type": "uri",
+            "value": "http://lblod.data.gift/vocabularies/lmb/hasPublicationStatus",
+          },
+          "subject": {
+            "type": "uri",
+            "value": "http://data.lblod.info/id/mandatarissen/2f40df94-a8c6-47bc-8771-493c6b5f29bc",
+          },
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`fractions update-mandataris-fractie 1`] = `""`;
+
+exports[`fractions update-mandataris-fractie 2`] = `
+[
+  [
+    {
+      "deletes": [],
+      "inserts": [
+        {
+          "graph": {
+            "type": "uri",
+            "value": "http://mu.semte.ch/graphs/organizations/5116efa8-e96e-46a2-aba6-c077e9056a96/LoketLB-mandaatGebruiker",
+          },
+          "object": {
+            "type": "uri",
+            "value": "http://data.lblod.info/id/fracties/7e82f4b4-8424-4fbf-9cf4-dad695b53fbb",
+          },
+          "predicate": {
+            "type": "uri",
+            "value": "http://mu.semte.ch/vocabularies/ext/lmb/currentFracties",
+          },
+          "subject": {
+            "type": "uri",
+            "value": "http://data.lblod.info/id/personen/f5979b66f11984b5d21da224a3ce9fddda42e0c883fa1cdab8e1ff6c19179e3a",
+          },
+        },
+      ],
+    },
+  ],
+]
+`;

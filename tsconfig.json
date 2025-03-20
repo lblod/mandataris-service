@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
     "types": ["mu-types"]
-  }
+  },
+  "exclude": ["node_modules", "contract-tests"]
 }

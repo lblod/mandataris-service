@@ -1,0 +1,60 @@
+services:
+  target:
+    build: ../
+    attach: false
+    ports:
+      - 8777:80
+    environment:
+      NOTIFICATION_CRON_PATTERN: 0 8 1 1 1-5 # basically disable
+      EMAIL_FROM_MANDATARIS_EFFECTIEF: 'lokaalmandatenbeheer@vlaanderen.be' # Must be the same as EMAIL_ADDRESS in deliver-email service
+      SEND_EMAIL_FOR_MANDATARIS_EFFECTIEF: false
+      BESLUIT_STAGING_GRAPH: http://mu.semte.ch/graphs/besluiten-consumed # must be the same as decision-ldes-client working graph
+    depends_on:
+      - database
+  database:
+    image: semtech/sparql-parser:0.0.14
+    attach: false
+    environment:
+      MU_SPARQL_ENDPOINT: 'http://virtuoso:8890/sparql'
+      DATABASE_OVERLOAD_RECOVERY: 'true'
+      DATABASE_COMPATIBILITY: 'Virtuoso'
+      # Note: not sure wether it gets picked up properly, it is meant for healing-process which may make
+      # heavy queries
+      QUERY_MAX_PROCESSING_TIME: 605000
+      QUERY_MAX_EXECUTION_TIME: 605000
+    volumes:
+      - ./config/cl-authorization:/config
+      - ./data/mu-auth:/data
+    depends_on:
+      - virtuoso
+  virtuoso:
+    image: redpencil/virtuoso:1.3.0-rc.1
+    attach: false
+    environment:
+      SPARQL_UPDATE: 'true'
+      DEFAULT_GRAPH: 'http://mu.semte.ch/application'
+    ports:
+      - '8891:8890'
+    volumes:
+      - ./data/toLoad:/data/toLoad
+      - ./config/virtuoso/virtuoso.ini:/data/virtuoso.ini
+      - ./config/virtuoso/:/opt/virtuoso-scripts
+  deltanotifier:
+    image: semtech/mu-delta-notifier:0.3.0
+    attach: false
+    volumes:
+      - ./config/delta:/config
+  tests:
+    image: lblod/contract-testing
+    environment:
+      NODE_ENV: 'development'
+      MU_SPARQL_ENDPOINT: 'http://database:8890/sparql'
+      LOG_SPARQL_ALL: 'true'
+    command: 'test -- -u'
+    depends_on:
+      - target
+      - database
+      - virtuoso
+    volumes:
+      - ./tests/:/tests/tests
+      - ./node_modules/:/tests/node_modules
