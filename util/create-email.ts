@@ -30,35 +30,30 @@ export async function sendMissingBekrachtigingsmail(
   if (mandatarissen.length === 0) {
     return;
   }
-  let mandatarisRows = '';
+  const mandatarisRows = [];
   for (const mandataris of mandatarissen) {
-    mandatarisRows += `
-      <tr>
-        <td style="padding: 8px">${mandataris.name}</td>
-        <td style="padding: 8px">${mandataris.mandate}</td>
-      </tr>
-    `;
+    mandatarisRows.push(`${mandataris.name} (${mandataris.mandate})`);
   }
   const from = sparqlEscapeString(
     EMAIL_FROM_MANDATARIS_WITHOUT_DECISION as string,
   );
   const to = sparqlEscapeString(emailTo);
-  const htmlMessage = `
-    <p>Beste,</p>
-    <p>Er zijn een aantal mandatarissen die al meer dan 10 dagen actief zijn zonder dat er een koppeling met een besluit is gemaakt. Voor uw gemeente zijn dit er ${mandatarissen.length}.</p>
-    <p> Hieronder vindt u een overzicht van al deze mandatarissen: <p>
-    <table>
-      <tr>
-        <th style="text-align:left;padding:8px">Naam</th>
-        <th style="text-align:left;padding:8px">Mandaat</th>
-      </tr>
-      ${mandatarisRows}
-    </table>
-    <p>Gelieve het besluit te koppelen.</p>
-    <br/>
-    <p>Met vriendelijke groeten,</p>
-    <p>Agentschap Binnenlands Bestuur</p>
-  `;
+  const plainTextMessage = `
+Beste,
+
+Er zijn een aantal mandatarissen die al meer dan 10 dagen actief zijn zonder dat er een koppeling met een besluit is gemaakt.
+Voor uw gemeente zijn dit er ${mandatarissen.length}.
+
+Hieronder vindt u een overzicht van al deze mandatarissen:
+
+${mandatarisRows.join('\n')}
+
+Gelieve het besluit te koppelen.
+
+Met vriendelijke groeten,
+
+Agentschap Binnenlands Bestuur
+`;
 
   const insertQuery = `
   PREFIX nmo: <http://www.semanticdesktop.org/ontologies/2007/03/22/nmo#>
@@ -71,7 +66,7 @@ export async function sendMissingBekrachtigingsmail(
         nmo:messageFrom ${from};
         nmo:emailTo ${to};
         nmo:messageSubject ${sparqlEscapeString(SUBJECT_DECISION)};
-        nmo:htmlMessageContent ${sparqlEscapeString(htmlMessage)} ;
+        nmo:plainTextMessageContent ${sparqlEscapeString(plainTextMessage)} ;
         nmo:sentDate ${sparqlEscapeDateTime(new Date())};
         nmo:isPartOf <http://data.lblod.info/id/mail-folders/2>.
     }
