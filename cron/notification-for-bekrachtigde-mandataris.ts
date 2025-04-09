@@ -221,7 +221,6 @@ async function fetchActiveMandatarissenWithoutBesluit() {
             <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e00001a> # Voorzitter van het Bijzonder Comité voor de Sociale Dienst
             <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/59a90e03-4f22-4bb9-8c91-132618db4b38> # Toegevoegde schepen
             <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/7b038cc40bba10bec833ecfe6f15bc7a> # Aangewezen burgemeester
-            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000013> # Burgemeester
           }
 
           FILTER NOT EXISTS {
