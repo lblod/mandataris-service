@@ -763,6 +763,7 @@ async function setLinkedIVToBehandeld(installatievergaderingId: string) {
   PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
   PREFIX ivs: <http://data.lblod.info/id/concept/InstallatievergaderingStatus/>
   PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+  PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
 
   DELETE {
     GRAPH ?target {
