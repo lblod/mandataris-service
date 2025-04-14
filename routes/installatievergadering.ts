@@ -101,19 +101,20 @@ async function moveFracties(installatievergaderingId: string) {
       ?installatieVergadering lmb:heeftBestuursperiode ?period.
       ?installatieVergadering mu:uuid ${escapedId} .
       ?installatieVergadering lmb:heeftBestuurseenheid ?eenheid .
-      ?bestuursorgaan mandaat:isTijdspecialisatieVan / ext:isTijdelijkOrgaanIn ?eenheid .
-      ?bestuursorgaan ext:origineleBestuursorgaan ?realOrgT.
       ?fractie org:memberOf / lmb:heeftBestuursperiode ?period.
       ?fractie org:linkedTo ?eenheid.
       ?fractie ?p ?o.
     }
-    GRAPH ?target {
-        ?realOrgT mandaat:isTijdspecialisatieVan ?realOrg.
-        ?realOrg besluit:bestuurt ?realEenheid.
-    }
+    ?bestuursorgaan mandaat:isTijdspecialisatieVan / ext:isTijdelijkOrgaanIn ?eenheid .
+    ?bestuursorgaan ext:origineleBestuursorgaan ?realOrgT.
+
+    ?realOrgT mandaat:isTijdspecialisatieVan ?realOrg.
+    ?realOrg besluit:bestuurt ?realEenheid.
+
+    ?target ext:ownedBy ?realEenheid.
+
     FILTER(?target != ?origin)
     ?origin ext:ownedBy ?owningEenheid.
-    ?target ext:ownedBy ?owningEenheid2.
   }`;
   await updateSudo(insertSparql);
 }
@@ -187,19 +188,21 @@ async function moveMandatarises(installatievergaderingId: string) {
         ?installatieVergadering lmb:heeftBestuursperiode ?period.
         ?installatieVergadering mu:uuid ${escapedId} .
         ?installatieVergadering lmb:heeftBestuurseenheid ?eenheid .
-        ?bestuursorgaanT mandaat:isTijdspecialisatieVan / ext:isTijdelijkOrgaanIn ?eenheid .
-        ?bestuursorgaanT ext:origineleBestuursorgaan ?realOrgT.
-        ?bestuursorgaanT lmb:heeftBestuursperiode ?period.
-        ?bestuursorgaanT org:hasPost ?mandaat.
         ?mandataris org:holds ?mandaat.
         ?mandataris ?p ?o.
       }
-      GRAPH ?target {
-        ?realOrgT mandaat:isTijdspecialisatieVan ?thing.
-      }
+      ?bestuursorgaanT mandaat:isTijdspecialisatieVan / ext:isTijdelijkOrgaanIn ?eenheid .
+      ?bestuursorgaanT ext:origineleBestuursorgaan ?realOrgT.
+      ?bestuursorgaanT lmb:heeftBestuursperiode ?period.
+      ?bestuursorgaanT org:hasPost ?mandaat.
+
+      ?realOrgT mandaat:isTijdspecialisatieVan ?realOrg.
+      ?realOrg besluit:bestuurt ?realEenheid.
+
+      ?target ext:ownedBy ?realEenheid.
+
       FILTER(?target != ?origin)
       ?origin ext:ownedBy ?owningEenheid.
-      ?target ext:ownedBy ?owningEenheid2.
     }`;
   await updateSudo(sparql);
 }
@@ -248,8 +251,8 @@ async function moveMandatarisMemberships(installatievergaderingId: string) {
         FILTER(?mp != org:organisation)
         ?membership org:organisation ?fractieFrom.
       }
+      ?realOrgT mandaat:isTijdspecialisatieVan ?thing.
       GRAPH ?target {
-        ?realOrgT mandaat:isTijdspecialisatieVan ?thing.
         ?fractieTo org:memberOf ?realOrgT.
       }
     }`;
@@ -353,10 +356,6 @@ async function moveMandatarisesWithoutFractions(
         ?installatieVergadering lmb:heeftBestuursperiode ?period.
         ?installatieVergadering mu:uuid ${escapedId} .
         ?installatieVergadering lmb:heeftBestuurseenheid ?eenheid.
-        ?bestuursorgaanT mandaat:isTijdspecialisatieVan / ext:isTijdelijkOrgaanIn ?eenheid .
-        ?bestuursorgaanT ext:origineleBestuursorgaan ?realOrgT.
-        ?bestuursorgaanT lmb:heeftBestuursperiode ?period.
-        ?bestuursorgaanT org:hasPost ?mandaat.
         ?mandataris org:holds ?mandaat.
         ?mandataris ?p ?o.
         FILTER NOT EXISTS {
@@ -364,9 +363,16 @@ async function moveMandatarisesWithoutFractions(
           ?membership a org:Membership.
         }
       }
-      GRAPH ?target {
-        ?realOrgT mandaat:isTijdspecialisatieVan ?thing.
-      }
+      ?bestuursorgaanT mandaat:isTijdspecialisatieVan / ext:isTijdelijkOrgaanIn ?eenheid .
+      ?bestuursorgaanT ext:origineleBestuursorgaan ?realOrgT.
+      ?bestuursorgaanT lmb:heeftBestuursperiode ?period.
+      ?bestuursorgaanT org:hasPost ?mandaat.
+
+      ?realOrgT mandaat:isTijdspecialisatieVan ?realOrg.
+      ?realOrg besluit:bestuurt ?realEenheid.
+
+      ?target ext:ownedBy ?realEenheid.
+
       FILTER(?target != ?origin)
       ?origin ext:ownedBy ?owningEenheid.
     }`;
@@ -394,16 +400,10 @@ async function movePersons(installatievergaderingId: string) {
       ?related ?relatedp ?relatedo.
     }
   } WHERE {
-    GRAPH ?target {
-      ?realOrg org:hasPost ?mandaat.
-    }
     GRAPH ?origin {
       ?installatieVergadering mu:uuid ${escapedId} .
       ?installatieVergadering lmb:heeftBestuursperiode ?period .
       ?installatieVergadering lmb:heeftBestuurseenheid ?eenheid .
-      ?bestuursorgaanT mandaat:isTijdspecialisatieVan / ext:isTijdelijkOrgaanIn ?eenheid .
-      ?bestuursorgaanT lmb:heeftBestuursperiode ?period.
-      ?bestuursorgaanT ext:origineleBestuursorgaan ?realOrg.
       ?mandataris org:holds ?mandaat.
       ?mandataris mandaat:isBestuurlijkeAliasVan ?person.
       ?person ?p ?o.
@@ -416,8 +416,17 @@ async function movePersons(installatievergaderingId: string) {
         ?related ?relatedp ?relatedo.
       }
     }
+    ?bestuursorgaanT mandaat:isTijdspecialisatieVan / ext:isTijdelijkOrgaanIn ?eenheid .
+    ?bestuursorgaanT lmb:heeftBestuursperiode ?period.
+    ?bestuursorgaanT ext:origineleBestuursorgaan ?realOrgT.
+
+    ?realOrgT org:hasPost ?mandaat.
+    ?realOrgT mandaat:isTijdspecialisatieVan ?realOrg.
+    ?realOrg besluit:bestuurt ?realEenheid.
+
+    ?target ext:ownedBy ?realEenheid.
+
     ?origin ext:ownedBy ?owningEenheid.
-    ?target ext:ownedBy ?owningEenheid2.
   }`;
   await updateSudo(sparql);
 }
@@ -465,10 +474,11 @@ async function setMandatarissenToNietBekrachtigd(installatievergaderingId) {
       ?bestuursorgaanT mandaat:isTijdspecialisatieVan / besluit:bestuurt ?eenheid.
     } }
     ?bestuursorgaanT lmb:heeftBestuursperiode ?period.
-    GRAPH ?target {
-      ?bestuursorgaanT org:hasPost ?mandaat.
-      ?mandataris org:holds ?mandaat.
+    ?bestuursorgaanT org:hasPost ?mandaat.
+    ?mandataris org:holds ?mandaat.
 
+    GRAPH ?target {
+      ?mandataris a mandaat:Mandataris .
       OPTIONAL {
         ?mandataris lmb:hasPublicationStatus ?old.
       }
@@ -768,18 +778,19 @@ async function setLinkedIVToBehandeld(installatievergaderingId: string) {
       ?iv mu:uuid ${escapedId} .
       ?iv lmb:heeftBestuursperiode ?period .
       ?iv lmb:heeftBestuurseenheid ?eenheid .
-      ?bestuursorgaanIT mandaat:isTijdspecialisatieVan / ext:isTijdelijkOrgaanIn ?eenheid .
-      ?bestuursorgaanIT lmb:heeftBestuursperiode ?period .
-      ?bestuursorgaanIT ext:origineleBestuursorgaan ?realOrg .
     }
+    ?bestuursorgaanIT mandaat:isTijdspecialisatieVan / ext:isTijdelijkOrgaanIn ?eenheid .
+    ?bestuursorgaanIT lmb:heeftBestuursperiode ?period .
+    ?bestuursorgaanIT ext:origineleBestuursorgaan ?realOrgIT .
+    ?realOrgIT mandaat:isTijdspecialisatieVan / besluit:bestuurt ?realEenheid .
+
     GRAPH ?target {
-      ?realOrg a ?type .
       ?ivOCMW lmb:heeftBestuursperiode ?period .
       ?ivOCMW lmb:hasStatus ?status .
     }
+    ?target ext:ownedBy ?realEenheid.
     FILTER(?target != ?origin)
     ?origin ext:ownedBy ?owningEenheid.
-    ?target ext:ownedBy ?owningEenheid2.
   }`;
   await updateSudo(sparql);
 }
@@ -807,8 +818,8 @@ async function createCorrectMemberOfLinks() {
   WHERE {
     GRAPH ?g {
       ?fractie org:memberOf ?fakeOrgIT .
-      ?fakeOrgIT ext:origineleBestuursorgaan ?orgaanIT .
     }
+    ?fakeOrgIT ext:origineleBestuursorgaan ?orgaanIT .
   }`;
   await updateSudo(query);
 }

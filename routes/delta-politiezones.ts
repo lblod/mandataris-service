@@ -75,12 +75,13 @@ async function findBatchOfMissedInstances() {
         ?s a ?type .
         ?s dct:modified ?currentModified.
       }
-      GRAPH ?policeZoneGraph {
-       ?orgT org:hasPost ?mandate.
-        ?orgT mandaat:isTijdspecialisatieVan ?org.
-        # politieraad
-        ?org besluit:classificatie <http://data.vlaanderen.be/id/concept/BestuursorgaanClassificatieCode/1afce932-53c1-46d8-8aab-90dcc331e67d> .
-      }
+      ?orgT org:hasPost ?mandate.
+      ?orgT mandaat:isTijdspecialisatieVan ?org.
+      # politieraad
+      ?org besluit:classificatie <http://data.vlaanderen.be/id/concept/BestuursorgaanClassificatieCode/1afce932-53c1-46d8-8aab-90dcc331e67d> .
+      ?org besluit:bestuurt ?policeZone.
+      ?policeZoneGraph ext:ownedBy ?policeZone.
+
       OPTIONAL {
         GRAPH ?policeZoneGraph {
           ?s dct:modified ?oldModified.
@@ -88,7 +89,6 @@ async function findBatchOfMissedInstances() {
       }
       FILTER(!BOUND(?oldModified) || ?currentModified != ?oldModified)
       ?g ext:ownedBy ?localGovernment.
-      ?policeZoneGraph ext:ownedBy ?policeZone.
       ?localGovernment ext:deeltBestuurVan ?policeZone.
       # police zone classificatie
       ?policeZone besluit:classificatie <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/a3922c6d-425b-474f-9a02-ffb71a436bfc> .
@@ -134,14 +134,14 @@ async function mirrorInstances(instanceUris: string[]) {
          ?s mandaat:isBestuurlijkeAliasVan / ( persoon:heeftGeboorte | adms:identifier ) ?target .
       }}
     }
-    GRAPH ?policeZoneGraph {
-      ?orgT org:hasPost ?mandate.
-      ?orgT mandaat:isTijdspecialisatieVan ?org.
-      # politieraad
-      ?org besluit:classificatie <http://data.vlaanderen.be/id/concept/BestuursorgaanClassificatieCode/1afce932-53c1-46d8-8aab-90dcc331e67d> .
-    }
-    ?g ext:ownedBy ?localGovernment.
+    ?orgT org:hasPost ?mandate.
+    ?orgT mandaat:isTijdspecialisatieVan ?org.
+    # politieraad
+    ?org besluit:classificatie <http://data.vlaanderen.be/id/concept/BestuursorgaanClassificatieCode/1afce932-53c1-46d8-8aab-90dcc331e67d> .
+    ?org besluit:bestuurt ?policeZone.
     ?policeZoneGraph ext:ownedBy ?policeZone.
+
+    ?g ext:ownedBy ?localGovernment.
     ?localGovernment ext:deeltBestuurVan ?policeZone.
     # police zone classificatie
     ?policeZone besluit:classificatie <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/a3922c6d-425b-474f-9a02-ffb71a436bfc> .
@@ -179,15 +179,17 @@ async function mirrorInstances(instanceUris: string[]) {
     GRAPH ?g {
       ?s a ?thing.
     }
+    ?orgT org:hasPost ?mandate.
+    ?orgT mandaat:isTijdspecialisatieVan ?org.
+    # politieraad
+    ?org besluit:classificatie <http://data.vlaanderen.be/id/concept/BestuursorgaanClassificatieCode/1afce932-53c1-46d8-8aab-90dcc331e67d> .
+    ?org besluit:bestuurt ?policeZone.
+    ?policeZoneGraph ext:ownedBy ?policeZone.
+
     GRAPH ?policeZoneGraph {
-      ?orgT org:hasPost ?mandate.
-      ?orgT mandaat:isTijdspecialisatieVan ?org.
-      # politieraad
-      ?org besluit:classificatie <http://data.vlaanderen.be/id/concept/BestuursorgaanClassificatieCode/1afce932-53c1-46d8-8aab-90dcc331e67d> .
       ?s ?p ?o.
     }
     ?g ext:ownedBy ?localGovernment.
-    ?policeZoneGraph ext:ownedBy ?policeZone.
     ?localGovernment ext:deeltBestuurVan ?policeZone.
     # police zone classificatie
     ?policeZone besluit:classificatie <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/a3922c6d-425b-474f-9a02-ffb71a436bfc> .
@@ -218,13 +220,13 @@ async function mirrorInstances(instanceUris: string[]) {
       ?s a ?thing.
       ?s ?pNew ?oNew.
     }
-    GRAPH ?policeZoneGraph {
-      ?orgT org:hasPost ?mandate.
-      ?orgT mandaat:isTijdspecialisatieVan ?org.
-      # politieraad
-      ?org besluit:classificatie <http://data.vlaanderen.be/id/concept/BestuursorgaanClassificatieCode/1afce932-53c1-46d8-8aab-90dcc331e67d> .
-    }
     ?g ext:ownedBy ?localGovernment.
+    ?orgT org:hasPost ?mandate.
+    ?orgT mandaat:isTijdspecialisatieVan ?org.
+    # politieraad
+    ?org besluit:classificatie <http://data.vlaanderen.be/id/concept/BestuursorgaanClassificatieCode/1afce932-53c1-46d8-8aab-90dcc331e67d> .
+    ?org besluit:bestuurt ?policeZone.
+
     ?policeZoneGraph ext:ownedBy ?policeZone.
     ?localGovernment ext:deeltBestuurVan ?policeZone.
     # police zone classificatie

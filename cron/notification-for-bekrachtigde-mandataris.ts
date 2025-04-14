@@ -166,10 +166,12 @@ async function getContactEmailForMandataris(mandatarisUri?: string) {
       ?bestuursorgaanInTijd mandaat:isTijdspecialisatieVan ?bestuursorgaan .
       ?bestuursorgaanInTijd org:hasPost ?mandaat .
 
-      ?contact a ext:BestuurseenheidContact ;
-        ext:contactVoor ?bestuurseenheid ;
-        schema:email ?email .
-
+      GRAPH ?g {
+        ?contact a ext:BestuurseenheidContact ;
+          ext:contactVoor ?bestuurseenheid ;
+          schema:email ?email .
+      }
+      ?g ext:ownedBy ?bestuurseenheid .
     } LIMIT 1
   `;
   try {
@@ -208,34 +210,34 @@ async function fetchActiveMandatarissenWithoutBesluit() {
             mandaat:start ?startMandaat ;
             mandaat:isBestuurlijkeAliasVan ?person ;
             org:holds ?mandaat.
-          ?mandaat org:role ?bestuursfunctie .
-          ?orgT org:hasPost ?mandaat .
-          ?orgT mandaat:isTijdspecialisatieVan / besluit:bestuurt ?eenheid .
-          ?person persoon:gebruikteVoornaam ?fName ;
-            foaf:familyName ?lName .
-          VALUES ?bestuursfunctie {
-            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000011> # Gemeenteraadslid
-            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000014> # Schepen
-            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000019> # Lid van het Bijzonder Comité voor de Sociale Dienst
-            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000012> # Voorzitter van de gemeenteraad
-            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e00001a> # Voorzitter van het Bijzonder Comité voor de Sociale Dienst
-            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/59a90e03-4f22-4bb9-8c91-132618db4b38> # Toegevoegde schepen
-            <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/7b038cc40bba10bec833ecfe6f15bc7a> # Aangewezen burgemeester
-          }
-
-          FILTER NOT EXISTS {
-            ?notification a ext:SystemNotification;
-              dct:subject ${sparqlEscapeString(SUBJECT_DECISION)};
-              ext:notificationLink ?notificationLink.
-            ?notificationLink ext:linkedTo ?mandataris.
-          }
           OPTIONAL {
             ?mandataris mandaat:einde ?eindeMandaat .
           }
-
-          BIND(IF(BOUND(?eindeMandaat), ?eindeMandaat, ${escapedTenDaysBefore}) AS ?saveEindeMandaat).
-          FILTER(${escapedTenDaysBefore} >= ?startMandaat && ?saveEindeMandaat <= ${today})
         }
+        ?mandaat org:role ?bestuursfunctie .
+        ?orgT org:hasPost ?mandaat .
+        ?orgT mandaat:isTijdspecialisatieVan / besluit:bestuurt ?eenheid .
+        ?person persoon:gebruikteVoornaam ?fName ;
+          foaf:familyName ?lName .
+        VALUES ?bestuursfunctie {
+          <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000011> # Gemeenteraadslid
+          <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000014> # Schepen
+          <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000019> # Lid van het Bijzonder Comité voor de Sociale Dienst
+          <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000012> # Voorzitter van de gemeenteraad
+          <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e00001a> # Voorzitter van het Bijzonder Comité voor de Sociale Dienst
+          <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/59a90e03-4f22-4bb9-8c91-132618db4b38> # Toegevoegde schepen
+          <http://data.vlaanderen.be/id/concept/BestuursfunctieCode/7b038cc40bba10bec833ecfe6f15bc7a> # Aangewezen burgemeester
+        }
+
+        FILTER NOT EXISTS {
+          ?notification a ext:SystemNotification;
+            dct:subject ${sparqlEscapeString(SUBJECT_DECISION)};
+            ext:notificationLink ?notificationLink.
+          ?notificationLink ext:linkedTo ?mandataris.
+        }
+
+        BIND(IF(BOUND(?eindeMandaat), ?eindeMandaat, ${escapedTenDaysBefore}) AS ?saveEindeMandaat).
+        FILTER(${escapedTenDaysBefore} >= ?startMandaat && ?saveEindeMandaat <= ${today})
         ?bestuursfunctie skos:prefLabel ?bestuursfunctieName .
         ?graph ext:ownedBy ?owningEenheid.
       }

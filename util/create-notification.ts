@@ -100,10 +100,10 @@ export async function getMandatarisNotificationGraph(mandataris: string) {
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     SELECT ?graph WHERE {
-      ${sparqlEscapeUri(mandataris)} org:holds ?mandaat .
       GRAPH ?graph {
-        ?mandaat a mandaat:Mandaat .
+        ${sparqlEscapeUri(mandataris)} org:holds ?mandaat .
       }
+      ?mandaat a mandaat:Mandaat .
       ?graph ext:ownedBy ?bestuurseenheid.
     } LIMIT 1`;
   const result = await querySudo(query);

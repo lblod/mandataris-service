@@ -91,8 +91,6 @@ async function findCurrentFractieForPerson(
           mu:uuid ${sparqlEscapeString(mandatarisId)};
           mandaat:isBestuurlijkeAliasVan ?persoon;
           org:holds ?mandaat.
-        ?mandaat ^org:hasPost ?bestuursorgaan.
-        ?bestuursorgaan lmb:heeftBestuursperiode ?bestuursperiode.
 
         # Get mandataris in bestuursperiode for that person
         ?mandatarisOfPerson a mandaat:Mandataris;
@@ -101,12 +99,16 @@ async function findCurrentFractieForPerson(
           mandaat:start ?mandatarisStart;
           mandaat:status ?mandatarisStatus.
 
-        ?mandaatOfPersonMandataris ^org:hasPost ?bestuursorgaanOfPersonMandataris.
-        ?bestuursorgaanOfPersonMandataris lmb:heeftBestuursperiode ?bestuursperiode.
-
         ?mandatarisOfPerson org:hasMembership ?member.
         ?member org:organisation ?fractie.
       ${graph ? '}' : ''}
+
+      ?mandaat ^org:hasPost ?bestuursorgaan.
+      ?bestuursorgaan lmb:heeftBestuursperiode ?bestuursperiode.
+
+      ?mandaatOfPersonMandataris ^org:hasPost ?bestuursorgaanOfPersonMandataris.
+      ?bestuursorgaanOfPersonMandataris lmb:heeftBestuursperiode ?bestuursperiode.
+
     } ORDER BY DESC ( ?mandatarisStart ) LIMIT 1
   `;
   const sparqlResult = sudo ? await querySudo(getQuery) : await query(getQuery);
@@ -167,14 +169,13 @@ export async function createOnafhankelijkeFractie(mandateUris: string[]) {
           org:memberOf ?bestuursorgaan .
       }
     } WHERE {
-      GRAPH ?g {
-        ?bestuursorgaan org:hasPost ?mandate.
-        ?bestuursorgaan mandaat:isTijdspecialisatieVan ?org.
-        VALUES ?mandate {
-          ${mandateUris.map((uri) => sparqlEscapeUri(uri)).join('\n')}
-        }
+      ?bestuursorgaan org:hasPost ?mandate.
+      ?bestuursorgaan mandaat:isTijdspecialisatieVan ?org.
+      VALUES ?mandate {
+        ${mandateUris.map((uri) => sparqlEscapeUri(uri)).join('\n')}
       }
       ?org besluit:bestuurt ?bestuurseenheid.
+      ?g ext:ownedBy ?bestuurseenheid.
     }
   `;
   await updateSudo(updateQuery);
@@ -190,14 +191,21 @@ export const findGraphAndMandates = async (row: CSVRow) => {
 
   const q = `
   PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+  PREFIX org: <http://www.w3.org/ns/org#>
+  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+  PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
 
   SELECT ?g ?mandate WHERE {
-    GRAPH ?g {
-      ?mandate a mandaat:Mandaat .
-      VALUES ?mandate {
-        ${sparqlEscapeUri(mandates[0].mandateUri)}
-      }
+    ?g ext:ownedBy ?eenheid .
+
+    ?mandate a mandaat:Mandaat .
+    VALUES ?mandate {
+      ${sparqlEscapeUri(mandates[0].mandateUri)}
     }
+    ?org ^mandaat:isTijdspecialisatieVan / org:hasPost ?mandate .
+    ?org besluit:bestuurt ?eenheid .
+
   } LIMIT 1`;
   const result = await querySudo(q);
   if (!result.results.bindings.length) {

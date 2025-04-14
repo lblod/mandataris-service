@@ -148,10 +148,10 @@ export async function isOnafhankelijkInPeriod(
         ?persoon a person:Person ;
           mu:uuid ${sparqlEscapeString(id)} ;
           extlmb:currentFracties ?fractie .
-        ?bestuursorgaan lmb:heeftBestuursperiode ?bestuursperiode .
         ?fractie org:memberOf ?bestuursorgaan ;
           ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Onafhankelijk> .
       }
+      ?bestuursorgaan lmb:heeftBestuursperiode ?bestuursperiode .
       ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)} .
     }
     LIMIT 1
@@ -229,11 +229,11 @@ export async function shouldPersonBeCopied(
       GRAPH ?g {
         ?persoon a person:Person ;
           mu:uuid ${escaped.person} .
-        ?orgaanIT a besluit:Bestuursorgaan ;
-          mu:uuid ${escaped.orgaanIT} ;
-          mandaat:isTijdspecialisatieVan ?orgaan .
-        ?orgaan ext:origineleBestuurseenheid ?bestuurseenheid .
       }
+      ?orgaanIT a besluit:Bestuursorgaan ;
+        mu:uuid ${escaped.orgaanIT} ;
+        mandaat:isTijdspecialisatieVan ?orgaan .
+        ?orgaan ext:origineleBestuurseenheid ?bestuurseenheid .
       ?g ext:ownedBy ?bestuurseenheid2 .
       FILTER ( ?bestuurseenheid != ?bestuurseenheid2 )
     }
@@ -264,11 +264,11 @@ export async function getDestinationGraphPerson(
       GRAPH ?g {
         ?persoon a person:Person ;
           mu:uuid ${escaped.person} .
-        ?orgaanIT a besluit:Bestuursorgaan ;
-          mu:uuid ${escaped.orgaanIT} ;
-          mandaat:isTijdspecialisatieVan ?orgaan .
-        ?orgaan ext:origineleBestuurseenheid ?bestuurseenheid2 .
       }
+      ?orgaanIT a besluit:Bestuursorgaan ;
+        mu:uuid ${escaped.orgaanIT} ;
+        mandaat:isTijdspecialisatieVan ?orgaan .
+      ?orgaan ext:origineleBestuurseenheid ?bestuurseenheid2 .
       ?g ext:ownedBy ?bestuurseenheid .
       ?target ext:ownedBy ?bestuurseenheid2 .
       FILTER ( ?bestuurseenheid != ?bestuurseenheid2 )

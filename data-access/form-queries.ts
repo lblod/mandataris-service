@@ -52,6 +52,7 @@ export const saveHistoryItem = async (
       GRAPH ?g {
         ${sparqlEscapeUri(instanceUri)} ?p ?o.
       }
+      ?g ext:ownedBy ?someone.
       FILTER (?p NOT IN (dct:modified))
     }
   `;
@@ -96,6 +97,7 @@ export const saveBulkHistoryItem = async (
       GRAPH ?g {
         ?instanceUri ?p ?o.
       }
+      ?g ext:ownedBy ?someone.
       FILTER (?p NOT IN (dct:modified))
     }
   `;
