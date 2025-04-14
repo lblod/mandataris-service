@@ -36,6 +36,7 @@ export const saveHistoryItem = async (
   const insertQuery = `
     PREFIX dct: <http://purl.org/dc/terms/>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     INSERT {
       GRAPH <http://mu.semte.ch/graphs/formHistory> {
@@ -80,6 +81,7 @@ export const saveBulkHistoryItem = async (
   const insertQuery = `
     PREFIX dct: <http://purl.org/dc/terms/>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     INSERT {
       GRAPH <http://mu.semte.ch/graphs/formHistory> {

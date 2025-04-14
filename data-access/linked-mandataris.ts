@@ -84,10 +84,9 @@ export async function getDestinationGraphLinkedMandataris(
 
       ?linkedBestuursorgaan besluit:bestuurt ?linkedBestuurseenheid .
       ?linkedBestuursorgaanIT mandaat:isTijdspecialisatieVan ?linkedBestuursorgaan.
-      ?liknedBestuursorgaanIT org:hasPost ?mandaat.
-      GRAPH ?dest {
-        ?linkedMandataris org:holds ?linkedMandaat .
-      }
+      ?linkedBestuursorgaanIT org:hasPost ?mandaat.
+
+      ?dest ext:ownedBy ?linkedBestuurseenheid.
 
       FILTER NOT EXISTS {
         # these are fake ones created by the preparation of the legislature
@@ -528,19 +527,21 @@ export async function createNewLinkedMandataris(
           ?membership ?memberp ?membero .
         }
       }
-      ?origin ext:ownedBy ?owningEenheid.
+      GRAPH <http://mu.semte.ch/graphs/public> {
+        ?origin ext:ownedBy ?owningEenheid.
 
-      ?currentMandaat a mandaat:Mandaat ;
+        ?currentMandaat a mandaat:Mandaat ;
         org:role ?currentBestuursfunctie ;
-        ^org:hasPost ?currentBestuursOrgaanIT .
-      ?currentBestuursOrgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
+        ^org:hasPost ?currentOrgaanIT .
 
-      ?linkedMandaat a mandaat:Mandaat ;
+        ?linkedMandaat a mandaat:Mandaat ;
         org:role ?linkedBestuursfunctie ;
         ^org:hasPost ?linkedBestuursOrgaanIT .
+        ?linkedBestuursOrgaanIT mandaat:isTijdspecialisatieVan ?linkedBestuursOrgaan .
+        ?linkedBestuursOrgaan besluit:bestuurt ?linkedBestuurseenheid .
+      }
+      ?currentOrgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
       ?linkedBestuursOrgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
-      ?linkedBestuursorgaanIT / mandaat:isTijdspecialisatieVan ?linkedBestuursorgaan .
-      ?linkedBestuursorgaan besluit:bestuurt ?linkedBestuurseenheid .
       ${escaped.graph} ext:ownedBy ?linkedBestuurseenheid .
 
       VALUES (?currentBestuursfunctie ?linkedBestuursfunctie) {
