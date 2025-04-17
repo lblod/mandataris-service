@@ -19,12 +19,10 @@ export async function isBestuurseenheidDistrict(
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
 
     ASK {
-      GRAPH ?g {
-        ${sparqlEscapeUri(bestuurseenheidUri)} a besluit:Bestuurseenheid ;
-          besluit:classificatie ?classificatie.
-        VALUES ?classificatie {
-          <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/5ab0e9b8a3b2ca7c5e000003>
-        }
+      ${sparqlEscapeUri(bestuurseenheidUri)} a besluit:Bestuurseenheid ;
+        besluit:classificatie ?classificatie.
+      VALUES ?classificatie {
+        <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/5ab0e9b8a3b2ca7c5e000003>
       }
     }
   `;
@@ -49,14 +47,13 @@ export const findBurgemeesterMandates = async (
       ?bestuurseenheid a besluit:Bestuurseenheid ;
         ^besluit:bestuurt ?bestuursOrgaan .
       VALUES ?bestuurseenheid { ${sparqlEscapeUri(bestuurseenheidUri)} }
-      GRAPH ?orgGraph {
-        ?bestuursOrgaan besluit:classificatie ?classificatie .
-        VALUES ?classificatie {
-          # bestuursorgaan burgemeester
-          <http://data.vlaanderen.be/id/concept/BestuursorgaanClassificatieCode/4955bd72cd0e4eb895fdbfab08da0284>
-        }
+      ?orgGraph ext:ownedBy ?bestuurseenheid .
+      ?bestuursOrgaan besluit:classificatie ?classificatie .
+      VALUES ?classificatie {
+        # bestuursorgaan burgemeester
+        <http://data.vlaanderen.be/id/concept/BestuursorgaanClassificatieCode/4955bd72cd0e4eb895fdbfab08da0284>
       }
-      ?orgGraph ext:ownedBy ?owningEenheid.
+      ?bestuursOrgaan besluit:bestuurt ?bestuurseenheid .
       ?bestuursOrgaanIt mandaat:isTijdspecialisatieVan ?bestuursOrgaan .
       ?bestuursOrgaanIt mandaat:bindingStart ?start .
       OPTIONAL { ?bestuursOrgaanIt mandaat:bindingEinde ?einde }

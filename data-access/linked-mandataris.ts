@@ -36,12 +36,10 @@ export async function findLinkedMandate(mandatarisId, valueBindings) {
         ?mandataris a mandaat:Mandataris ;
           mu:uuid ${sparqlEscapeString(mandatarisId)} ;
           org:holds ?mandaat .
-        ?mandaat a mandaat:Mandaat ;
-          org:role ?currentBestuursfunctie .
       }
-      GRAPH ?h {
-        ?currentBestuursfunctie skos:prefLabel ?currentMandaatLabel .
-      }
+      ?mandaat a mandaat:Mandaat ;
+        org:role ?currentBestuursfunctie .
+      ?currentBestuursfunctie skos:prefLabel ?currentMandaatLabel .
       OPTIONAL {
         VALUES (?currentBestuursfunctie ?linkedBestuursfunctie) {
           ${valueBindings}
@@ -77,15 +75,18 @@ export async function getDestinationGraphLinkedMandataris(
         ?currentMandataris a mandaat:Mandataris ;
           mu:uuid ${sparqlEscapeString(mandatarisId)} ;
           org:holds ?currentMandaat .
-        ?currentMandaat a mandaat:Mandaat ;
-          ^org:hasPost ?currentBestuursOrgaanIT .
-        ?currentBestuursOrgaanIT mandaat:isTijdspecialisatieVan ?currentBestuursorgaan.
-        ?currentBestuursorgaan besluit:bestuurt ?currentBestuurseenheid .
-      }
 
-      GRAPH ?dest {
-        ?linkedBestuursorgaan besluit:bestuurt ?linkedBestuurseenheid .
       }
+      ?currentMandaat a mandaat:Mandaat ;
+        ^org:hasPost ?currentBestuursOrgaanIT .
+      ?currentBestuursOrgaanIT mandaat:isTijdspecialisatieVan ?currentBestuursorgaan.
+      ?currentBestuursorgaan besluit:bestuurt ?currentBestuurseenheid .
+
+      ?linkedBestuursorgaan besluit:bestuurt ?linkedBestuurseenheid .
+      ?linkedBestuursorgaanIT mandaat:isTijdspecialisatieVan ?linkedBestuursorgaan.
+      ?linkedBestuursorgaanIT org:hasPost ?mandaat.
+
+      ?dest ext:ownedBy ?linkedBestuurseenheid.
 
       FILTER NOT EXISTS {
         # these are fake ones created by the preparation of the legislature
@@ -94,12 +95,11 @@ export async function getDestinationGraphLinkedMandataris(
       # the other eenheid should not be our own because that apparently happens sometimes
       FILTER(?linkedBestuurseenheid != ?currentBestuurseenheid)
 
-      GRAPH ?g {
-        ?currentBestuurseenheid besluit:werkingsgebied ?werkingsgebied ;
-          besluit:classificatie ?currentClassifiactie .
-        ?linkedBestuurseenheid besluit:werkingsgebied ?werkingsgebied ;
-          besluit:classificatie ?linkedClassificatie .
-      }
+      ?currentBestuurseenheid besluit:werkingsgebied ?werkingsgebied ;
+        besluit:classificatie ?currentClassifiactie .
+      ?linkedBestuurseenheid besluit:werkingsgebied ?werkingsgebied ;
+        besluit:classificatie ?linkedClassificatie .
+
       VALUES (?currentClassificate ?linkedClassificatie) {
         ${valueBindings}
       }
@@ -133,12 +133,11 @@ export async function linkedMandateAlreadyExists(
         OPTIONAL {
           ?currentMandataris mandaat:einde ?end1.
         }
-
-        ?currentMandaat a mandaat:Mandaat ;
-          org:role ?currentBestuursfunctie ;
-          ^org:hasPost ?currentBestuursOrgaanIT .
-        ?currentBestuursOrgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
       }
+      ?currentMandaat a mandaat:Mandaat ;
+        org:role ?currentBestuursfunctie ;
+        ^org:hasPost ?currentBestuursOrgaanIT .
+      ?currentBestuursOrgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
 
       GRAPH ${sparqlEscapeUri(graph)} {
         ?linkedMandataris a mandaat:Mandataris ;
@@ -149,11 +148,11 @@ export async function linkedMandateAlreadyExists(
         OPTIONAL {
           ?linkedMandataris mandaat:einde ?end2.
         }
-        ?linkedMandaat a mandaat:Mandaat ;
-          org:role ?linkedBestuursfunctie ;
-          ^org:hasPost ?linkedBestuursOrgaanIT .
-        ?linkedBestuursOrgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
       }
+      ?linkedMandaat a mandaat:Mandaat ;
+        org:role ?linkedBestuursfunctie ;
+        ^org:hasPost ?linkedBestuursOrgaanIT .
+      ?linkedBestuursOrgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
 
       VALUES (?currentBestuursfunctie ?linkedBestuursfunctie) {
         ${valueBindings}
@@ -371,15 +370,15 @@ export async function copyOnafhankelijkeFractieOfMandataris(
       GRAPH ?origin {
         ?currentMandataris a mandaat:Mandataris ;
           mu:uuid ${sparqlEscapeString(mandatarisId)} ;
-          org:hasMembership / org:organisation / org:memberOf / lmb:heeftBestuursperiode ?bestuursperiode .
+          org:hasMembership / org:organisation / org:memberOf ?orgInT .
       }
 
-      GRAPH ${sparqlEscapeUri(graph)} {
-        ?linkedBestuursorgaanIT lmb:heeftBestuursperiode ?bestuursperiode ;
-          mandaat:isTijdspecialisatieVan / besluit:bestuurt ?linkedBestuurseenheid .
-      }
+      ?orgInT lmb:heeftBestuursperiode ?bestuursperiode .
 
-      ?origin ext:ownedBy ?owningEenheid.
+      ?linkedBestuursorgaanIT lmb:heeftBestuursperiode ?bestuursperiode ;
+        mandaat:isTijdspecialisatieVan / besluit:bestuurt ?linkedBestuurseenheid .
+
+      ?origin ext:ownedBy ?linkedBestuurseenheid.
     }`;
 
   try {
@@ -505,6 +504,7 @@ export async function createNewLinkedMandataris(
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     INSERT {
       GRAPH ${escaped.graph} {
@@ -522,22 +522,27 @@ export async function createNewLinkedMandataris(
           mu:uuid ${escaped.mandatarisId} ;
           org:holds ?currentMandaat ;
           ?mandatarisp ?mandatariso .
-        ?currentMandaat a mandaat:Mandaat ;
-          org:role ?currentBestuursfunctie ;
-          ^org:hasPost ?currentBestuursOrgaanIT .
-        ?currentBestuursOrgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
         OPTIONAL {
           ?currentMandataris org:hasMembership ?membership .
           ?membership ?memberp ?membero .
         }
       }
+      GRAPH <http://mu.semte.ch/graphs/public> {
+        ?origin ext:ownedBy ?owningEenheid.
 
-      GRAPH ${escaped.graph} {
+        ?currentMandaat a mandaat:Mandaat ;
+        org:role ?currentBestuursfunctie ;
+        ^org:hasPost ?currentOrgaanIT .
+
         ?linkedMandaat a mandaat:Mandaat ;
-          org:role ?linkedBestuursfunctie ;
-          ^org:hasPost ?linkedBestuursOrgaanIT .
-        ?linkedBestuursOrgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
+        org:role ?linkedBestuursfunctie ;
+        ^org:hasPost ?linkedBestuursOrgaanIT .
+        ?linkedBestuursOrgaanIT mandaat:isTijdspecialisatieVan ?linkedBestuursOrgaan .
+        ?linkedBestuursOrgaan besluit:bestuurt ?linkedBestuurseenheid .
       }
+      ?currentOrgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
+      ?linkedBestuursOrgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
+      ${escaped.graph} ext:ownedBy ?linkedBestuurseenheid .
 
       VALUES (?currentBestuursfunctie ?linkedBestuursfunctie) {
         ${valueBindings}
