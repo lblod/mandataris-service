@@ -4,31 +4,24 @@ import {
 } from '../data-access/mandataris';
 import {
   TERM_MANDATARIS_TYPE,
-  checkIfMinimalMandatarisInfoAvailable,
-  getMandatarisTriplesInStagingGraph,
+  addBesluitToMandataris,
+  getGraphsWhereInstanceExists,
   isSubjectOfType,
 } from '../data-access/mandatees-decisions';
-import { MandatarisBesluitLookup, MandatarisFullInfo } from '../types';
 import { PUBLICATION_STATUS } from '../util/constants';
-import { copyBeleidsdomeinInfo } from './mandataris-besluit/beleidsdomein';
-import { copyFractionInfo } from './mandataris-besluit/fractie';
-import { copyMandatarisInfo } from './mandataris-besluit/mandataris';
-import { copyPersonInfo } from './mandataris-besluit/persoon';
 
 export async function processMandatarisForDecisions(
   mandatarisUri: string,
 ): Promise<void> {
-  const { valid, besluitUri, type } =
+  const { valid, besluitUri, link } =
     await isValidMandatarisWithBesluit(mandatarisUri);
-  if (!valid || !besluitUri || !type) {
+  if (!valid || !besluitUri || !link) {
     return;
   }
-  const mandatarisPointer: MandatarisBesluitLookup = {
-    mandatarisUri,
-    besluitUri,
-    type,
-  };
-  await handleMandatarisSubject(mandatarisPointer);
+
+  const graphs = await getGraphsWhereInstanceExists(mandatarisUri);
+
+  await addBesluitToMandataris(mandatarisUri, besluitUri, link, graphs);
   await updatePublicationStatusOfMandataris(
     mandatarisUri,
     PUBLICATION_STATUS.BEKRACHTIGD,
@@ -54,38 +47,11 @@ async function isValidMandatarisWithBesluit(mandatarisUri: string) {
     console.log(
       `|> Could not find a decision for mandataris: ${mandatarisUri}`,
     );
-    return { valid: false, besluitUri: null, type: null };
+    return { valid: false, besluitUri: null, link: null };
   }
   return {
     valid: true,
     besluitUri: result.besluit,
-    type:
-      result.link && result.link.toLocaleLowerCase().indexOf('ontslag') >= 0
-        ? ('ontslag' as const)
-        : ('aanstelling' as const),
+    link: result.link,
   };
-}
-
-export async function handleMandatarisSubject(
-  mandatarisBesluitInfo: MandatarisBesluitLookup,
-) {
-  const { graph, minimalInfoAvailable } =
-    await checkIfMinimalMandatarisInfoAvailable(mandatarisBesluitInfo);
-  if (!minimalInfoAvailable || !graph) {
-    return;
-  }
-  const mandatarisTriples = await getMandatarisTriplesInStagingGraph(
-    mandatarisBesluitInfo.mandatarisUri,
-  );
-
-  const mandatarisFullInfo: MandatarisFullInfo = {
-    ...mandatarisBesluitInfo,
-    triples: mandatarisTriples,
-    graph,
-  };
-
-  await copyMandatarisInfo(mandatarisFullInfo);
-  await copyPersonInfo(mandatarisFullInfo);
-  await copyFractionInfo(mandatarisFullInfo);
-  await copyBeleidsdomeinInfo(mandatarisFullInfo);
 }
