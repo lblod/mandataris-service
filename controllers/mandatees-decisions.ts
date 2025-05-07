@@ -9,6 +9,7 @@ import {
   isSubjectOfType,
 } from '../data-access/mandatees-decisions';
 import { PUBLICATION_STATUS } from '../util/constants';
+import { createMandatarisBesluitNotification } from '../util/create-notification';
 
 export async function processMandatarisForDecisions(
   mandatarisUri: string,
@@ -26,6 +27,19 @@ export async function processMandatarisForDecisions(
     mandatarisUri,
     PUBLICATION_STATUS.BEKRACHTIGD,
   );
+
+  await createMandatarisBesluitNotification({
+    title: 'Mandataris bekrachtigd door besluit',
+    description:
+      'Deze mandataris werd gevonden in een besluit. De koppeling tussen mandataris en besluit werd toegevoegd.',
+    type: 'info',
+    info: {
+      mandatarisUri,
+      besluitUri,
+      graph: graphs[0],
+      link,
+    },
+  });
 }
 
 async function isValidMandatarisWithBesluit(mandatarisUri: string) {
