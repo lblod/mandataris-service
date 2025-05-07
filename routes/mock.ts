@@ -1,7 +1,7 @@
 import Router from 'express-promise-router';
 
 import { Request, Response } from 'express';
-import { sparqlEscapeDateTime, sparqlEscapeUri } from 'mu';
+import { sparqlEscapeDateTime } from 'mu';
 import { updateSudo } from '@lblod/mu-auth-sudo';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -22,11 +22,13 @@ mockRouter.get('/add-decision', async (req: Request, res: Response) => {
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
     PREFIX foaf: <http://xmlns.com/foaf/0.1/>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX prov: <http://www.w3.org/ns/prov#>
 
     INSERT DATA {
       GRAPH <http://mu.semte.ch/graphs/besluiten-consumed> {
         <http://data.lblod.info/id/besluiten/${id}> a besluit:Besluit;
           mu:uuid """${id}""";
+          prov:wasDerivedFrom "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
           mandaat:bekrachtigtAanstellingVan ${mandataris}.
       }
       GRAPH <http://mu.semte.ch/graphs/besluit-mandataris-queue> {
