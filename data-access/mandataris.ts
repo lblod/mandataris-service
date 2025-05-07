@@ -558,15 +558,18 @@ export async function updatePublicationStatusOfMandataris(
   };
   const updateStatusQuery = `
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+    PREFIX dct: <http://purl.org/dc/terms/>
 
     DELETE {
       GRAPH ?graph {
         ${escaped.mandataris} lmb:hasPublicationStatus ?status.
+        ${escaped.mandataris} dct:modified ?modified.
       }
     }
     INSERT {
       GRAPH ?graph {
         ${escaped.mandataris} lmb:hasPublicationStatus ${escaped.status}.
+        ${escaped.mandataris} dct:modified ?now.
       }
     }
     WHERE {
@@ -575,7 +578,11 @@ export async function updatePublicationStatusOfMandataris(
         OPTIONAL {
           ${escaped.mandataris} lmb:hasPublicationStatus ?status.
         }
+        OPTIONAL {
+          ${escaped.mandataris} dct:modified ?modified.
+        }
       }
+      BIND(NOW() as ?now)
     }
   `;
 
