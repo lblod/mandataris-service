@@ -61,14 +61,10 @@ export type SparqlResult = {
   boolean?: boolean;
 };
 
-export type MandatarisBesluitLookup = {
+export type MandatarisFullInfo = {
   mandatarisUri: string;
   besluitUri: string;
-  type: 'ontslag' | 'aanstelling';
-};
-
-export type MandatarisFullInfo = MandatarisBesluitLookup & {
-  triples: Triple[];
+  link: string;
   graph: string;
 };
 
