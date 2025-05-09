@@ -65,35 +65,6 @@ export async function createNotification({
   console.log(`Notification created: ${title}, ${JSON.stringify(links)}`);
 }
 
-export const createMandatarisBesluitNotification = async ({
-  title,
-  description,
-  type,
-  info,
-}: {
-  title: string;
-  description: string;
-  type: keyof typeof notificationTypes;
-  info: MandatarisFullInfo;
-}) => {
-  return createNotification({
-    title,
-    description,
-    type,
-    graph: info.graph,
-    links: [
-      {
-        type: 'mandataris',
-        uri: info.mandatarisUri,
-      },
-      {
-        type: 'besluit',
-        uri: info.besluitUri,
-      },
-    ],
-  });
-};
-
 export async function getMandatarisNotificationGraph(mandataris: string) {
   const query = `
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
