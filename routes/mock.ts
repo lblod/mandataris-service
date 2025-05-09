@@ -1,7 +1,6 @@
 import Router from 'express-promise-router';
 
 import { Request, Response } from 'express';
-import { sparqlEscapeDateTime } from 'mu';
 import { updateSudo } from '@lblod/mu-auth-sudo';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -27,13 +26,8 @@ mockRouter.get('/add-decision', async (req: Request, res: Response) => {
     INSERT DATA {
       GRAPH <http://mu.semte.ch/graphs/besluiten-consumed> {
         <http://data.lblod.info/id/besluiten/${id}> a besluit:Besluit;
-          mu:uuid """${id}""";
           prov:wasDerivedFrom "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
           mandaat:bekrachtigtAanstellingVan ${mandataris}.
-      }
-      GRAPH <http://mu.semte.ch/graphs/besluit-mandataris-queue> {
-        <http://que-item/${id}> ext:queueInstance ${mandataris} ;
-          ext:queueTime ${sparqlEscapeDateTime(new Date())} .
       }
     }
     `;
@@ -57,7 +51,7 @@ mockRouter.get('/clear-decisions', async (_req: Request, res: Response) => {
       }
       GRAPH ?g {
         <http://data.lblod.info/id/mandatarissen/5FF2DC1278A81C0009000A15>
-          <http://lblod.data.gift/vocabularies/lmb/hasPublicationStatus> ?publicatieStatus .     
+          <http://lblod.data.gift/vocabularies/lmb/hasPublicationStatus> ?publicatieStatus .
       }
     }
     INSERT {
@@ -73,7 +67,7 @@ mockRouter.get('/clear-decisions', async (_req: Request, res: Response) => {
     }
     GRAPH ?g {
       <http://data.lblod.info/id/mandatarissen/5FF2DC1278A81C0009000A15>
-        <http://lblod.data.gift/vocabularies/lmb/hasPublicationStatus> ?publicatieStatus .     
+        <http://lblod.data.gift/vocabularies/lmb/hasPublicationStatus> ?publicatieStatus .
     }
   }`;
   await updateSudo(query);
