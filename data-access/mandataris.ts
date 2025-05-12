@@ -30,11 +30,6 @@ import {
 } from '../util/sparql-result';
 import { HttpError } from '../util/http-error';
 
-import {
-  BESLUIT_STAGING_GRAPH,
-  TERM_MANDATARIS_TYPE,
-} from './mandatees-decisions';
-
 export const mandataris = {
   isOnafhankelijk,
   findCurrentFractieForPerson,
@@ -511,83 +506,6 @@ export async function endExistingMandataris(
     console.log(`|> Terminated mandataris with uri: ${mandatarisUri}.`);
   } catch (error) {
     throw Error(`Could not terminate mandataris with uri: ${mandatarisUri}`);
-  }
-}
-
-export async function findDecisionAndLinkForMandataris(
-  mandatarisUri: string,
-): Promise<{ besluit: string | undefined; link: string | undefined }> {
-  const mandatarisSubject = sparqlEscapeUri(mandatarisUri);
-  const besluiteQuery = `
-  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-
-   SELECT ?artikel ?link
-   WHERE {
-      GRAPH ?g {
-        VALUES ?link {
-          mandaat:bekrachtigtAanstellingVan
-          mandaat:bekrachtigtOntslagVan
-        }
-        ?artikel ?link ${mandatarisSubject}.
-      }
-      OPTIONAL {
-        ?g ext:ownedBy ?eenheid.
-      }
-      FILTER(BOUND(?eenheid) || ?g = ${sparqlEscapeUri(BESLUIT_STAGING_GRAPH)})
-    }
-  `;
-
-  const result = await querySudo(besluiteQuery);
-  const sparqlResult = findFirstSparqlResult(result);
-
-  return {
-    besluit: sparqlResult?.artikel?.value,
-    link: sparqlResult?.link?.value,
-  };
-}
-
-export async function updatePublicationStatusOfMandataris(
-  mandataris: string,
-  status: PUBLICATION_STATUS,
-): Promise<void> {
-  const escaped = {
-    mandataris: sparqlEscapeUri(mandataris),
-    status: sparqlEscapeUri(status),
-    mandatarisType: sparqlEscapeTermValue(TERM_MANDATARIS_TYPE),
-  };
-  const updateStatusQuery = `
-    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
-
-    DELETE {
-      GRAPH ?graph {
-        ${escaped.mandataris} lmb:hasPublicationStatus ?status.
-      }
-    }
-    INSERT {
-      GRAPH ?graph {
-        ${escaped.mandataris} lmb:hasPublicationStatus ${escaped.status}.
-      }
-    }
-    WHERE {
-      GRAPH ?graph {
-        ${escaped.mandataris} a ${escaped.mandatarisType}.
-        OPTIONAL {
-          ${escaped.mandataris} lmb:hasPublicationStatus ?status.
-        }
-      }
-    }
-  `;
-
-  try {
-    await updateSudo(updateStatusQuery);
-    console.log(
-      `|> Updated status to ${status} for mandataris: ${mandataris}.`,
-    );
-  } catch (error) {
-    console.log(
-      `|> Could not update mandataris: ${mandataris} status to ${status}`,
-    );
   }
 }
 

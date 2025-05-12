@@ -1,7 +1,6 @@
 import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
 import { sparqlEscapeDateTime, sparqlEscapeUri, sparqlEscapeString } from 'mu';
 import { v4 as uuid } from 'uuid';
-import { MandatarisFullInfo } from '../types';
 
 const notificationTypes = {
   warning: 'http://lblod.data.gift/concepts/notification-codes/warning',
@@ -64,35 +63,6 @@ export async function createNotification({
   await updateSudo(query);
   console.log(`Notification created: ${title}, ${JSON.stringify(links)}`);
 }
-
-export const createMandatarisBesluitNotification = async ({
-  title,
-  description,
-  type,
-  info,
-}: {
-  title: string;
-  description: string;
-  type: keyof typeof notificationTypes;
-  info: MandatarisFullInfo;
-}) => {
-  return createNotification({
-    title,
-    description,
-    type,
-    graph: info.graph,
-    links: [
-      {
-        type: 'mandataris',
-        uri: info.mandatarisUri,
-      },
-      {
-        type: 'besluit',
-        uri: info.besluitUri,
-      },
-    ],
-  });
-};
 
 export async function getMandatarisNotificationGraph(mandataris: string) {
   const query = `
