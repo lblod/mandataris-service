@@ -1,7 +1,6 @@
 import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
 import { sparqlEscapeDateTime, sparqlEscapeUri, sparqlEscapeString } from 'mu';
 import { v4 as uuid } from 'uuid';
-import { MandatarisFullInfo } from '../types';
 
 const notificationTypes = {
   warning: 'http://lblod.data.gift/concepts/notification-codes/warning',

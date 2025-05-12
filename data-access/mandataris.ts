@@ -30,11 +30,6 @@ import {
 } from '../util/sparql-result';
 import { HttpError } from '../util/http-error';
 
-import {
-  BESLUIT_STAGING_GRAPH,
-  TERM_MANDATARIS_TYPE,
-} from './mandatees-decisions';
-
 export const mandataris = {
   isOnafhankelijk,
   findCurrentFractieForPerson,
