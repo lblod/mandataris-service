@@ -3,7 +3,11 @@ import Router from 'express-promise-router';
 import { Request, Response } from 'express';
 
 import { STATUS_CODE } from '../util/constants';
-import { persoonUsecase, putPersonInRightGraph } from '../controllers/persoon';
+import {
+  persoonUsecase,
+  putPersonInRightGraph,
+  checkFractie,
+} from '../controllers/persoon';
 import { mandatarisUsecase } from '../controllers/mandataris';
 import { fetchUserIdFromSession } from '../data-access/form-queries';
 import { mandataris } from '../data-access/mandataris';
@@ -80,6 +84,29 @@ personenRouter.put(
       const message =
         error.message ??
         `Something went wrong while setting the end dates of active mandatarissen for person with id: ${personId} to today.`;
+      const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
+      return res.status(statusCode).send({ message });
+    }
+  },
+);
+
+personenRouter.post(
+  '/:persoonId/check-fraction',
+  async (req: Request, res: Response) => {
+    const personId = req.params.persoonId;
+    const { bestuursperiodeId, fractieId } = req.body;
+
+    try {
+      const fractionIsSame = await checkFractie(
+        personId,
+        bestuursperiodeId,
+        fractieId,
+      );
+      return res.status(STATUS_CODE.OK).send({ ok: fractionIsSame });
+    } catch (error) {
+      const message =
+        error.message ??
+        `Something went wrong while checking if person with id: ${personId} is in the fraction with id: ${fractieId}`;
       const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
       return res.status(statusCode).send({ message });
     }

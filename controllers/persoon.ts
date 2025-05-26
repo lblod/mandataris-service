@@ -2,6 +2,7 @@ import {
   shouldPersonBeCopied,
   copyPersonToGraph,
   getDestinationGraphPerson,
+  checkFractieQuery,
   persoon,
 } from '../data-access/persoon';
 
@@ -71,4 +72,37 @@ export async function putPersonInRightGraph(
   }
 
   await copyPersonToGraph(personId, destinationGraph);
+}
+
+export async function checkFractie(
+  personId: string,
+  bestuursperiodeId: string,
+  fractieId: string,
+) {
+  const isValidPerson = await isValidId(RDF_TYPE.PERSON, personId);
+  if (!isValidPerson) {
+    throw new HttpError(
+      `Person with id ${personId} not found.`,
+      STATUS_CODE.BAD_REQUEST,
+    );
+  }
+  const isValidFractie = await isValidId(RDF_TYPE.FRACTIE, fractieId);
+  if (!isValidFractie) {
+    throw new HttpError(
+      `Fractie with id ${fractieId} not found.`,
+      STATUS_CODE.BAD_REQUEST,
+    );
+  }
+  const isValidBestuursperiode = await isValidId(
+    RDF_TYPE.BESTUURSPERIODE,
+    bestuursperiodeId,
+  );
+  if (!isValidBestuursperiode) {
+    throw new HttpError(
+      `Fractie with id ${bestuursperiodeId} not found.`,
+      STATUS_CODE.BAD_REQUEST,
+    );
+  }
+
+  return checkFractieQuery(personId, bestuursperiodeId, fractieId);
 }
