@@ -337,7 +337,7 @@ export async function checkFractieQuery(
   PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
   PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
-  SELECT ?otherFractie WHERE {
+  SELECT ?gemeenteFractie WHERE {
     GRAPH ?ocmwGraph {
       ?persoon a person:Person;
         mu:uuid ${sparqlEscapeString(personId)} .

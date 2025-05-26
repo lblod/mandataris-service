@@ -1,0 +1,5 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`fractions it should allow changing the fractie to one that is used in gemeente 1`] = `"{"ok":true}"`;
+
+exports[`fractions it should not allow changing the fraction to one that is not used in gemeente 1`] = `"{"ok":false}"`;
