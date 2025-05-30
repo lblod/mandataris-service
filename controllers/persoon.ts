@@ -99,7 +99,7 @@ export async function checkFractie(
   );
   if (!isValidBestuursperiode) {
     throw new HttpError(
-      `Fractie with id ${bestuursperiodeId} not found.`,
+      `Bestuursperiode with id ${bestuursperiodeId} not found.`,
       STATUS_CODE.BAD_REQUEST,
     );
   }
