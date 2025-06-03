@@ -40,7 +40,7 @@ services:
       - ./config/virtuoso/virtuoso.ini:/data/virtuoso.ini
       - ./config/virtuoso/:/opt/virtuoso-scripts
   deltanotifier:
-    image: semtech/mu-delta-notifier:0.3.0
+    image: semtech/mu-delta-notifier:0.4.0
     attach: false
     volumes:
       - ./config/delta:/config

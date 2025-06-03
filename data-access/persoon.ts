@@ -320,3 +320,58 @@ export async function copyPersonToGraph(personId: string, graph: string) {
     throw Error(`Could not copy person with id: ${escaped.person}`);
   }
 }
+
+export async function checkFractieQuery(
+  personId: string,
+  bestuursperiodeId: string,
+  fractieId: string,
+) {
+  const safeBestuursperiode = sparqlEscapeString(bestuursperiodeId);
+  const q = `
+  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+  PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+  PREFIX org: <http://www.w3.org/ns/org#>
+  PREFIX regorg: <https://www.w3.org/ns/regorg#>
+  PREFIX person: <http://www.w3.org/ns/person#>
+  PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+  PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+
+  SELECT ?gemeenteFractie WHERE {
+    GRAPH ?ocmwGraph {
+      ?persoon a person:Person;
+        mu:uuid ${sparqlEscapeString(personId)} .
+      ?fractie a mandaat:Fractie ;
+        ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Samenwerkingsverband> ;
+        mu:uuid ${sparqlEscapeString(fractieId)} ;
+        regorg:legalName ?fractieName .
+    }
+    ?ocmwGraph ext:ownedBy ?ocmw .
+    ?orgT a besluit:Bestuursorgaan ;
+        lmb:heeftBestuursperiode / mu:uuid ${safeBestuursperiode} ;
+        org:hasPost ?mandaat .
+    ?orgT mandaat:isTijdspecialisatieVan / besluit:bestuurt ?gemeente .
+
+    GRAPH ?gemeenteGraph {
+      ?mandataris a mandaat:Mandataris;
+        mandaat:isBestuurlijkeAliasVan ?persoon ;
+        org:holds ?mandaat ;
+        org:hasMembership / org:organisation ?gemeenteFractie .
+      ?gemeenteFractie a mandaat:Fractie ;
+        ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Samenwerkingsverband> ;
+        regorg:legalName ?gemeenteFractieName .
+      FILTER (?gemeenteFractieName != ?fractieName)
+    }
+
+    ?gemeenteGraph ext:ownedBy ?gemeente .
+    ?ocmw ext:isOCMWVoor ?gemeente .
+
+  } LIMIT 1`;
+
+  const result = await querySudo(q);
+  if (result.results.bindings.length > 0) {
+    return false;
+  } else {
+    return true;
+  }
+}
