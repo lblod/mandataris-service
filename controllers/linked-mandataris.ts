@@ -11,7 +11,6 @@ import {
   correctLinkedMandataris,
   replaceFractieOfMandataris,
   isFractieNameEqual,
-  copyExtraValues,
   findLinkedInstance,
   linkInstances,
   copyOnafhankelijkeFractieOfMandataris,
@@ -101,28 +100,19 @@ export const removeLinkLinkedMandataris = async (req) => {
 export const createLinkedMandataris = async (req) => {
   const mandatarisId = req.params.id;
 
-  const userId = await preliminaryChecksLinkedMandataris(req);
-
-  const destinationGraph = await getDestinationGraphLinkedMandataris(
-    mandatarisId,
-    getValueBindings(linkedBestuurseenheden),
-  );
+  const [userId, destinationGraph] = await Promise.all([
+    preliminaryChecksLinkedMandataris(req),
+    getDestinationGraphLinkedMandataris(
+      mandatarisId,
+      getValueBindings(linkedBestuurseenheden),
+    ),
+  ]);
   if (!destinationGraph) {
     throw new HttpError('No destination graph found', 500);
   }
 
-  const mandateAlreadyExists = await linkedMandateAlreadyExists(
-    destinationGraph,
-    mandatarisId,
-    getValueBindings(linkedMandaten),
-  );
-
-  if (mandateAlreadyExists) {
-    throw new HttpError(
-      'Er bestaat al een mandaat voor deze persoon in het OCMW',
-      400,
-    );
-  }
+  // no need to check for an existing mandate in ocmw (duplicate) the frontend already does so
+  // AND validations will catch it
 
   await handleCreationNewLinkedMandatarisAndPerson(
     destinationGraph,
@@ -232,7 +222,6 @@ export const changeStateLinkedMandataris = async (req) => {
     destinationGraph,
     userId,
     newMandatarisId,
-    oldLinkedMandataris,
   );
 
   const endDate = await getMandatarisEndDate(oldMandatarisId);
@@ -302,7 +291,6 @@ export const handleCreationNewLinkedMandataris = async (
   destinationGraph: string,
   userId: string,
   newMandatarisId: string,
-  oldlinkedMandataris: instanceIdentifiers | null,
 ) => {
   const fractie = await getOrCreateOCMWFractie(
     newMandatarisId,
@@ -316,25 +304,24 @@ export const handleCreationNewLinkedMandataris = async (
     getValueBindings(linkedMandaten),
   );
 
-  // Copy over values that were in the original linked mandatee but are not set in the new linked mandatee
-  if (oldlinkedMandataris) {
-    await copyExtraValues(oldlinkedMandataris.uri, newLinkedMandataris.uri);
-  }
+  const promises = [linkInstances(newMandatarisId, newLinkedMandataris.id)];
 
   if (fractie) {
-    await mandatarisUsecase.updateCurrentFractieSudo(
-      newLinkedMandataris.id,
-      destinationGraph,
+    promises.push(
+      mandatarisUsecase.updateCurrentFractieSudo(
+        newLinkedMandataris.id,
+        destinationGraph,
+      ),
     );
   }
+
+  await Promise.all(promises);
 
   await saveHistoryItem(
     newLinkedMandataris.uri,
     userId,
     'created by gemeente - ocmw mirror',
   );
-
-  await linkInstances(newMandatarisId, newLinkedMandataris.id);
 
   return newLinkedMandataris;
 };
@@ -357,7 +344,6 @@ export const handleCreationNewLinkedMandatarisAndPerson = async (
     destinationGraph,
     userId,
     newMandatarisId,
-    null,
   );
   return newLinkedMandataris;
 };
