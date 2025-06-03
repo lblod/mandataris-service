@@ -307,14 +307,6 @@ export const handleCreationNewLinkedMandataris = async (
 
   const promises = [linkInstances(newMandatarisId, newLinkedMandataris.id)];
 
-  // Copy over values that were in the original linked mandatee but are not set in the new linked mandatee
-  // TODO:karel this is not necessary anymore as mandatarissen will not have custom values
-  // if (oldlinkedMandataris) {
-  //   promises.push(
-  //     copyExtraValues(oldlinkedMandataris.uri, newLinkedMandataris.uri),
-  //   );
-  // }
-
   if (fractie) {
     promises.push(
       mandatarisUsecase.updateCurrentFractieSudo(
