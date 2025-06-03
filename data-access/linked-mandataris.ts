@@ -620,46 +620,6 @@ export async function correctLinkedMandataris(
   }
 }
 
-export async function copyExtraValues(
-  oldMandatarisUri: string,
-  newMandatarisUri: string,
-) {
-  const escaped = {
-    old: sparqlEscapeUri(oldMandatarisUri),
-    new: sparqlEscapeUri(newMandatarisUri),
-  };
-  const q = `
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-
-    INSERT {
-      GRAPH ?graph {
-        ${escaped.new} ?p ?o .
-      }
-    }
-    WHERE {
-      GRAPH ?graph {
-        ${escaped.old} a mandaat:Mandataris ;
-          ?p ?o .
-      }
-      FILTER NOT EXISTS {
-        ${escaped.new} ?p ?newO .
-
-      }
-      ?graph ext:ownedBy ?owningEenheid.
-    }
-    `;
-
-  try {
-    await updateSudo(q);
-  } catch (error) {
-    throw new HttpError(
-      `Error while trying to copy values from mandataris ${escaped.old} to mandataris ${escaped.new}`,
-      500,
-    );
-  }
-}
-
 export async function linkInstances(instance1: string, instance2: string) {
   const insertQuery = `
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>

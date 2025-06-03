@@ -11,7 +11,6 @@ import {
   correctLinkedMandataris,
   replaceFractieOfMandataris,
   isFractieNameEqual,
-  copyExtraValues,
   findLinkedInstance,
   linkInstances,
   copyOnafhankelijkeFractieOfMandataris,
