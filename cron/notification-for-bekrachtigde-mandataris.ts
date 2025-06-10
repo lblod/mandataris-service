@@ -122,7 +122,8 @@ async function getMandatarissenToNotifyAbout(graph: string, keyOfRun: string) {
       GRAPH ${sparqlEscapeUri(graph)} {
         ?mandataris a mandaat:Mandataris ;
             mandaat:isBestuurlijkeAliasVan ?person ;
-            org:holds / org:role ?bestuursfunctie .
+            org:holds ?mandaat .
+
         ?person persoon:gebruikteVoornaam ?fName ;
             foaf:familyName ?lName .
 
@@ -131,6 +132,7 @@ async function getMandatarissenToNotifyAbout(graph: string, keyOfRun: string) {
           ext:generatedByRun ${sparqlEscapeString(keyOfRun)} ;
           ext:notificationLink / ext:linkedTo ?mandataris .
       }
+      ?mandaat org:role ?bestuursfunctie .
       ?bestuursfunctie skos:prefLabel ?bestuursfunctieName .
       ?g ext:ownedBy ?eenheid.
     } ORDER BY ?bestuursfunctieName ?lName ?fName
