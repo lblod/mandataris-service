@@ -1,0 +1,6 @@
+services:
+  project-scripts:
+    image: semtech/mu-scripts:1.0.0
+    volumes:
+      - ./scripts/:/app/scripts/
+    restart: 'no'
