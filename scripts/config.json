@@ -1,0 +1,22 @@
+{
+    "version": "0.1",
+    "scripts": [
+        {
+            "documentation": {
+                "command": "contract-tests",
+                "description": "contract-tests",
+                "arguments": []
+            },
+            "environment": {
+                "image": "docker:dind",
+                "interactive": false,
+                "script": "contract-tests/run.sh",
+                "join_networks": false,
+                "privileged": true
+            },
+            "mounts": {
+                "app": "/project/"
+            }
+        }
+    ]
+}
