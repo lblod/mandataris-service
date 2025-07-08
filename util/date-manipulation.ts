@@ -15,3 +15,11 @@ export function endOfDay(date?: Date) {
       .toDate();
   }
 }
+
+export function startOfDay(date?: Date) {
+  if (date) {
+    return moment(date).startOf('day').utc().toDate();
+  } else {
+    return moment().startOf('day').utc().toDate();
+  }
+}
