@@ -1,8 +1,16 @@
 import Router from 'express-promise-router';
 
 import { Request, Response } from 'express';
-import { updateSudo } from '@lblod/mu-auth-sudo';
+import { updateSudo, querySudo } from '@lblod/mu-auth-sudo';
 import { v4 as uuidv4 } from 'uuid';
+import { createBurgemeesterFromScratch } from '../data-access/burgemeester';
+import { sparqlEscapeUri } from 'mu';
+import {
+  bulkUpdateEndDate,
+  copyFromPreviousMandataris,
+  endExistingMandataris,
+  generateMandatarissen,
+} from '../data-access/mandataris';
 
 export const mockRouter = Router();
 
@@ -73,4 +81,154 @@ mockRouter.get('/clear-decisions', async (_req: Request, res: Response) => {
   await updateSudo(query);
 
   res.status(200).send({ status: 'cleared' });
+});
+
+mockRouter.get('/test-mandataris-date', async (req: Request, res: Response) => {
+  const getStartDateForMandatarisUri = async (uri) => {
+    const dateResult = await querySudo(`
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    select ?start
+    where {
+      graph ?g {
+        ${sparqlEscapeUri(uri)} mandaat:start ?start .
+      }
+    }  
+  `);
+    return dateResult.results.bindings[0]?.start.value;
+  };
+  const getEndDateForMandatarisUri = async (uri) => {
+    const dateResult = await querySudo(`
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    select ?end
+    where {
+      graph ?g {
+        ${sparqlEscapeUri(uri)} mandaat:einde ?end .
+      }
+    }  
+  `);
+    return dateResult.results.bindings[0]?.end.value;
+  };
+  const graphAalst =
+    'http://mu.semte.ch/graphs/organizations/974816591f269bb7d74aa1720922651529f3d3b2a787f5c60b73e5a0384950a4/LoketLB-mandaatGebruiker';
+
+  const inputStartDate = new Date('2025-07-08T10:35:10Z');
+  const inputEndDate = new Date('2026-01-00:35:10Z');
+  const burgemeesterMandatarisUri = await createBurgemeesterFromScratch(
+    graphAalst,
+    'http://burgemeester-person-uri',
+    'http://mandaaat-uri',
+    inputStartDate,
+    'http://benoemings-uri',
+  );
+  const startBurgemeester = await getStartDateForMandatarisUri(
+    burgemeesterMandatarisUri,
+  );
+
+  const mandatarisCopyUri = await copyFromPreviousMandataris(
+    graphAalst,
+    burgemeesterMandatarisUri,
+    inputStartDate,
+    'http://mandaaat-uri',
+  );
+
+  const startCopy = await getStartDateForMandatarisUri(mandatarisCopyUri);
+
+  await endExistingMandataris(
+    graphAalst,
+    mandatarisCopyUri,
+    inputEndDate,
+    'http://benoemings-uri',
+  );
+
+  const endOfCopy = await getEndDateForMandatarisUri(mandatarisCopyUri);
+
+  const generatedMandatarisUri = 'http://test-mandataris-uri';
+  await generateMandatarissen(
+    [
+      {
+        id: 'test-mandataris',
+        uri: generatedMandatarisUri,
+        rangorde: 'Eerste schepen',
+      },
+    ],
+    {
+      count: 1,
+      startDate: inputStartDate,
+      endDate: inputEndDate,
+      mandaatUri: 'http://mandaaat-uri',
+    },
+  );
+  const startOfGenerated = await getStartDateForMandatarisUri(
+    generatedMandatarisUri,
+  );
+  const endOfGenerated = await getEndDateForMandatarisUri(
+    generatedMandatarisUri,
+  );
+
+  const mandatarissenToEndUris = [
+    burgemeesterMandatarisUri,
+    mandatarisCopyUri,
+    generatedMandatarisUri,
+  ];
+  await bulkUpdateEndDate(mandatarissenToEndUris, inputEndDate);
+
+  const bulkEditBurgemeesterEnd = await getEndDateForMandatarisUri(
+    burgemeesterMandatarisUri,
+  );
+  const bulkEditCopyEnd = await getEndDateForMandatarisUri(mandatarisCopyUri);
+  const bulkEditGeneratedEnd = await getEndDateForMandatarisUri(
+    generatedMandatarisUri,
+  );
+
+  res.status(200).send([
+    {
+      test: 'Creation of burgemeester mandataris has correct start date',
+      comparison: {
+        input: inputStartDate,
+        database: startBurgemeester,
+      },
+    },
+    {
+      test: 'Copy the burgemeester mandataris has the correct start date',
+      comparison: {
+        input: inputStartDate,
+        database: startCopy,
+      },
+    },
+    {
+      test: 'Ending the copied mandataris results in a correct end date',
+      comparison: {
+        input: inputEndDate,
+        database: endOfCopy,
+      },
+    },
+    {
+      test: 'Generated mandataris has correct start and end date',
+      comparison: {
+        input: {
+          start: inputStartDate,
+          end: inputEndDate,
+        },
+        database: {
+          start: startOfGenerated,
+          end: endOfGenerated,
+        },
+      },
+    },
+    {
+      test: 'Bulk ending of mandatarissen results in correct end dates',
+      comparison: {
+        input: {
+          burgemeester: inputEndDate,
+          copy: inputEndDate,
+          generated: inputEndDate,
+        },
+        database: {
+          burgemeester: bulkEditBurgemeesterEnd,
+          copy: bulkEditCopyEnd,
+          generated: bulkEditGeneratedEnd,
+        },
+      },
+    },
+  ]);
 });

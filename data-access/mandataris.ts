@@ -740,7 +740,7 @@ async function getMandatarisFracties(
   return getSparqlResults(results);
 }
 
-async function generateMandatarissen(
+export async function generateMandatarissen(
   sparqlValues: Array<{ id: string; uri: string; rangorde: string }>,
   parameters,
 ) {
@@ -843,7 +843,7 @@ async function getActiveMandatarissenForPerson(
   return getSparqlResults(sparqlResult).map((b) => b.mandataris?.value);
 }
 
-async function bulkUpdateEndDate(mandatarisUris: Array<string>, endDate: Date) {
+export async function bulkUpdateEndDate(mandatarisUris: Array<string>, endDate: Date) {
   if (mandatarisUris.length === 0) {
     return;
   }
