@@ -10,6 +10,7 @@ import {
 } from '../util/sparql-result';
 import { BENOEMING_STATUS, PUBLICATION_STATUS } from '../util/constants';
 import { createNotification } from '../util/create-notification';
+import { startOfDay } from '../util/date-manipulation';
 
 export async function isBestuurseenheidDistrict(
   bestuurseenheidUri: string,
@@ -118,7 +119,7 @@ export const createBurgemeesterFromScratch = async (
   orgGraph: string,
   burgemeesterUri: string,
   burgemeesterMandaatUri: string,
-  date: Date,
+  startDate: Date,
   benoemingUri: string,
 ) => {
   const uuid = uuidv4();
@@ -139,7 +140,7 @@ export const createBurgemeesterFromScratch = async (
           mu:uuid ${sparqlEscapeString(uuid)} ;
           org:holds ${sparqlEscapeUri(burgemeesterMandaatUri)} ;
           mandaat:isBestuurlijkeAliasVan ${sparqlEscapeUri(burgemeesterUri)} ;
-          mandaat:start ${sparqlEscapeDateTime(date)} ;
+          mandaat:start ${sparqlEscapeDateTime(startOfDay(startDate, true))} ;
           mandaat:status <http://data.vlaanderen.be/id/concept/MandatarisStatusCode/21063a5b-912c-4241-841c-cc7fb3c73e75> ;
           lmb:hasPublicationStatus mps:9d8fd14d-95d0-4f5e-b3a5-a56a126227b6 .
         ${escapedBenoemingUri} ext:approves ${formattedNewMandatarisUri} .

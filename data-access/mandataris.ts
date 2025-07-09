@@ -29,6 +29,7 @@ import {
   getSparqlResults,
 } from '../util/sparql-result';
 import { HttpError } from '../util/http-error';
+import { endOfDay, startOfDay } from '../util/date-manipulation';
 
 export const mandataris = {
   isOnafhankelijk,
@@ -350,8 +351,9 @@ export const createMandatarisInstance = async (
         mandaat:isBestuurlijkeAliasVan ${sparqlEscapeUri(persoonUri)} ;
         ${mandatarisRangorde}
         ${mandatarisBeleidsDomeinen}
-        mandaat:start ${sparqlEscapeDateTime(mandatarisStart)} ;
-        mandaat:einde ${sparqlEscapeDateTime(mandatarisEnd)} ;
+        mandaat:start 
+          ${sparqlEscapeDateTime(startOfDay(mandatarisStart, true))} ;
+        mandaat:einde ${sparqlEscapeDateTime(endOfDay(mandatarisEnd, true))} ;
         org:holds ${sparqlEscapeUri(mandate.mandateUri)} ;
         # effectief
         mandaat:status <http://data.vlaanderen.be/id/concept/MandatarisStatusCode/21063a5b-912c-4241-841c-cc7fb3c73e75> ;
@@ -423,7 +425,7 @@ export const findExistingMandatarisOfPerson = async (
 export const copyFromPreviousMandataris = async (
   orgGraph: string,
   existingMandatarisUri: string,
-  date: Date,
+  startDate: Date,
   mandateUri?: string,
 ) => {
   const uuid = uuidv4();
@@ -447,7 +449,7 @@ export const copyFromPreviousMandataris = async (
           ?p ?o ;
           ${mandateUri ? `org:holds ${sparqlEscapeUri(mandateUri)}; \n` : ''}
           mu:uuid ${sparqlEscapeString(uuid)} ;
-          mandaat:start ${sparqlEscapeDateTime(date)} ;
+          mandaat:start ${sparqlEscapeDateTime(startOfDay(startDate, true))} ;
           # immediately make this status bekrachtigd
           lmb:hasPublicationStatus mps:9d8fd14d-95d0-4f5e-b3a5-a56a126227b6.
       }
@@ -484,7 +486,8 @@ export async function endExistingMandataris(
     }
     INSERT {
       GRAPH ${sparqlEscapeUri(graph)} {
-        ?mandataris mandaat:einde ${sparqlEscapeDateTime(endDate)} .
+        ?mandataris mandaat:einde 
+          ${sparqlEscapeDateTime(endOfDay(endDate, true))} .
         ${extraTriples}
       }
     }
@@ -755,8 +758,8 @@ async function generateMandatarissen(
     .join('\n');
 
   const escapedCommon = {
-    startDate: sparqlEscapeDateTime(startDate),
-    endDate: sparqlEscapeDateTime(endDate),
+    startDate: sparqlEscapeDateTime(startOfDay(startDate, true)),
+    endDate: sparqlEscapeDateTime(endOfDay(endDate, true)),
     mandaat: sparqlEscapeUri(mandaatUri),
     effectief: sparqlEscapeUri(MANDATARIS_STATUS.EFFECTIEF),
     publication: sparqlEscapeUri(PUBLICATION_STATUS.DRAFT),
@@ -846,7 +849,7 @@ async function bulkUpdateEndDate(mandatarisUris: Array<string>, endDate: Date) {
   }
 
   const escaped = {
-    endDate: sparqlEscapeDateTime(endDate),
+    endDate: sparqlEscapeDateTime(endOfDay(endDate, true)),
   };
   const updateQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
