@@ -50,7 +50,7 @@ fractiesRouter.get(
   },
 );
 
-fractiesRouter.put(
+fractiesRouter.post(
   '/:mandatarisId/current-fractie',
   async (req: Request, res: Response) => {
     const id = req.params.mandatarisId;
