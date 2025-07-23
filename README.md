@@ -47,3 +47,8 @@ The service should help you with the following:
 - Importing mandatarissen from a CSV-file
 - Repair politie-zone data
 - Create notifications for mandataris events
+
+## Development notes
+
+- First line implementation of this service is done in [`Lokaal Mandatenbeheer`](https://github.com/lblod/app-lokaal-mandatenbeheer)
+- The route `/mock` is for testing purposes only. We used this for testing the bekrachtiging of a mandataris. The bekrachtiging of a mandataris will in a normal flow go through the cronjob that will intercept the delta's that have a decision.
