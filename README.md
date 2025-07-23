@@ -31,3 +31,19 @@ When this service is added to a semantic-stack project you can run `docker compo
 - Request objects in is not something that we normally do. We added this for the mandataris download as has more query params than usual.
 - Everything related to cronjobs can be found in `/cron`.
 - Testing the service is done in `contract-tests`.
+
+## Solutions
+
+The service should help you with the following:
+
+- Creating a history for a Mandataris
+- Mandatarissen of a persoon
+- Fractie's
+- Rangorde of Mandataris
+- Linked mandatarissen (OCMW <=> Gemeente)
+- Bekrachtiging of mandatarissen
+- Installatievergadering
+- Burgemeester benoeming
+- Importing mandatarissen from a CSV-file
+- Repair politie-zone data
+- Create notifications for mandataris events
