@@ -16,6 +16,7 @@ export const fractie = {
   addFractieOnPerson,
   addFractieOnPersonWithGraph,
   removeFractieWhenNoLidmaatschap,
+  replaceFractie,
 };
 
 async function forBestuursperiode(
@@ -157,4 +158,12 @@ async function removeFractieWhenNoLidmaatschap(
   }
 
   return fractieUris;
+}
+
+async function replaceFractie(
+  currentFractieId: string,
+  bestuursperiodeId: string,
+  label: string,
+): Promise<string> {
+  return '<new fractie id>';
 }

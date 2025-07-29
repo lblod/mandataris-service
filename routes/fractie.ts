@@ -88,21 +88,21 @@ fractiesRouter.delete(
 );
 
 fractiesRouter.post(
-  '/:fractieId/:bestuursperiodeId/create-replacement',
+  '/:fractieId/create-replacement',
   async (req: Request, res: Response) => {
     const currentFractieId = req.params.fractieId;
-    const bestuursperiodeId = req.params.bestuursperiodeId;
 
     try {
       await fractieUsecase.createReplacement(
         currentFractieId,
-        bestuursperiodeId,
+        req.body.bestuursperiodeId,
+        req.body.label,
       );
       return res.status(STATUS_CODE.CREATED).send();
     } catch (error) {
       const message =
         error.message ??
-        `Something went wrong while creating a replacement for fractie with id: ${currentFractieId} in bestuursperiode (${bestuursperiodeId})`;
+        `Something went wrong while creating a replacement for fractie with id: ${currentFractieId}`;
       const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
       return res.status(statusCode).send({ message: message });
     }
