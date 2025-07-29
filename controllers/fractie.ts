@@ -6,6 +6,7 @@ import { HttpError } from '../util/http-error';
 export const fractieUsecase = {
   forBestuursperiode,
   removeFractieWhenNoLidmaatschap,
+  createReplacement,
 };
 
 async function forBestuursperiode(
@@ -49,3 +50,8 @@ async function removeFractieWhenNoLidmaatschap(
 
   return await fractie.removeFractieWhenNoLidmaatschap(bestuursperiodeId);
 }
+
+async function createReplacement(
+  currentFractieId: string,
+  bestuursperiodeId: string,
+): Promise<void> {}
