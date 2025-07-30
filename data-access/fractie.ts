@@ -17,6 +17,7 @@ export const fractie = {
   addFractieOnPerson,
   addFractieOnPersonWithGraph,
   removeFractieWhenNoLidmaatschap,
+  isOrHasReplacement,
   replaceFractie,
 };
 
@@ -159,6 +160,28 @@ async function removeFractieWhenNoLidmaatschap(
   }
 
   return fractieUris;
+}
+
+async function isOrHasReplacement(fractieId: string): Promise<boolean> {
+  const result = await query(`
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX dct: <http://purl.org/dc/terms/>
+
+    SELECT ?object
+    WHERE {
+     ?fractie mu:uuid ${sparqlEscapeString(fractieId)} .
+     VALUES ?p {
+       ext:endDate
+       dct:replaces
+     }
+     OPTIONAL {
+       ?fractie ?p ?object .
+     }
+    } LIMIT 1
+  `);
+
+  return !!result.results.bindings[0]?.object?.value;
 }
 
 async function getGraphsOfFractie(fractieId: string): Promise<Array<string>> {
