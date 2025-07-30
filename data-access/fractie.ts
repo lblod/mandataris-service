@@ -207,6 +207,7 @@ async function getGraphsOfFractie(fractieId: string): Promise<Array<string>> {
 async function replaceFractie(
   currentFractieId: string,
   label: string,
+  endDate: Date,
 ): Promise<string> {
   const fractieUpdateGraphs = await getGraphsOfFractie(currentFractieId);
   const replacementFractieId = uuidv4();
@@ -229,7 +230,7 @@ async function replaceFractie(
     }
     INSERT {
       GRAPH ?g {
-        ?currentFractie ext:endDate ?now .
+        ?currentFractie ext:endDate ${sparqlEscapeDateTime(endDate)} .
         ${replacement} dct:replaces ?currentFractie .
 
         ${replacement} a ?type .
@@ -238,6 +239,8 @@ async function replaceFractie(
         ${replacement} org:memberOf ?bestuursorgaan .
         ${replacement} org:linkedTo ?bestuurseenheid .
         ${replacement} ext:isFractietype ?fractieType.
+
+        ${replacement} dct:modified ?now .
         ?currentFractie dct:modified ?now .
       }
     }
@@ -247,7 +250,7 @@ async function replaceFractie(
       }
       GRAPH ?g {
         ?currentFractie a ?type .
-        ?currentFractie mu:uuid """673340D93B862019FED2B9B4""" .
+        ?currentFractie mu:uuid ${sparqlEscapeString(currentFractieId)} .
         ?currentFractie org:memberOf ?bestuursorgaan .
         ?currentFractie org:linkedTo ?gemeente .
         ?currentFractie ext:isFractietype ?fractieType .
