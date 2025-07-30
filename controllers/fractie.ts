@@ -76,9 +76,8 @@ async function createReplacement(
     );
   }
 
-  const isCurrentAlreadyAReplacement =
-    await fractie.isOrHasReplacement(currentFractieId);
-  if (isCurrentAlreadyAReplacement) {
+  const canReplaceFractie = await fractie.canReplaceFractie(currentFractieId);
+  if (!canReplaceFractie) {
     throw new HttpError(
       'Fractions that have or are a replacement cannot be replaced.',
       STATUS_CODE.BAD_REQUEST,
