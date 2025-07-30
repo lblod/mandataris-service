@@ -68,5 +68,15 @@ async function createReplacement(
       STATUS_CODE.BAD_REQUEST,
     );
   }
+
+  const isCurrentAlreadyAReplacement =
+    await fractie.isOrHasReplacement(currentFractieId);
+  if (isCurrentAlreadyAReplacement) {
+    throw new HttpError(
+      'Fractions that have or are a replacement cannot be replaced.',
+      STATUS_CODE.BAD_REQUEST,
+    );
+  }
+
   await fractie.replaceFractie(currentFractieId, fractieLabel);
 }
