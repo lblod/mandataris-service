@@ -53,18 +53,8 @@ async function removeFractieWhenNoLidmaatschap(
 
 async function createReplacement(
   currentFractieId: string,
-  bestuursperiodeId: string,
   fractieLabel?: string,
 ): Promise<void> {
-  const isBestuursperiode = await areIdsValid(RDF_TYPE.BESTUURSPERIODE, [
-    bestuursperiodeId,
-  ]);
-  if (!isBestuursperiode) {
-    throw new HttpError(
-      `Bestuursperiode with id ${bestuursperiodeId} not found.`,
-      STATUS_CODE.BAD_REQUEST,
-    );
-  }
   const isFractie = await areIdsValid(RDF_TYPE.FRACTIE, [currentFractieId]);
   if (!isFractie) {
     throw new HttpError(
@@ -78,9 +68,5 @@ async function createReplacement(
       STATUS_CODE.BAD_REQUEST,
     );
   }
-  await fractie.replaceFractie(
-    currentFractieId,
-    bestuursperiodeId,
-    fractieLabel,
-  );
+  await fractie.replaceFractie(currentFractieId, fractieLabel);
 }
