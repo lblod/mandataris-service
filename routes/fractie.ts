@@ -93,11 +93,7 @@ fractiesRouter.post(
     const currentFractieId = req.params.fractieId;
 
     try {
-      await fractieUsecase.createReplacement(
-        currentFractieId,
-        req.body.bestuursperiodeId,
-        req.body.label,
-      );
+      await fractieUsecase.createReplacement(currentFractieId, req.body.label);
       return res.status(STATUS_CODE.CREATED).send();
     } catch (error) {
       const message =
