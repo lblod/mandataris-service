@@ -54,6 +54,7 @@ async function removeFractieWhenNoLidmaatschap(
 async function createReplacement(
   currentFractieId: string,
   fractieLabel?: string,
+  endDate?: Date,
 ): Promise<void> {
   const isFractie = await areIdsValid(RDF_TYPE.FRACTIE, [currentFractieId]);
   if (!isFractie) {
@@ -68,6 +69,12 @@ async function createReplacement(
       STATUS_CODE.BAD_REQUEST,
     );
   }
+  if (!endDate) {
+    throw new HttpError(
+      'An endDate is required but not found.',
+      STATUS_CODE.BAD_REQUEST,
+    );
+  }
 
   const isCurrentAlreadyAReplacement =
     await fractie.isOrHasReplacement(currentFractieId);
@@ -78,5 +85,5 @@ async function createReplacement(
     );
   }
 
-  await fractie.replaceFractie(currentFractieId, fractieLabel);
+  await fractie.replaceFractie(currentFractieId, fractieLabel, endDate);
 }
