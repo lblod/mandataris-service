@@ -859,21 +859,28 @@ async function bulkUpdateEndDate(
   const updateQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX dct: <http://purl.org/dc/terms/>
-
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    
     DELETE {
-      ?mandataris mandaat:einde ?endDate.
-      ?mandataris dct:modified ?oldModified .
+      GRAPH ?g { 
+        ?mandataris mandaat:einde ?endDate.
+        ?mandataris dct:modified ?oldModified .
+      }
     }
     INSERT {
-      ?mandataris mandaat:einde ${escaped.endDate}.
-      ?mandataris dct:modified ?now .
+      GRAPH ?g {
+        ?mandataris mandaat:einde ${escaped.endDate}.
+        ?mandataris dct:modified ?now .
+      }
     }
     WHERE {
       VALUES ?mandataris {
         ${mandatarisUris.map((uri) => sparqlEscapeUri(uri)).join('\n')}
       }
-      ?mandataris a mandaat:Mandataris.
-
+      GRAPH ?g {
+        ?mandataris a mandaat:Mandataris.
+      }
+      ${asSudo ? '?g ext:ownedBy ?eenheid .' : ''}
       OPTIONAL {
         ?mandataris dct:modified ?oldModified .
       }
