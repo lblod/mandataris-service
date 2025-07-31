@@ -844,7 +844,11 @@ async function getActiveMandatarissenForPerson(
   return getSparqlResults(sparqlResult).map((b) => b.mandataris?.value);
 }
 
-async function bulkUpdateEndDate(mandatarisUris: Array<string>, endDate: Date) {
+async function bulkUpdateEndDate(
+  mandatarisUris: Array<string>,
+  endDate: Date,
+  asSudo = false,
+) {
   if (mandatarisUris.length === 0) {
     return;
   }
@@ -881,7 +885,11 @@ async function bulkUpdateEndDate(mandatarisUris: Array<string>, endDate: Date) {
       BIND(NOW() AS ?now)
     }
   `;
-  await update(updateQuery);
+  let queryMethod = query;
+  if (asSudo) {
+    queryMethod = querySudo;
+  }
+  await queryMethod(updateQuery);
 }
 
 export async function getReplacements(
