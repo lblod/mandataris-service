@@ -41,6 +41,7 @@ export const mandataris = {
   generateMandatarissen,
   getActiveMandatarissenForPerson,
   bulkUpdateEndDate,
+  getMandatarissenForFractie,
 };
 
 async function isOnafhankelijk(mandatarisId: string): Promise<boolean> {
@@ -1027,4 +1028,28 @@ export async function getMandatarisEndDate(mandatarisId) {
   const result = await query(selectQuery);
   const endDate = findFirstSparqlResult(result)?.endDate?.value;
   return moment(endDate).toDate();
+}
+
+async function getMandatarissenForFractie(fractieId: string) {
+  const result = await querySudo(`
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    
+    SELECT DISTINCT ?mandataris
+    WHERE {
+      GRAPH ?g {
+        ?mandataris org:hasMembership / org:organisation ?fractie .
+        ?fractie mu:uuid ${sparqlEscapeString(fractieId)} .
+
+        FILTER NOT EXISTS {
+          ?mandataris mandaat:einde ?mandatarisEinde .
+        }
+      }
+      ?g ext:ownedBy ?eenheid .
+    }
+  `);
+
+  return result.results.bindings.map((b: TermProperty) => b.mandataris?.value);
 }
