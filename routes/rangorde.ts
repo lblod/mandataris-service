@@ -197,7 +197,7 @@ async function buildNewMandatarisQuads(mandatarissen: RangordeDiffByUri[]) {
         ?s a mandaat:Mandataris.
         ?s ?p ?o.
       }
-      FILTER(?p NOT IN (mu:uuid, mandaat:rangorde, dct:modified, mandaat:start, org:hasMembership, lmb:hasPublicationStatus))
+      FILTER(?p NOT IN (mu:uuid, mandaat:rangorde, dct:modified, mandaat:start, org:hasMembership, lmb:hasPublicationStatus, lmb:linkToBesluit))
       ?g ext:ownedBy ?someone.
     }`;
   const mandatarisQuads = await querySudo(constructQuery);
