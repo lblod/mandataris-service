@@ -206,9 +206,8 @@ async function replaceFractie(
 ): Promise<string> {
   const fractieUpdateGraphs = await getGraphsOfFractie(currentFractieId);
   const replacementFractieId = uuidv4();
-  const replacement = sparqlEscapeUri(
-    `http://data.lblod.info/id/fracties/${replacementFractieId}`,
-  );
+  const replacementUri = `http://data.lblod.info/id/fracties/${replacementFractieId}`;
+  const replacement = sparqlEscapeUri(replacementUri);
   const replacementLabel = sparqlEscapeString(label);
 
   await updateSudo(`
@@ -227,6 +226,7 @@ async function replaceFractie(
       GRAPH ?g {
         ?currentFractie ext:endDate ${sparqlEscapeDateTime(endDate)} .
         ${replacement} dct:replaces ?currentFractie .
+        ${replacement} ext:startDate ${sparqlEscapeDateTime(endDate)} .
 
         ${replacement} a ?type .
         ${replacement} mu:uuid ${sparqlEscapeString(replacementFractieId)} .
@@ -257,5 +257,5 @@ async function replaceFractie(
     }
   `);
 
-  return replacementFractieId;
+  return replacementUri;
 }
