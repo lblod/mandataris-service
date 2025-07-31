@@ -1,4 +1,6 @@
 import { fractie } from '../data-access/fractie';
+import { mandataris } from '../data-access/mandataris';
+
 import { areIdsValid, RDF_TYPE } from '../util/valid-id';
 import { STATUS_CODE } from '../util/constants';
 import { HttpError } from '../util/http-error';
@@ -6,6 +8,7 @@ import { HttpError } from '../util/http-error';
 export const fractieUsecase = {
   forBestuursperiode,
   removeFractieWhenNoLidmaatschap,
+  createReplacement,
 };
 
 async function forBestuursperiode(
@@ -48,4 +51,43 @@ async function removeFractieWhenNoLidmaatschap(
   }
 
   return await fractie.removeFractieWhenNoLidmaatschap(bestuursperiodeId);
+}
+
+async function createReplacement(
+  currentFractieId: string,
+  fractieLabel?: string,
+  endDate?: Date,
+): Promise<void> {
+  const isFractie = await areIdsValid(RDF_TYPE.FRACTIE, [currentFractieId]);
+  if (!isFractie) {
+    throw new HttpError(
+      `Fractie with id ${currentFractieId} not found.`,
+      STATUS_CODE.BAD_REQUEST,
+    );
+  }
+  if (!fractieLabel || fractieLabel?.trim() === '') {
+    throw new HttpError(
+      'Replacement fractie label cannot be empty',
+      STATUS_CODE.BAD_REQUEST,
+    );
+  }
+  if (!endDate) {
+    throw new HttpError(
+      'An endDate is required but not found.',
+      STATUS_CODE.BAD_REQUEST,
+    );
+  }
+
+  const canReplaceFractie = await fractie.canReplaceFractie(currentFractieId);
+  if (!canReplaceFractie) {
+    throw new HttpError(
+      'Fractions that have or are a replacement cannot be replaced.',
+      STATUS_CODE.BAD_REQUEST,
+    );
+  }
+
+  await fractie.replaceFractie(currentFractieId, fractieLabel, endDate);
+  const mandatarisUrisForCurrentFractie =
+    await mandataris.getMandatarissenForFractie(currentFractieId);
+  await mandataris.bulkUpdateEndDate(mandatarisUrisForCurrentFractie, endDate);
 }

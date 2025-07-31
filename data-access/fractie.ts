@@ -5,7 +5,8 @@ import {
   query,
   update,
 } from 'mu';
-import { updateSudo } from '@lblod/mu-auth-sudo';
+import { updateSudo, querySudo } from '@lblod/mu-auth-sudo';
+import { v4 as uuidv4 } from 'uuid';
 
 import { getSparqlResults } from '../util/sparql-result';
 import { FRACTIE_TYPE } from '../util/constants';
@@ -16,6 +17,8 @@ export const fractie = {
   addFractieOnPerson,
   addFractieOnPersonWithGraph,
   removeFractieWhenNoLidmaatschap,
+  canReplaceFractie,
+  replaceFractie,
 };
 
 async function forBestuursperiode(
@@ -157,4 +160,102 @@ async function removeFractieWhenNoLidmaatschap(
   }
 
   return fractieUris;
+}
+
+async function canReplaceFractie(fractieId: string): Promise<boolean> {
+  const result = await query(`
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX dct: <http://purl.org/dc/terms/>
+
+    SELECT ?endDate
+    WHERE {
+      ?fractie mu:uuid ${sparqlEscapeString(fractieId)} .
+      ?fractie ext:endDate ?endDate .
+     } LIMIT 1
+  `);
+  const endDate = result.results.bindings[0]?.endDate?.value;
+
+  return endDate ? false : true;
+}
+
+async function getGraphsOfFractie(fractieId: string): Promise<Array<string>> {
+  const escapedId = sparqlEscapeString(fractieId);
+  const result = await querySudo(`
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+    SELECT DISTINCT ?graph
+    WHERE {
+     GRAPH ?graph {
+       ?fractie a mandaat:Fractie .
+       ?fractie mu:uuid ${escapedId} .
+     }
+     ?graph ext:ownedBy ?eenheid .
+    }
+  `);
+
+  return result.results.bindings.map((b: TermProperty) => b.graph?.value);
+}
+
+async function replaceFractie(
+  currentFractieId: string,
+  label: string,
+  endDate: Date,
+): Promise<string> {
+  const fractieUpdateGraphs = await getGraphsOfFractie(currentFractieId);
+  const replacementFractieId = uuidv4();
+  const replacementUri = `http://data.lblod.info/id/fracties/${replacementFractieId}`;
+  const replacement = sparqlEscapeUri(replacementUri);
+  const replacementLabel = sparqlEscapeString(label);
+
+  await updateSudo(`
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX regorg: <https://www.w3.org/ns/regorg#>
+
+    DELETE {
+      GRAPH ?g {
+        ?currentFractie dct:modified ?modified .
+      }
+    }
+    INSERT {
+      GRAPH ?g {
+        ?currentFractie ext:endDate ${sparqlEscapeDateTime(endDate)} .
+        ${replacement} dct:replaces ?currentFractie .
+        ${replacement} ext:startDate ${sparqlEscapeDateTime(endDate)} .
+
+        ${replacement} a ?type .
+        ${replacement} mu:uuid ${sparqlEscapeString(replacementFractieId)} .
+        ${replacement} regorg:legalName ${replacementLabel} .
+        ${replacement} org:memberOf ?bestuursorgaan .
+        ${replacement} org:linkedTo ?bestuurseenheid .
+        ${replacement} ext:isFractietype ?fractieType.
+
+        ${replacement} dct:modified ?now .
+        ?currentFractie dct:modified ?now .
+      }
+    }
+    WHERE {
+      VALUES ?g {
+        ${fractieUpdateGraphs.map((g) => sparqlEscapeUri(g)).join('\n')}
+      }
+      GRAPH ?g {
+        ?currentFractie a ?type .
+        ?currentFractie mu:uuid ${sparqlEscapeString(currentFractieId)} .
+        ?currentFractie org:memberOf ?bestuursorgaan .
+        ?currentFractie org:linkedTo ?gemeente .
+        ?currentFractie ext:isFractietype ?fractieType .
+        OPTIONAL {
+          ?currentFractie dct:modified ?modified .
+        }
+      }
+      BIND(NOW() as ?now)
+    }
+  `);
+
+  return replacementUri;
 }
