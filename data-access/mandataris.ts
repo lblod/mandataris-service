@@ -844,11 +844,7 @@ async function getActiveMandatarissenForPerson(
   return getSparqlResults(sparqlResult).map((b) => b.mandataris?.value);
 }
 
-async function bulkUpdateEndDate(
-  mandatarisUris: Array<string>,
-  endDate: Date,
-  asSudo = false,
-) {
+async function bulkUpdateEndDate(mandatarisUris: Array<string>, endDate: Date) {
   if (mandatarisUris.length === 0) {
     return;
   }
@@ -859,28 +855,21 @@ async function bulkUpdateEndDate(
   const updateQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX dct: <http://purl.org/dc/terms/>
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-    
+
     DELETE {
-      GRAPH ?g { 
-        ?mandataris mandaat:einde ?endDate.
-        ?mandataris dct:modified ?oldModified .
-      }
+      ?mandataris mandaat:einde ?endDate.
+      ?mandataris dct:modified ?oldModified .
     }
     INSERT {
-      GRAPH ?g {
-        ?mandataris mandaat:einde ${escaped.endDate}.
-        ?mandataris dct:modified ?now .
-      }
+      ?mandataris mandaat:einde ${escaped.endDate}.
+      ?mandataris dct:modified ?now .
     }
     WHERE {
       VALUES ?mandataris {
         ${mandatarisUris.map((uri) => sparqlEscapeUri(uri)).join('\n')}
       }
-      GRAPH ?g {
-        ?mandataris a mandaat:Mandataris.
-      }
-      ${asSudo ? '?g ext:ownedBy ?eenheid .' : ''}
+      ?mandataris a mandaat:Mandataris.
+
       OPTIONAL {
         ?mandataris dct:modified ?oldModified .
       }
@@ -892,11 +881,7 @@ async function bulkUpdateEndDate(
       BIND(NOW() AS ?now)
     }
   `;
-  let queryMethod = query;
-  if (asSudo) {
-    queryMethod = querySudo;
-  }
-  await queryMethod(updateQuery);
+  await query(updateQuery);
 }
 
 export async function getReplacements(
