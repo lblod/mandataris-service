@@ -1,4 +1,6 @@
 import { fractie } from '../data-access/fractie';
+import { mandataris } from '../data-access/mandataris';
+
 import { areIdsValid, RDF_TYPE } from '../util/valid-id';
 import { STATUS_CODE } from '../util/constants';
 import { HttpError } from '../util/http-error';
@@ -85,4 +87,11 @@ async function createReplacement(
   }
 
   await fractie.replaceFractie(currentFractieId, fractieLabel, endDate);
+  const mandatarisUrisForCurrentFractie =
+    await mandataris.getMandatarissenForFractie(currentFractieId);
+  await mandataris.bulkUpdateEndDate(
+    mandatarisUrisForCurrentFractie,
+    endDate,
+    true,
+  );
 }
