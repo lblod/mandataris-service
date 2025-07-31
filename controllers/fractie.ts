@@ -89,9 +89,5 @@ async function createReplacement(
   await fractie.replaceFractie(currentFractieId, fractieLabel, endDate);
   const mandatarisUrisForCurrentFractie =
     await mandataris.getMandatarissenForFractie(currentFractieId);
-  await mandataris.bulkUpdateEndDate(
-    mandatarisUrisForCurrentFractie,
-    endDate,
-    true,
-  );
+  await mandataris.bulkUpdateEndDate(mandatarisUrisForCurrentFractie, endDate);
 }
