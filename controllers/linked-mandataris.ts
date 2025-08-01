@@ -114,10 +114,17 @@ export const createLinkedMandataris = async (req) => {
   // no need to check for an existing mandate in ocmw (duplicate) the frontend already does so
   // AND validations will catch it
 
-  await handleCreationNewLinkedMandatarisAndPerson(
+  const linkedMandataris = await handleCreationNewLinkedMandatarisAndPerson(
     destinationGraph,
     userId,
     mandatarisId,
+  );
+
+  await handleReplacement(
+    destinationGraph,
+    userId,
+    mandatarisId,
+    linkedMandataris,
   );
 };
 
