@@ -85,6 +85,17 @@ async function createReplacement(
       STATUS_CODE.BAD_REQUEST,
     );
   }
+  const hasEndDateAfterCurrent =
+    await fractie.isReplacementStartDateAfterCurrentStart(
+      currentFractieId,
+      endDate,
+    );
+  if (!hasEndDateAfterCurrent) {
+    throw new HttpError(
+      'Fraction date must be after previous fraction.',
+      STATUS_CODE.BAD_REQUEST,
+    );
+  }
 
   const replacementUri = await fractie.replaceFractie(
     currentFractieId,
