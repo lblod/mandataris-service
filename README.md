@@ -19,9 +19,7 @@ docker run --rm -it -p 9228:9229 -p 8082:80 -e NODE_ENV=development local-mandat
 
 #### Debug Compose
 
-Normally this file is not available in a **lblod** service as it is not the preferred way. As it is in this service you can better use it.
-
-When this service is added to a semantic-stack project you can run `docker compose up -d` in the root of this project. So it can connect to your main project. Make sure to update the volume to your `app`.
+This file is available for convenience while developing, it has sane defaults for connecting it to the app-lokaal-mandatenbeheer docker-compose setup where it was conceived. Take note that this depends on your app connecting its database and dispatcher to the debug network as well as to its default network.
 
 ### Project Structure
 
