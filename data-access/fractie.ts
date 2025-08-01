@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getSparqlResults } from '../util/sparql-result';
 import { FRACTIE_TYPE } from '../util/constants';
 import { TermProperty } from '../types';
+import moment from 'moment';
 
 export const fractie = {
   forBestuursperiode,
@@ -18,6 +19,7 @@ export const fractie = {
   addFractieOnPersonWithGraph,
   removeFractieWhenNoLidmaatschap,
   canReplaceFractie,
+  isReplacementStartDateAfterCurrentStart,
   replaceFractie,
 };
 
@@ -179,6 +181,30 @@ async function canReplaceFractie(fractieId: string): Promise<boolean> {
   return endDate ? false : true;
 }
 
+async function isReplacementStartDateAfterCurrentStart(
+  currentFractieId: string,
+  startDate: Date,
+): Promise<boolean> {
+  const result = await query(`
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX dct: <http://purl.org/dc/terms/>
+
+    SELECT ?startDate
+    WHERE {
+      ?fractie mu:uuid ${sparqlEscapeString(currentFractieId)} .
+      ?fractie ext:startDate ?startDate .
+      ?fractie dct:replaces ?replacement .
+    } LIMIT 1
+  `);
+  const start = result.results.bindings[0]?.startDate?.value;
+
+  if (!start) {
+    return true;
+  }
+
+  return moment(startDate).isAfter(start);
+}
 async function getGraphsOfFractie(fractieId: string): Promise<Array<string>> {
   const escapedId = sparqlEscapeString(fractieId);
   const result = await querySudo(`
