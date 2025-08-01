@@ -81,13 +81,19 @@ async function createReplacement(
   const canReplaceFractie = await fractie.canReplaceFractie(currentFractieId);
   if (!canReplaceFractie) {
     throw new HttpError(
-      'Fractions that have or are a replacement cannot be replaced.',
+      'Fractions that have ended cannot be replaced.',
       STATUS_CODE.BAD_REQUEST,
     );
   }
 
-  await fractie.replaceFractie(currentFractieId, fractieLabel, endDate);
-  const mandatarisUrisForCurrentFractie =
-    await mandataris.getMandatarissenForFractie(currentFractieId);
-  await mandataris.bulkUpdateEndDate(mandatarisUrisForCurrentFractie, endDate);
+  const replacementUri = await fractie.replaceFractie(
+    currentFractieId,
+    fractieLabel,
+    endDate,
+  );
+  await mandataris.createNewMandatarissenForFractieReplacement(
+    currentFractieId,
+    replacementUri,
+    endDate,
+  );
 }
