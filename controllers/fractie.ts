@@ -61,19 +61,16 @@ async function createReplacement(
   const isFractie = await areIdsValid(RDF_TYPE.FRACTIE, [currentFractieId]);
   if (!isFractie) {
     throw new HttpError(
-      `Fractie with id ${currentFractieId} not found.`,
+      `Fractie met id ${currentFractieId} werd niet gevonden`,
       STATUS_CODE.BAD_REQUEST,
     );
   }
   if (!fractieLabel || fractieLabel?.trim() === '') {
-    throw new HttpError(
-      'Replacement fractie label cannot be empty',
-      STATUS_CODE.BAD_REQUEST,
-    );
+    throw new HttpError('Fractie label is verplicht.', STATUS_CODE.BAD_REQUEST);
   }
   if (!endDate) {
     throw new HttpError(
-      'An endDate is required but not found.',
+      'Een start datum voor de nieuwe fractie is verplicht.',
       STATUS_CODE.BAD_REQUEST,
     );
   }
@@ -81,7 +78,7 @@ async function createReplacement(
   const canReplaceFractie = await fractie.canReplaceFractie(currentFractieId);
   if (!canReplaceFractie) {
     throw new HttpError(
-      'Fractions that have ended cannot be replaced.',
+      'Deze fractie kan niet meer aangepast worden.',
       STATUS_CODE.BAD_REQUEST,
     );
   }
@@ -92,7 +89,7 @@ async function createReplacement(
     );
   if (!hasEndDateAfterCurrent) {
     throw new HttpError(
-      'Fraction date must be after previous fraction.',
+      'Fractie startdatum ligt voor de einddatum van de huidige fractie',
       STATUS_CODE.BAD_REQUEST,
     );
   }
