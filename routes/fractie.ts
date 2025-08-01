@@ -102,7 +102,7 @@ fractiesRouter.post(
     } catch (error) {
       const message =
         error.message ??
-        `Something went wrong while creating a replacement for fractie with id: ${currentFractieId}`;
+        `Er liep iets mis bij het hernoemen van de huidige fractie met id: ${currentFractieId}`;
       const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
       return res.status(statusCode).send({ message: message });
     }
