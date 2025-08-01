@@ -41,7 +41,7 @@ export const mandataris = {
   generateMandatarissen,
   getActiveMandatarissenForPerson,
   bulkUpdateEndDate,
-  getMandatarissenForFractie,
+  createNewMandatarissenForFractieReplacement,
 };
 
 async function isOnafhankelijk(mandatarisId: string): Promise<boolean> {
@@ -1030,22 +1030,78 @@ export async function getMandatarisEndDate(mandatarisId) {
   return moment(endDate).toDate();
 }
 
-async function getMandatarissenForFractie(fractieId: string) {
+async function createNewMandatarissenForFractieReplacement(
+  fractieId: string,
+  replacementUri: string,
+  endDate: Date,
+) {
+  const e = {
+    endDate: sparqlEscapeDateTime(endDate),
+    fractieId: sparqlEscapeString(fractieId),
+    replacementUri: sparqlEscapeUri(replacementUri),
+  };
   const result = await querySudo(`
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
     
-    SELECT DISTINCT ?mandataris
+    DELETE {
+      GRAPH ?g {
+        ?mandataris mandaat:einde ?mandatarisEinde .
+        ?mandataris dct:modified ?mandatarisModified .
+      } 
+    }
+    INSERT {
+      GRAPH ?g {
+        ?newMandataris a mandaat:Mandataris .
+        ?newMandataris mu:uuid ?newMandatarisId .
+        ?newMandataris mandaat:start ${e.endDate} .
+        ?newMandataris mandaat:einde ?newMandatarisEndDate .
+        ?newMandataris mandaat:isTijdelijkVervangenDoor ?vervanger .
+        ?newMandataris org:holds ?mandaat .
+        ?newMandataris mandaat:status ?status .
+        ?newMandataris mandaat:isBestuurlijkeAliasVan ?persoon .
+        ?newMandataris lmb:hasPublicationStatus <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/d3b12468-3720-4cb0-95b4-6aa2996ab188> . # Effectief
+        ?newMandataris org:hasMembership ?newLidmaatschap .
+
+        ?newLidmaatschap a org:Membership .
+        ?newLidmaatschap mu:uuid ?newLidmaatschapId .
+        ?newLidmaatschap org:organisation ${e.replacementUri}.
+
+        ?mandataris mandaat:einde ${e.endDate} .
+      } 
+    }
     WHERE {
       GRAPH ?g {
+        # identify
+        ?fractie mu:uuid ${e.fractieId} .
         ?mandataris org:hasMembership / org:organisation ?fractie .
-        ?fractie mu:uuid ${sparqlEscapeString(fractieId)} .
 
-        FILTER NOT EXISTS {
+        # copy over values
+        ?mandataris org:holds ?mandaat .
+        ?mandataris mandaat:status ?status .
+        ?mandataris mandaat:isBestuurlijkeAliasVan ?persoon .      
+        OPTIONAL {
           ?mandataris mandaat:einde ?mandatarisEinde .
+          BIND(strdt(CONCAT(?dateString, "T23:59:59Z"), xsd:dateTime) AS ?newMandatarisEndDate)
         }
+        OPTIONAL {
+          ?mandataris mandaat:isTijdelijkVervangenDoor ?vervanger .
+        }
+        OPTIONAL {
+          ?mandataris dct:modified ?mandatarisModified .
+        }
+
+        # generate new id's for uri's
+        BIND(SHA256(STR(?mandataris)) AS ?newMandatarisId)
+        BIND(IRI(CONCAT("http://data.lblod.info/id/mandatarissen/", ?newMandatarisId)) AS ?newMandataris)
+        BIND(SHA256(STR(?newMandatarisId)) AS ?newLidmaatschapId)
+        BIND(IRI(CONCAT("http://data.lblod.info/id/lidmaatschappen/", ?newLidmaatschapId)) AS ?newLidmaatschap)
+        BIND(substr(STR(${e.endDate}), 1, 10) as ?dateString)
+        BIND(strdt(CONCAT(?dateString, "T00:00:00Z"), xsd:dateTime) AS ?newMandatarisStartDate)
       }
       ?g ext:ownedBy ?eenheid .
     }
