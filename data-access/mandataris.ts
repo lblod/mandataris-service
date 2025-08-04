@@ -1047,7 +1047,8 @@ async function createNewMandatarissenForFractieReplacement(
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX dct: <http://purl.org/dc/terms/>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-    
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+
     DELETE {
       GRAPH ?g {
         ?mandataris mandaat:einde ?mandatarisEinde .
