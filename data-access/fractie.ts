@@ -236,6 +236,8 @@ async function replaceFractie(
   const replacementUri = `http://data.lblod.info/id/fracties/${replacementFractieId}`;
   const replacement = sparqlEscapeUri(replacementUri);
   const replacementLabel = sparqlEscapeString(label);
+  const safeEndOfDay = sparqlEscapeDateTime(endOfDay(endDate));
+  const safeStartOfDay = sparqlEscapeDateTime(startOfDay(endDate));
 
   await updateSudo(`
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
@@ -251,9 +253,9 @@ async function replaceFractie(
     }
     INSERT {
       GRAPH ?g {
-        ?currentFractie ext:endDate ${sparqlEscapeDateTime(endOfDay(endDate))} .
+        ?currentFractie ext:endDate ${safeEndOfDay} .
         ${replacement} dct:replaces ?currentFractie .
-        ${replacement} ext:startDate ${sparqlEscapeDateTime(startOfDay(endDate))} .
+        ${replacement} ext:startDate ${safeStartOfDay} .
 
         ${replacement} a ?type .
         ${replacement} mu:uuid ${sparqlEscapeString(replacementFractieId)} .
