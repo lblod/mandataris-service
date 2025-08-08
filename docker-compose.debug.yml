@@ -6,6 +6,7 @@ services:
     labels:
       - logging=true
     environment:
+      TZ: Europe/Brussels
       NODE_ENV: development
       NO_BABEL_NODE: true
       EMAIL_FROM_MANDATARIS_WITHOUT_DECISION: 'lokaalmandatenbeheer@vlaanderen.be'
