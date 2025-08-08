@@ -1036,7 +1036,8 @@ async function createNewMandatarissenForFractieReplacement(
   endDate: Date,
 ) {
   const e = {
-    endDate: sparqlEscapeDateTime(endDate),
+    mStartDate: sparqlEscapeDateTime(startOfDay(endDate)),
+    endDate: sparqlEscapeDateTime(endOfDay(endDate)),
     fractieId: sparqlEscapeString(fractieId),
     replacementUri: sparqlEscapeUri(replacementUri),
   };
@@ -1059,7 +1060,7 @@ async function createNewMandatarissenForFractieReplacement(
       GRAPH ?g {
         ?newMandataris a mandaat:Mandataris .
         ?newMandataris mu:uuid ?newMandatarisId .
-        ?newMandataris mandaat:start ${e.endDate} .
+        ?newMandataris mandaat:start ${e.mStartDate} .
         ?newMandataris mandaat:einde ?newMandatarisEndDate .
         ?newMandataris mandaat:isTijdelijkVervangenDoor ?vervanger .
         ?newMandataris org:holds ?mandaat .
@@ -1099,10 +1100,10 @@ async function createNewMandatarissenForFractieReplacement(
         }
 
         OPTIONAL {
-          ?newMandataris mandaat:beleidsdomein ?beleidsdomeinen .
+          ?mandataris mandaat:beleidsdomein ?beleidsdomeinen .
         }
         OPTIONAL {
-          ?newMandataris mandaat:rangorde ?rangorde .
+          ?mandataris mandaat:rangorde ?rangorde .
         }
 
         # generate new id's for uri's
