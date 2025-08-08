@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { getSparqlResults } from '../util/sparql-result';
 import { FRACTIE_TYPE } from '../util/constants';
+import { endOfDay, startOfDay } from '../util/date-manipulation';
 import { TermProperty } from '../types';
 import moment from 'moment';
 
@@ -250,9 +251,9 @@ async function replaceFractie(
     }
     INSERT {
       GRAPH ?g {
-        ?currentFractie ext:endDate ${sparqlEscapeDateTime(endDate)} .
+        ?currentFractie ext:endDate ${sparqlEscapeDateTime(endOfDay(endDate))} .
         ${replacement} dct:replaces ?currentFractie .
-        ${replacement} ext:startDate ${sparqlEscapeDateTime(endDate)} .
+        ${replacement} ext:startDate ${sparqlEscapeDateTime(startOfDay(endDate))} .
 
         ${replacement} a ?type .
         ${replacement} mu:uuid ${sparqlEscapeString(replacementFractieId)} .
