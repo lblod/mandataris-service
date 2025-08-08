@@ -1067,6 +1067,8 @@ async function createNewMandatarissenForFractieReplacement(
         ?newMandataris mandaat:isBestuurlijkeAliasVan ?persoon .
         ?newMandataris lmb:hasPublicationStatus <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/d3b12468-3720-4cb0-95b4-6aa2996ab188> . # Effectief
         ?newMandataris org:hasMembership ?newLidmaatschap .
+        ?newMandataris mandaat:beleidsdomein ?beleidsdomeinen .
+        ?newMandataris mandaat:rangorde ?rangorde .
 
         ?newLidmaatschap a org:Membership .
         ?newLidmaatschap mu:uuid ?newLidmaatschapId .
@@ -1094,6 +1096,13 @@ async function createNewMandatarissenForFractieReplacement(
         }
         OPTIONAL {
           ?mandataris dct:modified ?mandatarisModified .
+        }
+
+        OPTIONAL {
+          ?newMandataris mandaat:beleidsdomein ?beleidsdomeinen .
+        }
+        OPTIONAL {
+          ?newMandataris mandaat:rangorde ?rangorde .
         }
 
         # generate new id's for uri's
