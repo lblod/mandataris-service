@@ -258,7 +258,7 @@ async function replaceFractie(
         ${replacement} mu:uuid ${sparqlEscapeString(replacementFractieId)} .
         ${replacement} regorg:legalName ${replacementLabel} .
         ${replacement} org:memberOf ?bestuursorgaan .
-        ${replacement} org:linkedTo ?bestuurseenheid .
+        ${replacement} org:linkedTo ?gemeente .
         ${replacement} ext:isFractietype ?fractieType.
 
         ${replacement} dct:modified ?now .
