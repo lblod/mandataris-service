@@ -352,7 +352,7 @@ export const createMandatarisInstance = async (
         mandaat:isBestuurlijkeAliasVan ${sparqlEscapeUri(persoonUri)} ;
         ${mandatarisRangorde}
         ${mandatarisBeleidsDomeinen}
-        mandaat:start 
+        mandaat:start
           ${sparqlEscapeDateTime(startOfDay(mandatarisStart, true))} ;
         mandaat:einde ${sparqlEscapeDateTime(endOfDay(mandatarisEnd, true))} ;
         org:holds ${sparqlEscapeUri(mandate.mandateUri)} ;
@@ -487,7 +487,7 @@ export async function endExistingMandataris(
     }
     INSERT {
       GRAPH ${sparqlEscapeUri(graph)} {
-        ?mandataris mandaat:einde 
+        ?mandataris mandaat:einde
           ${sparqlEscapeDateTime(endOfDay(endDate, true))} .
         ${extraTriples}
       }
@@ -1035,7 +1035,7 @@ async function createNewMandatarissenForFractieReplacement(
   replacementUri: string,
   endDate: Date,
 ) {
-  const e = {
+  const escaped = {
     mStartDate: sparqlEscapeDateTime(startOfDay(endDate)),
     endDate: sparqlEscapeDateTime(endOfDay(endDate)),
     fractieId: sparqlEscapeString(fractieId),
@@ -1054,13 +1054,13 @@ async function createNewMandatarissenForFractieReplacement(
       GRAPH ?g {
         ?mandataris mandaat:einde ?mandatarisEinde .
         ?mandataris dct:modified ?mandatarisModified .
-      } 
+      }
     }
     INSERT {
       GRAPH ?g {
         ?newMandataris a mandaat:Mandataris .
         ?newMandataris mu:uuid ?newMandatarisId .
-        ?newMandataris mandaat:start ${e.mStartDate} .
+        ?newMandataris mandaat:start ${escaped.mStartDate} .
         ?newMandataris mandaat:einde ?newMandatarisEndDate .
         ?newMandataris mandaat:isTijdelijkVervangenDoor ?vervanger .
         ?newMandataris org:holds ?mandaat .
@@ -1073,21 +1073,21 @@ async function createNewMandatarissenForFractieReplacement(
 
         ?newLidmaatschap a org:Membership .
         ?newLidmaatschap mu:uuid ?newLidmaatschapId .
-        ?newLidmaatschap org:organisation ${e.replacementUri}.
+        ?newLidmaatschap org:organisation ${escaped.replacementUri}.
 
-        ?mandataris mandaat:einde ${e.endDate} .
-      } 
+        ?mandataris mandaat:einde ${escaped.endDate} .
+      }
     }
     WHERE {
       GRAPH ?g {
         # identify
-        ?fractie mu:uuid ${e.fractieId} .
+        ?fractie mu:uuid ${escaped.fractieId} .
         ?mandataris org:hasMembership / org:organisation ?fractie .
 
         # copy over values
         ?mandataris org:holds ?mandaat .
         ?mandataris mandaat:status ?status .
-        ?mandataris mandaat:isBestuurlijkeAliasVan ?persoon .      
+        ?mandataris mandaat:isBestuurlijkeAliasVan ?persoon .
         OPTIONAL {
           ?mandataris mandaat:einde ?mandatarisEinde .
           BIND(strdt(CONCAT(?dateString, "T23:59:59Z"), xsd:dateTime) AS ?newMandatarisEndDate)
@@ -1111,7 +1111,7 @@ async function createNewMandatarissenForFractieReplacement(
         BIND(IRI(CONCAT("http://data.lblod.info/id/mandatarissen/", ?newMandatarisId)) AS ?newMandataris)
         BIND(SHA256(STR(?newMandatarisId)) AS ?newLidmaatschapId)
         BIND(IRI(CONCAT("http://data.lblod.info/id/lidmaatschappen/", ?newLidmaatschapId)) AS ?newLidmaatschap)
-        BIND(substr(STR(${e.endDate}), 1, 10) as ?dateString)
+        BIND(substr(STR(${escaped.endDate}), 1, 10) as ?dateString)
         BIND(strdt(CONCAT(?dateString, "T00:00:00Z"), xsd:dateTime) AS ?newMandatarisStartDate)
       }
       ?g ext:ownedBy ?eenheid .
