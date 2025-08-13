@@ -96,7 +96,7 @@ mandatarissenRouter.post(
   },
 );
 
-mandatarissenRouter.put(
+mandatarissenRouter.post(
   '/:id/correct-linked-mandataris',
   async (req: Request, res: Response) => {
     try {
@@ -112,7 +112,7 @@ mandatarissenRouter.put(
   },
 );
 
-mandatarissenRouter.put(
+mandatarissenRouter.post(
   '/:oldId/:newId/update-state-linked-mandataris',
   async (req: Request, res: Response) => {
     try {
@@ -128,7 +128,7 @@ mandatarissenRouter.put(
   },
 );
 
-mandatarissenRouter.put(
+mandatarissenRouter.post(
   '/:id/add-linked-replacement',
   async (req: Request, res: Response) => {
     try {

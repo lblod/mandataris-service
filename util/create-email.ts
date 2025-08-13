@@ -41,14 +41,20 @@ export async function sendMissingBekrachtigingsmail(
   const plainTextMessage = `
 Beste,
 
-Er zijn een aantal mandatarissen die al meer dan 10 dagen actief zijn zonder dat er een koppeling met een besluit is gemaakt.
-Voor uw gemeente zijn dit er ${mandatarissen.length}.
+Voor bepaalde mandaten wordt verwacht dat er een besluit aan gekoppeld wordt dat het mandaat bekrachtigt.
 
-Hieronder vindt u een overzicht van al deze mandatarissen:
+Een aantal mandatarissen binnen je bestuur zijn al langer dan 10 dagen actief zijn zonder dat een besluit teruggevonden werd.
+Deze mandaten hebben momenteel de publicatiestatus 'Niet bekrachtigd'.
+
+Voor jouw bestuur gaat het om de volgende mandatarissen:
 
 ${mandatarisRows.join('\n')}
 
-Gelieve het besluit te koppelen.
+Je kan deze mandaten bekrachtigen via Lokaal Mandatenbeheer, een module van het Loket voor Lokale Besturen.
+
+Meer informatie over de publicatiestatus en bekrachtiging van een mandaat kan je terugvinden in de handleiding voor Lokaal Mandatenbeheer.
+
+Indien je hierover vragen hebt, kan je contact opnemen door op dit bericht te antwoorden.
 
 Met vriendelijke groeten,
 

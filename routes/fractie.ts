@@ -50,7 +50,7 @@ fractiesRouter.get(
   },
 );
 
-fractiesRouter.put(
+fractiesRouter.post(
   '/:mandatarisId/current-fractie',
   async (req: Request, res: Response) => {
     const id = req.params.mandatarisId;
@@ -81,6 +81,28 @@ fractiesRouter.delete(
       const message =
         error.message ??
         `Something went wrong while cleaning up dangling fracties in bestuursperiode: ${bestuursperiodeId}`;
+      const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
+      return res.status(statusCode).send({ message: message });
+    }
+  },
+);
+
+fractiesRouter.post(
+  '/:fractieId/create-replacement',
+  async (req: Request, res: Response) => {
+    const currentFractieId = req.params.fractieId;
+
+    try {
+      await fractieUsecase.createReplacement(
+        currentFractieId,
+        req.body.label,
+        req.body.endDate,
+      );
+      return res.status(STATUS_CODE.CREATED).send();
+    } catch (error) {
+      const message =
+        error.message ??
+        `Er liep iets mis bij het hernoemen van de huidige fractie met id: ${currentFractieId}`;
       const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
       return res.status(statusCode).send({ message: message });
     }
