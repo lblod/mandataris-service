@@ -203,6 +203,7 @@ async function fetchActiveMandatarissenWithoutBesluit() {
     PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+    PREFIX bestuursperiode: <http://data.lblod.info/id/concept/Bestuursperiode/>
 
     SELECT DISTINCT ?mandataris ?fName ?lName ?bestuursfunctieName ?graph
       WHERE {
@@ -218,6 +219,12 @@ async function fetchActiveMandatarissenWithoutBesluit() {
         }
         ?mandaat org:role ?bestuursfunctie .
         ?orgT org:hasPost ?mandaat .
+        ?orgT lmb:heeftBestuursperiode ?periode .
+        FILTER (?periode NOT IN (
+          bestuursperiode:9486222f-2696-4811-bde1-fef9dc4b5f68,
+          bestuursperiode:a2b977a3-ce68-4e42-80a6-4397f66fc5ca,
+          bestuursperiode:845dbc7f-139e-4632-b200-f90e180f1dba
+        ))
         ?orgT mandaat:isTijdspecialisatieVan / besluit:bestuurt ?eenheid .
         ?person persoon:gebruikteVoornaam ?fName ;
           foaf:familyName ?lName .

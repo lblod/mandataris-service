@@ -10,8 +10,8 @@ services:
       NODE_ENV: development
       NO_BABEL_NODE: true
       EMAIL_FROM_MANDATARIS_WITHOUT_DECISION: 'lokaalmandatenbeheer@vlaanderen.be'
-      SEND_EMAIL_FOR_MANDATARIS_WITHOUT_DECISION: false
-      NOTIFICATION_CRON_PATTERN: '0 0 0 * * *'
+      SEND_EMAIL_FOR_MANDATARIS_WITHOUT_DECISION: true
+      NOTIFICATION_CRON_PATTERN: 47 8 * * 1-5
     ports:
       - '8082:80'
       - '9225:9229'
