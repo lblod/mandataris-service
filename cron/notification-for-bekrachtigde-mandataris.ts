@@ -191,12 +191,10 @@ async function fetchActiveMandatarissenWithoutBesluit() {
   const momentTenDaysAgo = moment().subtract(10, 'days');
   const escapedTenDaysBefore = sparqlEscapeDateTime(momentTenDaysAgo.toDate());
   const nietBekrachtigd = sparqlEscapeUri(PUBLICATION_STATUS.NIET_BEKRACHTIGD);
-  const today = sparqlEscapeDateTime(moment().toDate());
   const query = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX dct: <http://purl.org/dc/terms/>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
-    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX foaf: <http://xmlns.com/foaf/0.1/>
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
@@ -213,9 +211,6 @@ async function fetchActiveMandatarissenWithoutBesluit() {
             mandaat:start ?startMandaat ;
             mandaat:isBestuurlijkeAliasVan ?person ;
             org:holds ?mandaat.
-          OPTIONAL {
-            ?mandataris mandaat:einde ?eindeMandaat .
-          }
         }
         ?mandaat org:role ?bestuursfunctie .
         ?orgT org:hasPost ?mandaat .
@@ -244,9 +239,7 @@ async function fetchActiveMandatarissenWithoutBesluit() {
             ext:notificationLink ?notificationLink.
           ?notificationLink ext:linkedTo ?mandataris.
         }
-
-        BIND(IF(BOUND(?eindeMandaat), ?eindeMandaat, ${escapedTenDaysBefore}) AS ?saveEindeMandaat).
-        FILTER(${escapedTenDaysBefore} >= ?startMandaat && ?saveEindeMandaat <= ${today})
+        FILTER(${escapedTenDaysBefore} >= ?startMandaat)
         ?bestuursfunctie skos:prefLabel ?bestuursfunctieName .
         ?graph ext:ownedBy ?owningEenheid.
       }
