@@ -9,7 +9,7 @@ import {
 } from '../util/sparql-result';
 import { instanceIdentifiers } from '../types';
 import { createNotification } from '../util/create-notification';
-import { PUBLICATION_STATUS } from '../util/constants';
+import { PUBLIC_GRAPH_URI, PUBLICATION_STATUS } from '../util/constants';
 
 export async function canAccessMandataris(id: string) {
   const sparql = `
@@ -527,7 +527,7 @@ export async function createNewLinkedMandataris(
           ?membership ?memberp ?membero .
         }
       }
-      GRAPH <http://mu.semte.ch/graphs/public> {
+      GRAPH ${sparqlEscapeUri(PUBLIC_GRAPH_URI)} {
         ?origin ext:ownedBy ?owningEenheid.
 
         ?currentMandaat a mandaat:Mandaat ;
