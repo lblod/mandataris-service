@@ -45,3 +45,6 @@ export const VOORZITTER_VB_FUNCTIE_CODE =
   'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/5ab0e9b8a3b2ca7c5e000018';
 export const AANGEWEZEN_BURGEMEESTER_FUNCTIE_CODE =
   'http://data.vlaanderen.be/id/concept/BestuursfunctieCode/7b038cc40bba10bec833ecfe6f15bc7a';
+
+export const PUBLIC_GRAPH_URI =
+  process.env.PUBLIC_GRAPH_URI || 'http://mu.semte.ch/graphs/public';
