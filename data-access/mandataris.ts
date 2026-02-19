@@ -1090,7 +1090,8 @@ async function createNewMandatarissenForFractieReplacement(
         ?mandataris mandaat:isBestuurlijkeAliasVan ?persoon .
         OPTIONAL {
           ?mandataris mandaat:einde ?mandatarisEinde .
-          BIND(strdt(CONCAT(?dateString, "T23:59:59Z"), xsd:dateTime) AS ?newMandatarisEndDate)
+          BIND(CONCAT(?dateString, "T23:59:59Z") AS ?newDate)
+          BIND(IF(STRLEN(?newDate) > 10, strdt(?newDate, xsd:dateTime), ?mandatarisEinde) AS ?newMandatarisEndDate)
         }
         OPTIONAL {
           ?mandataris mandaat:isTijdelijkVervangenDoor ?vervanger .
