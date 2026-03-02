@@ -1061,7 +1061,7 @@ async function createNewMandatarissenForFractieReplacement(
         ?newMandataris a mandaat:Mandataris .
         ?newMandataris mu:uuid ?newMandatarisId .
         ?newMandataris mandaat:start ${escaped.mStartDate} .
-        ?newMandataris mandaat:einde ?newMandatarisEndDate .
+        ?newMandataris mandaat:einde ?mandatarisEinde .
         ?newMandataris mandaat:isTijdelijkVervangenDoor ?vervanger .
         ?newMandataris org:holds ?mandaat .
         ?newMandataris mandaat:status ?status .
@@ -1090,8 +1090,6 @@ async function createNewMandatarissenForFractieReplacement(
         ?mandataris mandaat:isBestuurlijkeAliasVan ?persoon .
         OPTIONAL {
           ?mandataris mandaat:einde ?mandatarisEinde .
-          BIND(CONCAT(?dateString, "T23:59:59Z") AS ?newDate)
-          BIND(IF(STRLEN(?newDate) > 10, strdt(?newDate, xsd:dateTime), ?mandatarisEinde) AS ?newMandatarisEndDate)
         }
         OPTIONAL {
           ?mandataris mandaat:isTijdelijkVervangenDoor ?vervanger .
@@ -1112,8 +1110,9 @@ async function createNewMandatarissenForFractieReplacement(
         BIND(IRI(CONCAT("http://data.lblod.info/id/mandatarissen/", ?newMandatarisId)) AS ?newMandataris)
         BIND(SHA256(STR(?newMandatarisId)) AS ?newLidmaatschapId)
         BIND(IRI(CONCAT("http://data.lblod.info/id/lidmaatschappen/", ?newLidmaatschapId)) AS ?newLidmaatschap)
-        BIND(substr(STR(${escaped.endDate}), 1, 10) as ?dateString)
-        BIND(strdt(CONCAT(?dateString, "T00:00:00Z"), xsd:dateTime) AS ?newMandatarisStartDate)
+
+        BIND(IF(BOUND(?mandatarisEinde), ?mandatarisEinde, ${escaped.mStartDate}) AS ?compareEndDate)
+        FILTER(?compareEndDate >= ${escaped.mStartDate})
       }
       ?g ext:ownedBy ?eenheid .
     }
