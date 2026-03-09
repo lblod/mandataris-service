@@ -1,6 +1,11 @@
 import { CronJob } from 'cron';
-import { fetchCountOfUnlinkedMandatees, getMandateUrisMissingLink } from '../data-access/linked-mandataris';
+import {
+  fetchCountOfUnlinkedMandatees,
+  getMandateUrisMissingLink,
+  linkInstances,
+} from '../data-access/linked-mandataris';
 import { getLinkedMandates } from '../controllers/linked-mandataris';
+import { HttpError } from '../util/http-error';
 
 const LINKING_MANDATEES_CRON_PATTERN =
   process.env.BESLUIT_CRON_PATTERN || '0 */1 * * * *'; // Every 1 minutes
@@ -30,8 +35,20 @@ export const cronjob = CronJob.from({
       `Found ${countOfUnlinkedMandatees} mandatees that are not linked.`,
     );
     const uris = await getMandateUrisMissingLink(linkedBfCodeAsValuesString);
-    console.log(`Creating link for ${uris.length} mandatees with uris`);
-    console.log(JSON.stringify(uris));
+    const promises = uris.map((uri) =>
+      linkInstances(uri.mandatarisUri, uri.toBeLinkedMandatarisUri),
+    );
+
+    try {
+      console.log(`Creating link for ${uris.length} mandatees with uris`);
+      console.log(JSON.stringify(uris));
+      await Promise.all(promises);
+    } catch (error) {
+      throw new HttpError(
+        `Something went rong while creating the link between ${uris.length} mandatees.`,
+        500,
+      );
+    }
     running = false;
   },
 });

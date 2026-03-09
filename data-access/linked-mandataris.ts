@@ -759,6 +759,7 @@ export async function fetchCountOfUnlinkedMandatees(
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
     PREFIX bestuursperiode: <http://data.lblod.info/id/concept/Bestuursperiode/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
 
     select (COUNT(distinct ?mandataris) AS ?count)
     where {
@@ -767,6 +768,8 @@ export async function fetchCountOfUnlinkedMandatees(
       }
       graph ?gemeenteGraph {
         ?mandataris org:holds ?gemeenteMandaat .
+        ?mandataris mandaat:isBestuurlijkeAliasVan ?persoon .
+        ?mandataris mandaat:start ?startMandataris .
         ?gemeenteOrgaanInTijd lmb:heeftBestuursperiode bestuursperiode:96efb929-5d83-48fa-bfbb-b98dfb1180c7 . # 2025 - heden
       }
       ?gemeenteGraph ext:ownedBy ?gemeenteEenheid .
@@ -778,7 +781,9 @@ export async function fetchCountOfUnlinkedMandatees(
 
       filter not exists {
         graph <http://mu.semte.ch/graphs/linkedInstances> {
-          ?mandataris ext:linked ?linkedMandataris .
+          optional {
+            ?mandataris (^ext:linked|ext:linked) ?linkedItem .
+          }
         }
       }
     }
@@ -820,9 +825,12 @@ export async function getMandateUrisMissingLink(
 
       filter not exists {
         graph <http://mu.semte.ch/graphs/linkedInstances> {
-          ?mandataris ext:linked ?checkLinkedMandataris .
+          optional {
+            ?mandataris (^ext:linked|ext:linked) ?linkedItem .
+          }
         }
       }
+
       graph ?ocmwGraph {
         ?linkedMandataris org:holds ?ocmwMandaat . 
         ?linkedMandataris mandaat:isBestuurlijkeAliasVan ?persoon .
