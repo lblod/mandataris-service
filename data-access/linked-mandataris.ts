@@ -750,3 +750,36 @@ export const createNotificationLinkedReplacementCorrectMistakes = async (
     ],
   });
 };
+
+export async function fetchCountOfUnlinkedMandatees(
+  linkedBfCodeAsValuesString: string,
+): Promise<number> {
+  const sparqlResult = await querySudo(`
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+
+    select (COUNT(distinct ?mandataris) AS ?count)
+    where {
+      VALUES (?bfCode ?linkedBfCode) {
+        ${linkedBfCodeAsValuesString}
+      }
+      graph ?gemeenteGraph {
+        ?mandataris org:holds ?gemeenteMandaat . 
+      }
+      ?gemeenteGraph ext:ownedBy ?gemeenteEenheid .
+
+      graph <http://mu.semte.ch/graphs/public> {
+        ?gemeenteMandaat org:role ?bfCode .
+      }
+
+      FILTER NOT EXISTS {
+        graph <http://mu.semte.ch/graphs/linkedInstances> {
+          ?mandataris ext:linked ?linkedMandataris .
+        }
+      }
+    }
+  `);
+  const rawResultCount = sparqlResult.results.bindings?.[0]?.count?.value;
+
+  return parseInt(rawResultCount ?? 0);
+}

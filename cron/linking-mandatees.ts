@@ -1,4 +1,6 @@
 import { CronJob } from 'cron';
+import { fetchCountOfUnlinkedMandatees } from '../data-access/linked-mandataris';
+import { getLinkedMandates } from '../controllers/linked-mandataris';
 
 const LINKING_MANDATEES_CRON_PATTERN =
   process.env.BESLUIT_CRON_PATTERN || '0 */1 * * * *'; // Every 1 minutes
@@ -16,10 +18,17 @@ export const cronjob = CronJob.from({
     }
     running = true;
     console.log(`
-==================================================================
-=                   CRON | LINKING OF MANDATEES                  =
-==================================================================
-`);
+    ===================================================================
+    =                   Started LINKING OF MANDATEES                  =
+    ===================================================================
+    `);
+    const linkedBfCodeAsValuesString = getLinkedMandates();
+    const countOfUnlinkedMandatees = await fetchCountOfUnlinkedMandatees(
+      linkedBfCodeAsValuesString,
+    );
+    console.log(
+      `Found ${countOfUnlinkedMandatees} mandatees that are not linked.`,
+    );
     running = false;
   },
 });
