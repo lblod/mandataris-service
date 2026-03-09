@@ -1035,6 +1035,15 @@ async function createNewMandatarissenForFractieReplacement(
   replacementUri: string,
   endDate: Date,
 ) {
+  await splitOverlappingMandatarissen(fractieId, replacementUri, endDate);
+  await editFractionForFutureMandatarissen(fractieId, replacementUri, endDate);
+}
+
+async function splitOverlappingMandatarissen(
+  fractieId: string,
+  replacementUri: string,
+  endDate: Date,
+) {
   const escaped = {
     mStartDate: sparqlEscapeDateTime(startOfDay(endDate)),
     endDate: sparqlEscapeDateTime(endOfDay(endDate)),
@@ -1088,6 +1097,7 @@ async function createNewMandatarissenForFractieReplacement(
         ?mandataris org:holds ?mandaat .
         ?mandataris mandaat:status ?status .
         ?mandataris mandaat:isBestuurlijkeAliasVan ?persoon .
+        ?mandataris mandaat:start ?start .
         OPTIONAL {
           ?mandataris mandaat:einde ?mandatarisEinde .
         }
@@ -1112,7 +1122,56 @@ async function createNewMandatarissenForFractieReplacement(
         BIND(IRI(CONCAT("http://data.lblod.info/id/lidmaatschappen/", ?newLidmaatschapId)) AS ?newLidmaatschap)
 
         BIND(IF(BOUND(?mandatarisEinde), ?mandatarisEinde, ${escaped.mStartDate}) AS ?compareEndDate)
-        FILTER(?compareEndDate >= ${escaped.mStartDate})
+        FILTER(?compareEndDate >= ${escaped.mStartDate} && ?start <= ${escaped.mStartDate})
+      }
+      ?g ext:ownedBy ?eenheid .
+    }
+  `);
+
+  return result.results.bindings.map((b: TermProperty) => b.mandataris?.value);
+}
+
+async function editFractionForFutureMandatarissen(
+  fractieId: string,
+  replacementUri: string,
+  endDate: Date,
+) {
+  const escaped = {
+    mStartDate: sparqlEscapeDateTime(startOfDay(endDate)),
+    fractieId: sparqlEscapeString(fractieId),
+    replacementUri: sparqlEscapeUri(replacementUri),
+  };
+  const result = await querySudo(`
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    
+    DELETE {
+      GRAPH ?g {
+        ?lidmaatschap org:organisation ?oldFractie .
+        ?lidmaatschap dct:modified ?oldModified .
+      }
+    }
+    INSERT {
+      GRAPH ?g {
+        ?lidmaatschap org:organisation ${escaped.replacementUri} .
+        ?lidmaatschap dct:modified ?now .
+      }
+    }
+    WHERE {
+      GRAPH ?g {
+        # identify
+        ?fractie mu:uuid ${escaped.fractieId} .
+        ?mandataris org:hasMembership ?lidmaatschap .
+        ?lidmaatschap org:organisation ?fractie .
+        ?lidmaatschap dct:modified ?oldModified .
+        ?mandataris mandaat:start ?start .
+        
+        FILTER(?start > ${escaped.mStartDate})
+        BIND(NOW() AS ?now)
       }
       ?g ext:ownedBy ?eenheid .
     }
