@@ -1,7 +1,6 @@
 import { CronJob } from 'cron';
 import {
-  fetchCountOfUnlinkedMandatees,
-  getMandateUrisMissingLink,
+  getMandateIdsMissingLink,
   linkInstances,
 } from '../data-access/linked-mandataris';
 import { getLinkedMandates } from '../controllers/linked-mandataris';
@@ -28,27 +27,25 @@ export const cronjob = CronJob.from({
     ===================================================================
     `);
     const linkedBfCodeAsValuesString = getLinkedMandates();
-    const countOfUnlinkedMandatees = await fetchCountOfUnlinkedMandatees(
-      linkedBfCodeAsValuesString,
-    );
-    console.log(
-      `Found ${countOfUnlinkedMandatees} mandatees that are not linked.`,
-    );
-    const uris = await getMandateUrisMissingLink(linkedBfCodeAsValuesString);
-    const promises = uris.map((uri) =>
-      linkInstances(uri.mandatarisUri, uri.toBeLinkedMandatarisUri),
-    );
+    const ids = await getMandateIdsMissingLink(linkedBfCodeAsValuesString);
 
     try {
-      console.log(`Creating link for ${uris.length} mandatees with uris`);
-      console.log(JSON.stringify(uris));
-      await Promise.all(promises);
+      await Promise.all(
+        ids.map((id) => linkInstances(id.mandataris, id.toBeLinkedMandataris)),
+      );
+      console.log(`Linked ${ids.length} mandatees`);
     } catch (error) {
       throw new HttpError(
-        `Something went rong while creating the link between ${uris.length} mandatees.`,
+        `Something went wrong while creating the link between ${ids.length} mandatees.`,
         500,
       );
     }
+
+    console.log(`
+    ====================================================================
+    =                   Finished LINKING OF MANDATEES                  =
+    ====================================================================
+    `);
     running = false;
   },
 });

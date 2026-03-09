@@ -751,65 +751,25 @@ export const createNotificationLinkedReplacementCorrectMistakes = async (
   });
 };
 
-export async function fetchCountOfUnlinkedMandatees(
+export async function getMandateIdsMissingLink(
   linkedBfCodeAsValuesString: string,
-): Promise<number> {
-  const sparqlResult = await querySudo(`
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-    PREFIX org: <http://www.w3.org/ns/org#>
-    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
-    PREFIX bestuursperiode: <http://data.lblod.info/id/concept/Bestuursperiode/>
-    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-
-    select (COUNT(distinct ?mandataris) AS ?count)
-    where {
-      VALUES (?bfCode ?linkedBfCode) {
-        ${linkedBfCodeAsValuesString}
-      }
-      graph ?gemeenteGraph {
-        ?mandataris org:holds ?gemeenteMandaat .
-        ?mandataris mandaat:isBestuurlijkeAliasVan ?persoon .
-        ?mandataris mandaat:start ?startMandataris .
-        ?gemeenteOrgaanInTijd lmb:heeftBestuursperiode bestuursperiode:96efb929-5d83-48fa-bfbb-b98dfb1180c7 . # 2025 - heden
-      }
-      ?gemeenteGraph ext:ownedBy ?gemeenteEenheid .
-
-      graph <http://mu.semte.ch/graphs/public> {
-        ?gemeenteMandaat org:role ?bfCode .
-        ?gemeenteOrgaanInTijd org:hasPost ?gemeenteMandaat .
-      }
-
-      filter not exists {
-        graph <http://mu.semte.ch/graphs/linkedInstances> {
-          optional {
-            ?mandataris (^ext:linked|ext:linked) ?linkedItem .
-          }
-        }
-      }
-    }
-  `);
-  const rawResultCount = sparqlResult.results.bindings?.[0]?.count?.value;
-
-  return parseInt(rawResultCount ?? 0);
-}
-
-export async function getMandateUrisMissingLink(
-  linkedBfCodeAsValuesString: string,
-): Promise<Array<{ mandatarisUri: string; toBeLinkedMandatarisUri: string }>> {
+): Promise<Array<{ mandataris: string; toBeLinkedMandataris: string }>> {
   const sparqlResult = await querySudo(`
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX bestuursperiode: <http://data.lblod.info/id/concept/Bestuursperiode/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
-    select distinct ?mandataris ?linkedMandataris
+    select distinct ?mandatarisId ?linkedMandatarisId
     where {
       VALUES (?bfCode ?linkedBfCode) {
         ${linkedBfCodeAsValuesString}
       }
       graph ?gemeenteGraph {
         ?mandataris org:holds ?gemeenteMandaat .
+        ?mandataris mu:uuid ?mandatarisId .
         ?mandataris mandaat:isBestuurlijkeAliasVan ?persoon .
         ?mandataris mandaat:start ?startMandataris .
         OPTIONAL {
@@ -825,14 +785,13 @@ export async function getMandateUrisMissingLink(
 
       filter not exists {
         graph <http://mu.semte.ch/graphs/linkedInstances> {
-          optional {
-            ?mandataris (^ext:linked|ext:linked) ?linkedItem .
-          }
+          ?mandataris (^ext:linked|ext:linked) ?linkedItem .
         }
       }
 
       graph ?ocmwGraph {
         ?linkedMandataris org:holds ?ocmwMandaat . 
+        ?linkedMandataris mu:uuid ?linkedMandatarisId .
         ?linkedMandataris mandaat:isBestuurlijkeAliasVan ?persoon .
         ?linkedMandataris mandaat:start ?startMandataris .
         OPTIONAL {
@@ -847,12 +806,12 @@ export async function getMandateUrisMissingLink(
       ?ocmwGraph ext:ownedBy ?ocwmEenheid .
       filter(?endMandataris = ?endLinkedMandataris)
 
-    } limit 15
+    } limit 250
   `);
   const results = sparqlResult.results.bindings;
 
   return results.map((binding) => ({
-    mandatarisUri: binding.mandataris.value,
-    toBeLinkedMandatarisUri: binding.linkedMandataris.value,
+    mandataris: binding.mandatarisId.value,
+    toBeLinkedMandataris: binding.linkedMandatarisId.value,
   }));
 }
