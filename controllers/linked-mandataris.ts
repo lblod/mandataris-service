@@ -511,6 +511,14 @@ export const getLinkedMandates = () => {
   return getValueBindings(linkedMandaten);
 };
 
+export const getLinkedMandatesGemeenteToOcmw = () => {
+  const stringArray: string[] = [];
+  linkedMandaten.forEach((value, key) => {
+    stringArray.push(`(${sparqlEscapeUri(key)} ${sparqlEscapeUri(value)})`);
+  });
+  return stringArray.join('\n');
+};
+
 function getValueBindings(mapping) {
   const stringArray: string[] = [];
   mapping.forEach((value, key) => {

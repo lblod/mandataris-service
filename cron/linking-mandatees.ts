@@ -3,7 +3,7 @@ import {
   getMandateIdsMissingLink,
   linkInstances,
 } from '../data-access/linked-mandataris';
-import { getLinkedMandates } from '../controllers/linked-mandataris';
+import { getLinkedMandatesGemeenteToOcmw } from '../controllers/linked-mandataris';
 import { HttpError } from '../util/http-error';
 
 const LINKING_MANDATEES_CRON_PATTERN =
@@ -26,7 +26,7 @@ export const cronjob = CronJob.from({
     =                   Started LINKING OF MANDATEES                  =
     ===================================================================
     `);
-    const linkedBfCodeAsValuesString = getLinkedMandates();
+    const linkedBfCodeAsValuesString = getLinkedMandatesGemeenteToOcmw();
     const ids = await getMandateIdsMissingLink(linkedBfCodeAsValuesString);
 
     try {
