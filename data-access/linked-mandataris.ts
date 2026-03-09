@@ -757,6 +757,8 @@ export async function fetchCountOfUnlinkedMandatees(
   const sparqlResult = await querySudo(`
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+    PREFIX bestuursperiode: <http://data.lblod.info/id/concept/Bestuursperiode/>
 
     select (COUNT(distinct ?mandataris) AS ?count)
     where {
@@ -764,15 +766,17 @@ export async function fetchCountOfUnlinkedMandatees(
         ${linkedBfCodeAsValuesString}
       }
       graph ?gemeenteGraph {
-        ?mandataris org:holds ?gemeenteMandaat . 
+        ?mandataris org:holds ?gemeenteMandaat .
+        ?gemeenteOrgaanInTijd lmb:heeftBestuursperiode bestuursperiode:96efb929-5d83-48fa-bfbb-b98dfb1180c7 . # 2025 - heden
       }
       ?gemeenteGraph ext:ownedBy ?gemeenteEenheid .
 
       graph <http://mu.semte.ch/graphs/public> {
         ?gemeenteMandaat org:role ?bfCode .
+        ?gemeenteOrgaanInTijd org:hasPost ?gemeenteMandaat .
       }
 
-      FILTER NOT EXISTS {
+      filter not exists {
         graph <http://mu.semte.ch/graphs/linkedInstances> {
           ?mandataris ext:linked ?linkedMandataris .
         }
@@ -782,4 +786,65 @@ export async function fetchCountOfUnlinkedMandatees(
   const rawResultCount = sparqlResult.results.bindings?.[0]?.count?.value;
 
   return parseInt(rawResultCount ?? 0);
+}
+
+export async function getMandateUrisMissingLink(
+  linkedBfCodeAsValuesString: string,
+): Promise<Array<{ mandatarisUri: string; toBeLinkedMandatarisUri: string }>> {
+  const sparqlResult = await querySudo(`
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX bestuursperiode: <http://data.lblod.info/id/concept/Bestuursperiode/>
+
+    select distinct ?mandataris ?linkedMandataris
+    where {
+      VALUES (?bfCode ?linkedBfCode) {
+        ${linkedBfCodeAsValuesString}
+      }
+      graph ?gemeenteGraph {
+        ?mandataris org:holds ?gemeenteMandaat .
+        ?mandataris mandaat:isBestuurlijkeAliasVan ?persoon .
+        ?mandataris mandaat:start ?startMandataris .
+        OPTIONAL {
+          ?mandataris mandaat:start ?endMandataris .
+        }
+        ?gemeenteOrgaanInTijd lmb:heeftBestuursperiode bestuursperiode:96efb929-5d83-48fa-bfbb-b98dfb1180c7 . # 2025 - heden
+      }
+      graph <http://mu.semte.ch/graphs/public> {
+        ?gemeenteMandaat org:role ?bfCode .
+        ?gemeenteOrgaanInTijd org:hasPost ?gemeenteMandaat .
+      }
+      ?gemeenteGraph ext:ownedBy ?gemeenteEenheid .
+
+      filter not exists {
+        graph <http://mu.semte.ch/graphs/linkedInstances> {
+          ?mandataris ext:linked ?checkLinkedMandataris .
+        }
+      }
+      graph ?ocmwGraph {
+        ?linkedMandataris org:holds ?ocmwMandaat . 
+        ?linkedMandataris mandaat:isBestuurlijkeAliasVan ?persoon .
+        ?linkedMandataris mandaat:start ?startMandataris .
+        OPTIONAL {
+          ?linkedMandataris mandaat:start ?endLinkedMandataris .
+        }
+        ?ocmwOrgaanInTijd lmb:heeftBestuursperiode bestuursperiode:96efb929-5d83-48fa-bfbb-b98dfb1180c7 . # 2025 -heden
+      }
+      graph <http://mu.semte.ch/graphs/public> {
+        ?ocmwMandaat org:role ?linkedBfCode .
+        ?ocmwOrgaanInTijd org:hasPost ?ocmwMandaat .
+      }
+      ?ocmwGraph ext:ownedBy ?ocwmEenheid .
+      filter(?endMandataris = ?endLinkedMandataris)
+
+    } limit 15
+  `);
+  const results = sparqlResult.results.bindings;
+
+  return results.map((binding) => ({
+    mandatarisUri: binding.mandataris.value,
+    toBeLinkedMandatarisUri: binding.linkedMandataris.value,
+  }));
 }

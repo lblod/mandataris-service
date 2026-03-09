@@ -1,5 +1,5 @@
 import { CronJob } from 'cron';
-import { fetchCountOfUnlinkedMandatees } from '../data-access/linked-mandataris';
+import { fetchCountOfUnlinkedMandatees, getMandateUrisMissingLink } from '../data-access/linked-mandataris';
 import { getLinkedMandates } from '../controllers/linked-mandataris';
 
 const LINKING_MANDATEES_CRON_PATTERN =
@@ -29,6 +29,9 @@ export const cronjob = CronJob.from({
     console.log(
       `Found ${countOfUnlinkedMandatees} mandatees that are not linked.`,
     );
+    const uris = await getMandateUrisMissingLink(linkedBfCodeAsValuesString);
+    console.log(`Creating link for ${uris.length} mandatees with uris`);
+    console.log(JSON.stringify(uris));
     running = false;
   },
 });
