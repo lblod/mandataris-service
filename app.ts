@@ -16,6 +16,7 @@ import { rangordeRouter } from './routes/rangorde';
 
 import { cronjob as notificationActiveMandateesWithoutBesluitCron } from './cron/notification-for-bekrachtigde-mandataris';
 import { cronjob as processHarvestedDecisions } from './cron/auto-bekrachtig-mandatarissen';
+import { cronjob as linkingOfMandatees } from './cron/linking-mandatees';
 
 app.use(
   bodyParser.json({
@@ -55,3 +56,4 @@ app.use(errorHandler);
 
 notificationActiveMandateesWithoutBesluitCron.start();
 processHarvestedDecisions.start();
+linkingOfMandatees.start();
