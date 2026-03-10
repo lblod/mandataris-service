@@ -627,7 +627,20 @@ export async function correctLinkedMandataris(
   }
 }
 
-export async function linkInstances(instance1: string, instance2: string) {
+export async function linkInstances(
+  links: Array<{ fromId: string; toId: string }>,
+) {
+  if (links?.length === 0) {
+    return;
+  }
+
+  const valueStatementValues = links
+    .map((link) => {
+      return `( ${sparqlEscapeString(link.fromId)} ${sparqlEscapeString(
+        link.toId,
+      )} )`;
+    })
+    .join('\n');
   const insertQuery = `
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -638,11 +651,12 @@ export async function linkInstances(instance1: string, instance2: string) {
       }
     }
     WHERE {
+      VALUES (?fromId ?toId) { ${valueStatementValues} }
       GRAPH ?g {
-        ?i1 mu:uuid ${sparqlEscapeString(instance1)} .
+        ?i1 mu:uuid ?fromId .
       }
       GRAPH ?h {
-        ?i2 mu:uuid ${sparqlEscapeString(instance2)} .
+        ?i2 mu:uuid ?toId .
       }
     }
   `;
@@ -780,12 +794,7 @@ export async function getMandateIdsMissingLink(
         }
         ?gemeenteOrgaanInTijd lmb:heeftBestuursperiode ?period .
       }
-      graph <http://mu.semte.ch/graphs/public> {
-        ?gemeenteMandaat org:role ?bfCode .
-        ?gemeenteOrgaanInTijd org:hasPost ?gemeenteMandaat .
-      }
       ?gemeenteGraph ext:ownedBy ?gemeenteEenheid .
-
       optional {
         ?gemeenteEenheid lmb:faciliteitenGemeente ?isFaciliteitenGemeente .
       }
@@ -795,6 +804,11 @@ export async function getMandateIdsMissingLink(
         graph <http://mu.semte.ch/graphs/linkedInstances> {
           ?mandataris (^ext:linked|ext:linked) ?linkedItem .
         }
+      }
+
+      graph <http://mu.semte.ch/graphs/public> {
+        ?gemeenteMandaat org:role ?bfCode .
+        ?gemeenteOrgaanInTijd org:hasPost ?gemeenteMandaat .
       }
 
       graph ?ocmwGraph {
