@@ -776,7 +776,7 @@ export async function getMandateIdsMissingLink(
         ?mandataris mandaat:isBestuurlijkeAliasVan ?persoon .
         ?mandataris mandaat:start ?startMandataris .
         OPTIONAL {
-          ?mandataris mandaat:start ?endMandataris .
+          ?mandataris mandaat:einde ?endMandataris .
         }
         ?gemeenteOrgaanInTijd lmb:heeftBestuursperiode ?period .
       }
@@ -802,7 +802,7 @@ export async function getMandateIdsMissingLink(
         ?linkedMandataris mandaat:isBestuurlijkeAliasVan ?persoon .
         ?linkedMandataris mandaat:start ?startMandataris .
         OPTIONAL {
-          ?linkedMandataris mandaat:start ?endLinkedMandataris .
+          ?linkedMandataris mandaat:einde ?endLinkedMandataris .
         }
         ?ocmwOrgaanInTijd lmb:heeftBestuursperiode ?period .
       }
