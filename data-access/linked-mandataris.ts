@@ -315,21 +315,28 @@ export async function getFractieOfMandatarisInGraph(
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX regorg: <https://www.w3.org/ns/regorg#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
     SELECT ?doelFractie WHERE {
       GRAPH ?origin {
         ?currentMandataris a mandaat:Mandataris ;
           mu:uuid ${sparqlEscapeString(mandatarisId)} ;
+          org:holds ?mandaat ;
           org:hasMembership ?lidmaatschap .
         ?lidmaatschap org:organisation ?fractie .
         ?fractie regorg:legalName ?fractieNaam ;
           ext:isFractietype <http://data.vlaanderen.be/id/concept/Fractietype/Samenwerkingsverband>
       }
 
+      ?orgT org:hasPost ?mandaat ;
+              lmb:heeftBestuursperiode ?periode .
+        
       GRAPH ${sparqlEscapeUri(graph)} {
         ?doelFractie a mandaat:Fractie ;
+          org:memberOf ?orgTTarget ;
           regorg:legalName ?fractieNaam .
       }
+      ?orgTTarget lmb:heeftBestuursperiode ?period .
     }
     LIMIT 1
   `;
@@ -448,7 +455,7 @@ export async function replaceFractieOfMandataris(
       GRAPH ${escaped.graph} {
         ${escaped.linked} a mandaat:Mandataris .
         OPTIONAL {
-          ?currentMandataris org:hasMembership ?linkedMembership .
+          ${escaped.linked} org:hasMembership ?linkedMembership .
           ?linkedMembership ?linkedMemberP ?linkedMemberO .
         }
       }
