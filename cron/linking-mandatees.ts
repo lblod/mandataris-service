@@ -8,6 +8,8 @@ import { HttpError } from '../util/http-error';
 
 const LINKING_MANDATEES_CRON_PATTERN =
   process.env.BESLUIT_CRON_PATTERN || '*/30 * * * * *'; // Every 30 seconds
+const LINKING_MANDATEES_BATCH_SIZE =
+  process.env.LINKING_MANDATEES_BATCH_SIZE || 250;
 let running = false;
 
 console.log(
@@ -27,7 +29,9 @@ export const cronjob = CronJob.from({
     ===================================================================
     `);
     const linkedBfCodeAsValuesString = getLinkedMandatesGemeenteToOcmw();
-    const ids = await getMandateIdsMissingLink(linkedBfCodeAsValuesString);
+    const ids = await getMandateIdsMissingLink(linkedBfCodeAsValuesString, {
+      batchSize: LINKING_MANDATEES_BATCH_SIZE,
+    });
 
     try {
       await Promise.all(

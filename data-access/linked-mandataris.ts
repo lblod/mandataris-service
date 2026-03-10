@@ -753,6 +753,9 @@ export const createNotificationLinkedReplacementCorrectMistakes = async (
 
 export async function getMandateIdsMissingLink(
   linkedBfCodeAsValuesString: string,
+  options: {
+    batchSize: number | string;
+  },
 ): Promise<Array<{ mandataris: string; toBeLinkedMandataris: string }>> {
   const sparqlResult = await querySudo(`
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
@@ -811,7 +814,7 @@ export async function getMandateIdsMissingLink(
       ?ocmwGraph ext:ownedBy ?ocwmEenheid .
       filter(?endMandataris = ?endLinkedMandataris)
 
-    } limit 250
+    } limit ${options.batchSize ?? 0}
   `);
   const results = sparqlResult.results.bindings;
 
