@@ -778,6 +778,7 @@ export async function getMandateIdsMissingLink(
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX bestuursperiode: <http://data.lblod.info/id/concept/Bestuursperiode/>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
     select distinct ?mandatarisId ?linkedMandatarisId
     where {
@@ -795,10 +796,9 @@ export async function getMandateIdsMissingLink(
         ?gemeenteOrgaanInTijd lmb:heeftBestuursperiode ?period .
       }
       ?gemeenteGraph ext:ownedBy ?gemeenteEenheid .
-      optional {
-        ?gemeenteEenheid lmb:faciliteitenGemeente ?isFaciliteitenGemeente .
+      filter not exists { 
+        ?gemeenteEenheid lmb:faciliteitenGemeente "true"^^xsd:boolean .
       }
-      filter(!BOUND(?isFaciliteitenGemeente) || STR(?isFaciliteitenGemeente) = "false")
 
       filter not exists {
         graph <http://mu.semte.ch/graphs/linkedInstances> {
