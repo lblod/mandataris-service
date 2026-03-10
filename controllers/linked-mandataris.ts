@@ -88,7 +88,7 @@ export const addLinkLinkedMandataris = async (req) => {
     );
   }
 
-  await linkInstances([{ fromId: from, toId: to }]);
+  await linkInstances(from, to);
 };
 
 export const removeLinkLinkedMandataris = async (req) => {
@@ -311,9 +311,7 @@ export const handleCreationNewLinkedMandataris = async (
     getValueBindings(linkedMandaten),
   );
 
-  const promises = [
-    linkInstances([{ fromId: newMandatarisId, toId: newLinkedMandataris.id }]),
-  ];
+  const promises = [linkInstances(newMandatarisId, newLinkedMandataris.id)];
 
   if (fractie) {
     promises.push(
