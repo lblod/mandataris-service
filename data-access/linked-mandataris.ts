@@ -787,7 +787,7 @@ export async function getMandateIdsMissingLink(
 
       filter not exists {
         graph <http://mu.semte.ch/graphs/linkedInstances> {
-          ?mandataris (^ext:linked|ext:linked) ?linkedItem .
+          ?mandataris ext:linked ?linkedItem .
         }
       }
 
