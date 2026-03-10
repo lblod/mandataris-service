@@ -767,52 +767,50 @@ export async function getMandateIdsMissingLink(
 
     select distinct ?mandatarisId ?linkedMandatarisId
     where {
-      VALUES (?bfCode ?linkedBfCode) {
+      values (?bfCode ?linkedBfCode) {
         ${linkedBfCodeAsValuesString}
+      }
+      graph <http://mu.semte.ch/graphs/public> {
+        ?gemeenteMandaat org:role ?bfCode .
+        ?gemeenteOrgaanInTijd org:hasPost ?gemeenteMandaat .
+
+        ?ocmwMandaat org:role ?linkedBfCode .
+        ?ocmwOrgaanInTijd org:hasPost ?ocmwMandaat .
       }
       graph ?gemeenteGraph {
         ?mandataris org:holds ?gemeenteMandaat .
         ?mandataris mu:uuid ?mandatarisId .
         ?mandataris mandaat:isBestuurlijkeAliasVan ?persoon .
         ?mandataris mandaat:start ?startMandataris .
-        OPTIONAL {
-          ?mandataris mandaat:einde ?endMandataris .
-        }
         ?gemeenteOrgaanInTijd lmb:heeftBestuursperiode ?period .
+        optional { ?mandataris mandaat:einde ?endMandataris . }
       }
       ?gemeenteGraph ext:ownedBy ?gemeenteEenheid .
-      filter not exists { 
-        ?gemeenteEenheid lmb:faciliteitenGemeente "true"^^xsd:boolean .
-      }
 
       filter not exists {
-        graph <http://mu.semte.ch/graphs/linkedInstances> {
+        ?gemeenteEenheid lmb:faciliteitenGemeente "true"^^xsd:boolean .
+        GRAPH <http://mu.semte.ch/graphs/linkedInstances> {
           ?mandataris ext:linked ?linkedItem .
         }
       }
 
-      graph <http://mu.semte.ch/graphs/public> {
-        ?gemeenteMandaat org:role ?bfCode .
-        ?gemeenteOrgaanInTijd org:hasPost ?gemeenteMandaat .
-      }
-
       graph ?ocmwGraph {
-        ?linkedMandataris org:holds ?ocmwMandaat . 
+        ?linkedMandataris org:holds ?ocmwMandaat .
         ?linkedMandataris mu:uuid ?linkedMandatarisId .
         ?linkedMandataris mandaat:isBestuurlijkeAliasVan ?persoon .
         ?linkedMandataris mandaat:start ?startMandataris .
-        OPTIONAL {
-          ?linkedMandataris mandaat:einde ?endLinkedMandataris .
-        }
         ?ocmwOrgaanInTijd lmb:heeftBestuursperiode ?period .
-      }
-      graph <http://mu.semte.ch/graphs/public> {
-        ?ocmwMandaat org:role ?linkedBfCode .
-        ?ocmwOrgaanInTijd org:hasPost ?ocmwMandaat .
+        optional { ?linkedMandataris mandaat:einde ?endLinkedMandataris . }
       }
       ?ocmwGraph ext:ownedBy ?ocwmEenheid .
-      filter(?endMandataris = ?endLinkedMandataris)
 
+      filter not exists {
+        graph <http://mu.semte.ch/graphs/linkedInstances> {
+          ?otherMandataris ext:linked ?linkedMandataris .
+        }
+      }
+
+      filter ( (!bound(?endMandataris) && !bound(?endLinkedMandataris)) || (?endMandataris = ?endLinkedMandataris) )
     } limit ${options.batchSize ?? 0}
   `);
   const results = sparqlResult.results.bindings;

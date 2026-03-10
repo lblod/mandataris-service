@@ -15,6 +15,9 @@ let running = false;
 console.log(
   `LINKING_MANDATEES_CRON_PATTERN SET TO: ${LINKING_MANDATEES_CRON_PATTERN}`,
 );
+console.log(
+  `LINKING_MANDATEES_BATCH_SIZE SET TO: ${LINKING_MANDATEES_BATCH_SIZE}`,
+);
 
 export const cronjob = CronJob.from({
   cronTime: LINKING_MANDATEES_CRON_PATTERN,
