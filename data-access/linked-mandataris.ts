@@ -783,6 +783,11 @@ export async function getMandateIdsMissingLink(
       }
       ?gemeenteGraph ext:ownedBy ?gemeenteEenheid .
 
+      optional {
+        ?gemeenteEenheid lmb:faciliteitenGemeente ?isFaciliteitenGemeente .
+      }
+      filter(!BOUND(?isFaciliteitenGemeente) || STR(?isFaciliteitenGemeente) = "false")
+
       filter not exists {
         graph <http://mu.semte.ch/graphs/linkedInstances> {
           ?mandataris (^ext:linked|ext:linked) ?linkedItem .
