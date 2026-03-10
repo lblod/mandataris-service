@@ -764,6 +764,8 @@ export async function getMandateIdsMissingLink(
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    PREFIX eenheidClassificatieCode: <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/>
+    PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
 
     select distinct ?mandatarisId ?linkedMandatarisId
     where {
@@ -786,6 +788,7 @@ export async function getMandateIdsMissingLink(
         optional { ?mandataris mandaat:einde ?endMandataris . }
       }
       ?gemeenteGraph ext:ownedBy ?gemeenteEenheid .
+      ?gemeenteEenheid besluit:classificatie eenheidClassificatieCode:5ab0e9b8a3b2ca7c5e000001 . # Gemeente 
 
       filter not exists {
         ?gemeenteEenheid lmb:faciliteitenGemeente "true"^^xsd:boolean .
@@ -803,7 +806,9 @@ export async function getMandateIdsMissingLink(
         optional { ?linkedMandataris mandaat:einde ?endLinkedMandataris . }
       }
       ?ocmwGraph ext:ownedBy ?ocwmEenheid .
-
+      ?ocwmEenheid besluit:classificatie eenheidClassificatieCode:5ab0e9b8a3b2ca7c5e000002 . # OCMW
+      ?ocwmEenheid ext:isOCMWVoor ?gemeenteEenheid .
+      
       filter not exists {
         graph <http://mu.semte.ch/graphs/linkedInstances> {
           ?otherMandataris ext:linked ?linkedMandataris .
