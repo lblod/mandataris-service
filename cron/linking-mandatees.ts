@@ -7,7 +7,7 @@ import { getLinkedMandatesGemeenteToOcmw } from '../controllers/linked-mandatari
 import { HttpError } from '../util/http-error';
 
 const LINKING_MANDATEES_CRON_PATTERN =
-  process.env.BESLUIT_CRON_PATTERN || '*/30 * * * * *'; // Every 30 seconds
+  process.env.BESLUIT_CRON_PATTERN || '*/29 * * * * *'; // Every 29 seconds
 const LINKING_MANDATEES_BATCH_SIZE =
   process.env.LINKING_MANDATEES_BATCH_SIZE || 250;
 let running = false;
@@ -34,9 +34,10 @@ export const cronjob = CronJob.from({
     });
 
     try {
-      await Promise.all(
-        ids.map((id) => linkInstances(id.mandataris, id.toBeLinkedMandataris)),
-      );
+      for (let index = 0; index < ids.length; index++) {
+        const id = ids[index];
+        await linkInstances(id.mandataris, id.toBeLinkedMandataris);
+      }
       console.log(`Linked ${ids.length} mandatees`);
     } catch (error) {
       throw new HttpError(
