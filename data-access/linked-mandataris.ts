@@ -778,7 +778,7 @@ export async function getMandateIdsMissingLink(
         OPTIONAL {
           ?mandataris mandaat:start ?endMandataris .
         }
-        ?gemeenteOrgaanInTijd lmb:heeftBestuursperiode bestuursperiode:96efb929-5d83-48fa-bfbb-b98dfb1180c7 . # 2025 - heden
+        ?gemeenteOrgaanInTijd lmb:heeftBestuursperiode ?period .
       }
       graph <http://mu.semte.ch/graphs/public> {
         ?gemeenteMandaat org:role ?bfCode .
@@ -805,7 +805,7 @@ export async function getMandateIdsMissingLink(
         OPTIONAL {
           ?linkedMandataris mandaat:start ?endLinkedMandataris .
         }
-        ?ocmwOrgaanInTijd lmb:heeftBestuursperiode bestuursperiode:96efb929-5d83-48fa-bfbb-b98dfb1180c7 . # 2025 -heden
+        ?ocmwOrgaanInTijd lmb:heeftBestuursperiode ?period .
       }
       graph <http://mu.semte.ch/graphs/public> {
         ?ocmwMandaat org:role ?linkedBfCode .
