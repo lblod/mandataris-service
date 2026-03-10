@@ -12,7 +12,6 @@ import {
   replaceFractieOfMandataris,
   isFractieNameEqual,
   findLinkedInstance,
-  linkInstances,
   copyOnafhankelijkeFractieOfMandataris,
   unlinkInstance,
   linkedMandateAlreadyExists,
@@ -62,33 +61,6 @@ export const checkLinkedMandataris = async (req) => {
     ...linkedMandates,
     hasDouble: linkedMandataris?.id,
   };
-};
-
-export const addLinkLinkedMandataris = async (req) => {
-  const from = req.params.from;
-  const to = req.params.to;
-  if (!from || !to) {
-    throw new HttpError(
-      'Missing at least one mandataris id, you should provide two',
-      400,
-    );
-  }
-
-  const userId = await fetchUserIdFromSession(req.get('mu-session-id'));
-  if (!userId) {
-    throw new HttpError('Not authenticated', 401);
-  }
-
-  const hasAccess =
-    (await canAccessMandataris(from)) || (await canAccessMandataris(to));
-  if (!hasAccess) {
-    throw new HttpError(
-      'You do not have access to any of the provided mandatees',
-      404,
-    );
-  }
-
-  await linkInstances(from, to);
 };
 
 export const removeLinkLinkedMandataris = async (req) => {
@@ -311,18 +283,12 @@ export const handleCreationNewLinkedMandataris = async (
     getValueBindings(linkedMandaten),
   );
 
-  const promises = [linkInstances(newMandatarisId, newLinkedMandataris.id)];
-
   if (fractie) {
-    promises.push(
-      mandatarisUsecase.updateCurrentFractieSudo(
-        newLinkedMandataris.id,
-        destinationGraph,
-      ),
+    await mandatarisUsecase.updateCurrentFractieSudo(
+      newLinkedMandataris.id,
+      destinationGraph,
     );
   }
-
-  await Promise.all(promises);
 
   await saveHistoryItem(
     newLinkedMandataris.uri,
@@ -435,7 +401,7 @@ export const handleReplacement = async (
   if (!replacements) {
     return;
   }
-  const replacement = replacements.at(0);
+  const replacement = replacements?.[0];
 
   const linkedReplacement = await findLinkedInstance(replacement.id);
 
