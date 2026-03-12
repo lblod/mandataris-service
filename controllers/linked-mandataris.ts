@@ -17,6 +17,7 @@ import {
   linkedMandateAlreadyExists,
   createNotificationLinkedReplacementAlreadyExists,
   createNotificationLinkedReplacementCorrectMistakes,
+  linkInstances,
 } from '../data-access/linked-mandataris';
 import {
   endExistingMandataris,
@@ -286,6 +287,8 @@ export const handleCreationNewLinkedMandataris = async (
     destinationGraph,
     getValueBindings(linkedMandaten),
   );
+
+  await linkInstances(newMandatarisId, newLinkedMandataris.id);
 
   if (fractie) {
     await mandatarisUsecase.updateCurrentFractieSudo(
