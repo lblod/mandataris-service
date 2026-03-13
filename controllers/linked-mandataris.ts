@@ -12,12 +12,12 @@ import {
   replaceFractieOfMandataris,
   isFractieNameEqual,
   findLinkedInstance,
-  linkInstances,
   copyOnafhankelijkeFractieOfMandataris,
   unlinkInstance,
   linkedMandateAlreadyExists,
   createNotificationLinkedReplacementAlreadyExists,
   createNotificationLinkedReplacementCorrectMistakes,
+  linkInstances,
 } from '../data-access/linked-mandataris';
 import {
   endExistingMandataris,
@@ -34,12 +34,16 @@ import {
 import { mandatarisUsecase } from './mandataris';
 import { isOnafhankelijkInPeriod } from '../data-access/persoon';
 import {
+  AANGEWEZEN_BURGEMEESTER_FUNCTIE_CODE,
+  BURGEMEESTER_FUNCTIE_CODE,
   GEMEENTERAADSLID_FUNCTIE_CODE,
   LID_OCMW_FUNCTIE_CODE,
   LID_VB_FUNCTIE_CODE,
   SCHEPEN_FUNCTIE_CODE,
+  TOEGEVOEGDE_SCHEPEN_FUNCTIE_CODE,
   VOORZITTER_GEMEENTERAAD_FUNCTIE_CODE,
   VOORZITTER_RMW_CODE,
+  VOORZITTER_VB_FUNCTIE_CODE,
 } from '../util/constants';
 import { instanceIdentifiers } from '../types';
 
@@ -62,33 +66,6 @@ export const checkLinkedMandataris = async (req) => {
     ...linkedMandates,
     hasDouble: linkedMandataris?.id,
   };
-};
-
-export const addLinkLinkedMandataris = async (req) => {
-  const from = req.params.from;
-  const to = req.params.to;
-  if (!from || !to) {
-    throw new HttpError(
-      'Missing at least one mandataris id, you should provide two',
-      400,
-    );
-  }
-
-  const userId = await fetchUserIdFromSession(req.get('mu-session-id'));
-  if (!userId) {
-    throw new HttpError('Not authenticated', 401);
-  }
-
-  const hasAccess =
-    (await canAccessMandataris(from)) || (await canAccessMandataris(to));
-  if (!hasAccess) {
-    throw new HttpError(
-      'You do not have access to any of the provided mandatees',
-      404,
-    );
-  }
-
-  await linkInstances(from, to);
 };
 
 export const removeLinkLinkedMandataris = async (req) => {
@@ -311,18 +288,14 @@ export const handleCreationNewLinkedMandataris = async (
     getValueBindings(linkedMandaten),
   );
 
-  const promises = [linkInstances(newMandatarisId, newLinkedMandataris.id)];
+  await linkInstances(newMandatarisId, newLinkedMandataris.id);
 
   if (fractie) {
-    promises.push(
-      mandatarisUsecase.updateCurrentFractieSudo(
-        newLinkedMandataris.id,
-        destinationGraph,
-      ),
+    await mandatarisUsecase.updateCurrentFractieSudo(
+      newLinkedMandataris.id,
+      destinationGraph,
     );
   }
-
-  await Promise.all(promises);
 
   await saveHistoryItem(
     newLinkedMandataris.uri,
@@ -435,7 +408,7 @@ export const handleReplacement = async (
   if (!replacements) {
     return;
   }
-  const replacement = replacements.at(0);
+  const replacement = replacements?.[0];
 
   const linkedReplacement = await findLinkedInstance(replacement.id);
 
@@ -511,6 +484,14 @@ export const getLinkedMandates = () => {
   return getValueBindings(linkedMandaten);
 };
 
+export const getLinkedMandatesGemeenteToOcmw = () => {
+  const stringArray: string[] = [];
+  linkedMandaten.forEach((value, key) => {
+    stringArray.push(`(${sparqlEscapeUri(key)} ${sparqlEscapeUri(value)})`);
+  });
+  return stringArray.join('\n');
+};
+
 function getValueBindings(mapping) {
   const stringArray: string[] = [];
   mapping.forEach((value, key) => {
@@ -524,6 +505,9 @@ const linkedMandaten = new Map([
   [GEMEENTERAADSLID_FUNCTIE_CODE, LID_OCMW_FUNCTIE_CODE],
   [VOORZITTER_GEMEENTERAAD_FUNCTIE_CODE, VOORZITTER_RMW_CODE],
   [SCHEPEN_FUNCTIE_CODE, LID_VB_FUNCTIE_CODE],
+  [TOEGEVOEGDE_SCHEPEN_FUNCTIE_CODE, LID_VB_FUNCTIE_CODE],
+  [BURGEMEESTER_FUNCTIE_CODE, VOORZITTER_VB_FUNCTIE_CODE],
+  [AANGEWEZEN_BURGEMEESTER_FUNCTIE_CODE, VOORZITTER_VB_FUNCTIE_CODE],
 ]);
 
 const linkedBestuurseenheden = new Map([
