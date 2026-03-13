@@ -112,7 +112,7 @@ describe('fractions', () => {
 
     await clearDeltas();
     const { body } = await userRequest(
-      'PUT',
+      'POST',
       'http://target/fracties/5F914115CE511800080003A4/current-fractie',
     );
     expect(body).toMatchSnapshot();
