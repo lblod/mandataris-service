@@ -632,6 +632,11 @@ export async function linkInstances(instance1: string, instance2: string) {
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
+    DELETE {
+      GRAPH <http://mu.semte.ch/graphs/linkedInstances> {
+        ?i1 ext:linked ?i2 .
+      }
+    }
     INSERT {
       GRAPH <http://mu.semte.ch/graphs/linkedInstances> {
         ?i1 ext:linked ?i2 .
