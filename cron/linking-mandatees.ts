@@ -7,7 +7,7 @@ import { getLinkedMandatesGemeenteToOcmw } from '../controllers/linked-mandatari
 import { HttpError } from '../util/http-error';
 
 const LINKING_MANDATEES_CRON_PATTERN =
-  process.env.BESLUIT_CRON_PATTERN || '29 */4 * * * *'; // Every 4 minutes
+  process.env.LINKING_MANDATEES_CRON_PATTERN || '*/4 * * * *'; // Every 4 minutes
 const LINKING_MANDATEES_BATCH_SIZE =
   process.env.LINKING_MANDATEES_BATCH_SIZE || 250;
 let running = false;
