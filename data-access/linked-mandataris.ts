@@ -628,6 +628,8 @@ export async function correctLinkedMandataris(
 }
 
 export async function linkInstances(instance1: string, instance2: string) {
+  await unlinkInstance(instance1);
+  await unlinkInstance(instance2);
   const insertQuery = `
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>

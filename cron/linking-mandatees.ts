@@ -2,7 +2,6 @@ import { CronJob } from 'cron';
 import {
   getMandateIdsMissingLink,
   linkInstances,
-  unlinkInstance,
 } from '../data-access/linked-mandataris';
 import { getLinkedMandatesGemeenteToOcmw } from '../controllers/linked-mandataris';
 import { HttpError } from '../util/http-error';
@@ -40,7 +39,6 @@ export const cronjob = CronJob.from({
     try {
       for (let index = 0; index < ids.length; index++) {
         const id = ids[index];
-        await unlinkInstance(id.toBeLinkedMandataris);
         await linkInstances(id.mandataris, id.toBeLinkedMandataris);
       }
       console.log(`Linked ${ids.length} mandatees`);
