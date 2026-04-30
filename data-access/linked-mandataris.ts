@@ -336,7 +336,7 @@ export async function getFractieOfMandatarisInGraph(
           org:memberOf ?orgTTarget ;
           regorg:legalName ?fractieNaam .
       }
-      ?orgTTarget lmb:heeftBestuursperiode ?period .
+      ?orgTTarget lmb:heeftBestuursperiode ?periode .
     }
     LIMIT 1
   `;
