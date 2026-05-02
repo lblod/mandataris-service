@@ -793,7 +793,11 @@ export async function getMandateIdsMissingLink(
       ?gemeenteEenheid besluit:classificatie eenheidClassificatieCode:5ab0e9b8a3b2ca7c5e000001 . # Gemeente 
 
       filter not exists {
-        ?gemeenteEenheid lmb:faciliteitenGemeente "true"^^xsd:boolean .
+        graph <http://mu.semte.ch/graphs/public> {
+          ?gemeenteEenheid lmb:faciliteitenGemeente "true"^^xsd:boolean .
+        } 
+      }
+      filter not exists {
         GRAPH <http://mu.semte.ch/graphs/linkedInstances> {
           ?mandataris ext:linked ?linkedItem .
         }
