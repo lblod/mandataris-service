@@ -759,6 +759,24 @@ export async function getMandateIdsMissingLink(
     batchSize: number | string;
   },
 ): Promise<Array<{ mandataris: string; toBeLinkedMandataris: string }>> {
+  // split because with an optional, the query became too heavy
+  const withEnddate = await getMandatarisIdsMissingLinksWithEndDate(
+    linkedBfCodeAsValuesString,
+    options,
+  );
+  const withoutEnddate = await getMandatarisIdsMissingLinksWithoutEndDate(
+    linkedBfCodeAsValuesString,
+    options,
+  );
+  return [...withEnddate, ...withoutEnddate];
+}
+
+async function getMandatarisIdsMissingLinksWithEndDate(
+  linkedBfCodeAsValuesString: string,
+  options: {
+    batchSize: number | string;
+  },
+) {
   const sparqlResult = await querySudo(`
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX org: <http://www.w3.org/ns/org#>
@@ -787,7 +805,7 @@ export async function getMandateIdsMissingLink(
         ?mandataris mandaat:isBestuurlijkeAliasVan ?persoon .
         ?mandataris mandaat:start ?startMandataris .
         ?gemeenteOrgaanInTijd lmb:heeftBestuursperiode ?period .
-        optional { ?mandataris mandaat:einde ?endMandataris . }
+        ?mandataris mandaat:einde ?endMandataris . 
       }
       ?gemeenteGraph ext:ownedBy ?gemeenteEenheid .
       ?gemeenteEenheid besluit:classificatie eenheidClassificatieCode:5ab0e9b8a3b2ca7c5e000001 . # Gemeente 
@@ -809,7 +827,7 @@ export async function getMandateIdsMissingLink(
         ?linkedMandataris mandaat:isBestuurlijkeAliasVan ?persoon .
         ?linkedMandataris mandaat:start ?startMandataris .
         ?ocmwOrgaanInTijd lmb:heeftBestuursperiode ?period .
-        optional { ?linkedMandataris mandaat:einde ?endLinkedMandataris . }
+        ?linkedMandataris mandaat:einde ?endLinkedMandataris . 
       }
       ?ocmwGraph ext:ownedBy ?ocwmEenheid .
       ?ocwmEenheid besluit:classificatie eenheidClassificatieCode:5ab0e9b8a3b2ca7c5e000002 . # OCMW
@@ -821,7 +839,85 @@ export async function getMandateIdsMissingLink(
         }
       }
 
-      filter ( (!bound(?endMandataris) && !bound(?endLinkedMandataris)) || (?endMandataris = ?endLinkedMandataris) )
+      filter (?endMandataris = ?endLinkedMandataris)
+    } limit ${options.batchSize ?? 0}
+  `);
+  const results = sparqlResult.results.bindings;
+
+  return results.map((binding) => ({
+    mandataris: binding.mandatarisId.value,
+    toBeLinkedMandataris: binding.linkedMandatarisId.value,
+  }));
+}
+
+async function getMandatarisIdsMissingLinksWithoutEndDate(
+  linkedBfCodeAsValuesString: string,
+  options: {
+    batchSize: number | string;
+  },
+) {
+  const sparqlResult = await querySudo(`
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    PREFIX eenheidClassificatieCode: <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/>
+    PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+
+    select distinct ?mandatarisId ?linkedMandatarisId
+    where {
+      values (?bfCode ?linkedBfCode) {
+        ${linkedBfCodeAsValuesString}
+      }
+      graph <http://mu.semte.ch/graphs/public> {
+        ?gemeenteMandaat org:role ?bfCode .
+        ?gemeenteOrgaanInTijd org:hasPost ?gemeenteMandaat .
+
+        ?ocmwMandaat org:role ?linkedBfCode .
+        ?ocmwOrgaanInTijd org:hasPost ?ocmwMandaat .
+      }
+      graph ?gemeenteGraph {
+        ?mandataris org:holds ?gemeenteMandaat .
+        ?mandataris mu:uuid ?mandatarisId .
+        ?mandataris mandaat:isBestuurlijkeAliasVan ?persoon .
+        ?mandataris mandaat:start ?startMandataris .
+        ?gemeenteOrgaanInTijd lmb:heeftBestuursperiode ?period .
+        FILTER NOT EXISTS { ?mandataris mandaat:einde ?endMandataris . }
+      }
+      ?gemeenteGraph ext:ownedBy ?gemeenteEenheid .
+      ?gemeenteEenheid besluit:classificatie eenheidClassificatieCode:5ab0e9b8a3b2ca7c5e000001 . # Gemeente 
+
+      filter not exists {
+        graph <http://mu.semte.ch/graphs/public> {
+          ?gemeenteEenheid lmb:faciliteitenGemeente "true"^^xsd:boolean .
+        } 
+      }
+      filter not exists {
+        GRAPH <http://mu.semte.ch/graphs/linkedInstances> {
+          ?mandataris ext:linked ?linkedItem .
+        }
+      }
+
+      graph ?ocmwGraph {
+        ?linkedMandataris org:holds ?ocmwMandaat .
+        ?linkedMandataris mu:uuid ?linkedMandatarisId .
+        ?linkedMandataris mandaat:isBestuurlijkeAliasVan ?persoon .
+        ?linkedMandataris mandaat:start ?startMandataris .
+        ?ocmwOrgaanInTijd lmb:heeftBestuursperiode ?period .
+        FILTER NOT EXISTS { ?linkedMandataris mandaat:einde ?endLinkedMandataris . }
+      }
+      ?ocmwGraph ext:ownedBy ?ocwmEenheid .
+      ?ocwmEenheid besluit:classificatie eenheidClassificatieCode:5ab0e9b8a3b2ca7c5e000002 . # OCMW
+      ?ocwmEenheid ext:isOCMWVoor ?gemeenteEenheid .
+      
+      filter not exists {
+        graph <http://mu.semte.ch/graphs/linkedInstances> {
+          ?otherMandataris ext:linked ?linkedMandataris .
+        }
+      }
+      
     } limit ${options.batchSize ?? 0}
   `);
   const results = sparqlResult.results.bindings;
