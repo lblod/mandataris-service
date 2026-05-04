@@ -754,6 +754,8 @@ export const createNotificationLinkedReplacementCorrectMistakes = async (
 };
 
 export async function getMandateIdsMissingLink(
+  gemeenteGraph: string,
+  ocmwGraph: string,
   linkedBfCodeAsValuesString: string,
   options: {
     batchSize: number | string;
@@ -761,10 +763,14 @@ export async function getMandateIdsMissingLink(
 ): Promise<Array<{ mandataris: string; toBeLinkedMandataris: string }>> {
   // split because with an optional, the query became too heavy
   const withEnddate = await getMandatarisIdsMissingLinksWithEndDate(
+    gemeenteGraph,
+    ocmwGraph,
     linkedBfCodeAsValuesString,
     options,
   );
   const withoutEnddate = await getMandatarisIdsMissingLinksWithoutEndDate(
+    gemeenteGraph,
+    ocmwGraph,
     linkedBfCodeAsValuesString,
     options,
   );
@@ -772,6 +778,8 @@ export async function getMandateIdsMissingLink(
 }
 
 async function getMandatarisIdsMissingLinksWithEndDate(
+  gemeenteGraph,
+  ocmwGraph,
   linkedBfCodeAsValuesString: string,
   options: {
     batchSize: number | string;
@@ -799,7 +807,7 @@ async function getMandatarisIdsMissingLinksWithEndDate(
         ?ocmwMandaat org:role ?linkedBfCode .
         ?ocmwOrgaanInTijd org:hasPost ?ocmwMandaat .
       }
-      graph ?gemeenteGraph {
+      graph ${sparqlEscapeUri(gemeenteGraph)} {
         ?mandataris org:holds ?gemeenteMandaat .
         ?mandataris mu:uuid ?mandatarisId .
         ?mandataris mandaat:isBestuurlijkeAliasVan ?persoon .
@@ -807,9 +815,7 @@ async function getMandatarisIdsMissingLinksWithEndDate(
         ?gemeenteOrgaanInTijd lmb:heeftBestuursperiode ?period .
         ?mandataris mandaat:einde ?endMandataris . 
       }
-      ?gemeenteGraph ext:ownedBy ?gemeenteEenheid .
-      ?gemeenteEenheid besluit:classificatie eenheidClassificatieCode:5ab0e9b8a3b2ca7c5e000001 . # Gemeente 
-
+      
       filter not exists {
         graph <http://mu.semte.ch/graphs/public> {
           ?gemeenteEenheid lmb:faciliteitenGemeente "true"^^xsd:boolean .
@@ -821,7 +827,7 @@ async function getMandatarisIdsMissingLinksWithEndDate(
         }
       }
 
-      graph ?ocmwGraph {
+      graph ${sparqlEscapeUri(ocmwGraph)} {
         ?linkedMandataris org:holds ?ocmwMandaat .
         ?linkedMandataris mu:uuid ?linkedMandatarisId .
         ?linkedMandataris mandaat:isBestuurlijkeAliasVan ?persoon .
@@ -829,9 +835,6 @@ async function getMandatarisIdsMissingLinksWithEndDate(
         ?ocmwOrgaanInTijd lmb:heeftBestuursperiode ?period .
         ?linkedMandataris mandaat:einde ?endLinkedMandataris . 
       }
-      ?ocmwGraph ext:ownedBy ?ocwmEenheid .
-      ?ocwmEenheid besluit:classificatie eenheidClassificatieCode:5ab0e9b8a3b2ca7c5e000002 . # OCMW
-      ?ocwmEenheid ext:isOCMWVoor ?gemeenteEenheid .
       
       filter not exists {
         graph <http://mu.semte.ch/graphs/linkedInstances> {
@@ -851,6 +854,8 @@ async function getMandatarisIdsMissingLinksWithEndDate(
 }
 
 async function getMandatarisIdsMissingLinksWithoutEndDate(
+  gemeenteGraph,
+  ocmwGraph,
   linkedBfCodeAsValuesString: string,
   options: {
     batchSize: number | string;
@@ -878,7 +883,7 @@ async function getMandatarisIdsMissingLinksWithoutEndDate(
         ?ocmwMandaat org:role ?linkedBfCode .
         ?ocmwOrgaanInTijd org:hasPost ?ocmwMandaat .
       }
-      graph ?gemeenteGraph {
+      graph ${sparqlEscapeUri(gemeenteGraph)} {
         ?mandataris org:holds ?gemeenteMandaat .
         ?mandataris mu:uuid ?mandatarisId .
         ?mandataris mandaat:isBestuurlijkeAliasVan ?persoon .
@@ -886,9 +891,7 @@ async function getMandatarisIdsMissingLinksWithoutEndDate(
         ?gemeenteOrgaanInTijd lmb:heeftBestuursperiode ?period .
         FILTER NOT EXISTS { ?mandataris mandaat:einde ?endMandataris . }
       }
-      ?gemeenteGraph ext:ownedBy ?gemeenteEenheid .
-      ?gemeenteEenheid besluit:classificatie eenheidClassificatieCode:5ab0e9b8a3b2ca7c5e000001 . # Gemeente 
-
+      
       filter not exists {
         graph <http://mu.semte.ch/graphs/public> {
           ?gemeenteEenheid lmb:faciliteitenGemeente "true"^^xsd:boolean .
@@ -900,7 +903,7 @@ async function getMandatarisIdsMissingLinksWithoutEndDate(
         }
       }
 
-      graph ?ocmwGraph {
+      graph ${ocmwGraph} {
         ?linkedMandataris org:holds ?ocmwMandaat .
         ?linkedMandataris mu:uuid ?linkedMandatarisId .
         ?linkedMandataris mandaat:isBestuurlijkeAliasVan ?persoon .
@@ -908,9 +911,6 @@ async function getMandatarisIdsMissingLinksWithoutEndDate(
         ?ocmwOrgaanInTijd lmb:heeftBestuursperiode ?period .
         FILTER NOT EXISTS { ?linkedMandataris mandaat:einde ?endLinkedMandataris . }
       }
-      ?ocmwGraph ext:ownedBy ?ocwmEenheid .
-      ?ocwmEenheid besluit:classificatie eenheidClassificatieCode:5ab0e9b8a3b2ca7c5e000002 . # OCMW
-      ?ocwmEenheid ext:isOCMWVoor ?gemeenteEenheid .
       
       filter not exists {
         graph <http://mu.semte.ch/graphs/linkedInstances> {
