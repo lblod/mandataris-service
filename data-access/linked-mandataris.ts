@@ -903,7 +903,7 @@ async function getMandatarisIdsMissingLinksWithoutEndDate(
         }
       }
 
-      graph ${ocmwGraph} {
+      graph ${sparqlEscapeUri(ocmwGraph)} {
         ?linkedMandataris org:holds ?ocmwMandaat .
         ?linkedMandataris mu:uuid ?linkedMandatarisId .
         ?linkedMandataris mandaat:isBestuurlijkeAliasVan ?persoon .

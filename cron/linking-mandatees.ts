@@ -56,26 +56,31 @@ async function addMissingLinksForAllGraphPairs(
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
 
     SELECT ?gemeenteGraph ?ocmwGraph WHERE {
-      GRAPH ?gemeenteGraph {
-        ?s a mandaat:Mandataris .
-      }
-      GRAPH ?ocmwGraph {
-        ?s a mandaat:Mandataris .
-      }
+    
       ?gemeenteGraph ext:ownedBy ?gemeenteEenheid .
       ?gemeenteEenheid besluit:classificatie eenheidClassificatieCode:5ab0e9b8a3b2ca7c5e000001 . # Gemeente 
       ?ocmwGraph ext:ownedBy ?ocwmEenheid .
       ?ocwmEenheid besluit:classificatie eenheidClassificatieCode:5ab0e9b8a3b2ca7c5e000002 . # OCMW
       ?ocwmEenheid ext:isOCMWVoor ?gemeenteEenheid .
+      FILTER EXISTS {
+        GRAPH ?gemeenteGraph {
+          ?s a mandaat:Mandataris .
+        }
+      }
+      FILTER EXISTS {
+        GRAPH ?ocmwGraph {
+          ?s2 a mandaat:Mandataris .
+        }
+      }
     }`,
   );
   const pairs = getSparqlResults(result);
 
   for (const pair of pairs) {
     await addMissingLinks(
-      linkedBfCodeAsValuesString,
       pair.gemeenteGraph.value,
       pair.ocmwGraph.value,
+      linkedBfCodeAsValuesString,
     );
   }
 }
