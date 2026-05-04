@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "types": ["mu-types"],
-    "lib": ["ES2015"]
+    "types": ["mu-types", "node"],
+    "lib": ["ES2015", "dom"]
   },
   "exclude": ["node_modules", "contract-tests"]
 }

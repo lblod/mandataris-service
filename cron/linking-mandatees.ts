@@ -5,6 +5,8 @@ import {
 } from '../data-access/linked-mandataris';
 import { getLinkedMandatesGemeenteToOcmw } from '../controllers/linked-mandataris';
 import { HttpError } from '../util/http-error';
+import { querySudo } from '@lblod/mu-auth-sudo';
+import { getSparqlResults } from '../util/sparql-result';
 
 const LINKING_MANDATEES_CRON_PATTERN =
   process.env.LINKING_MANDATEES_CRON_PATTERN || '*/4 * * * *'; // Every 4 minutes
@@ -32,22 +34,7 @@ export const cronjob = CronJob.from({
     ===================================================================
     `);
     const linkedBfCodeAsValuesString = getLinkedMandatesGemeenteToOcmw();
-    const ids = await getMandateIdsMissingLink(linkedBfCodeAsValuesString, {
-      batchSize: LINKING_MANDATEES_BATCH_SIZE,
-    });
-
-    try {
-      for (let index = 0; index < ids.length; index++) {
-        const id = ids[index];
-        await linkInstances(id.mandataris, id.toBeLinkedMandataris);
-      }
-      console.log(`Linked ${ids.length} mandatees`);
-    } catch (error) {
-      throw new HttpError(
-        `Something went wrong while creating the link between ${ids.length} mandatees.`,
-        500,
-      );
-    }
+    await addMissingLinksForAllGraphPairs(linkedBfCodeAsValuesString);
 
     console.log(`
     ====================================================================
@@ -57,3 +44,71 @@ export const cronjob = CronJob.from({
     running = false;
   },
 });
+
+async function addMissingLinksForAllGraphPairs(
+  linkedBfCodeAsValuesString: string,
+) {
+  const result = await querySudo(
+    `
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX eenheidClassificatieCode: <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/>
+    PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+
+    SELECT ?gemeenteGraph ?ocmwGraph WHERE {
+    
+      ?gemeenteGraph ext:ownedBy ?gemeenteEenheid .
+      ?gemeenteEenheid besluit:classificatie eenheidClassificatieCode:5ab0e9b8a3b2ca7c5e000001 . # Gemeente 
+      ?ocmwGraph ext:ownedBy ?ocwmEenheid .
+      ?ocwmEenheid besluit:classificatie eenheidClassificatieCode:5ab0e9b8a3b2ca7c5e000002 . # OCMW
+      ?ocwmEenheid ext:isOCMWVoor ?gemeenteEenheid .
+      FILTER EXISTS {
+        GRAPH ?gemeenteGraph {
+          ?s a mandaat:Mandataris .
+        }
+      }
+      FILTER EXISTS {
+        GRAPH ?ocmwGraph {
+          ?s2 a mandaat:Mandataris .
+        }
+      }
+    }`,
+  );
+  const pairs = getSparqlResults(result);
+
+  for (const pair of pairs) {
+    await addMissingLinks(
+      pair.gemeenteGraph.value,
+      pair.ocmwGraph.value,
+      linkedBfCodeAsValuesString,
+    );
+  }
+}
+
+async function addMissingLinks(
+  gemeenteGraph: string,
+  ocmwGraph: string,
+  linkedBfCodeAsValuesString: string,
+) {
+  const ids = await getMandateIdsMissingLink(
+    gemeenteGraph,
+    ocmwGraph,
+    linkedBfCodeAsValuesString,
+    {
+      batchSize: LINKING_MANDATEES_BATCH_SIZE,
+    },
+  );
+
+  try {
+    for (let index = 0; index < ids.length; index++) {
+      const id = ids[index];
+      await linkInstances(id.mandataris, id.toBeLinkedMandataris);
+    }
+    console.log(`Linked ${ids.length} mandatees`);
+  } catch (error) {
+    throw new HttpError(
+      `Something went wrong while creating the link between ${ids.length} mandatees.`,
+      500,
+    );
+  }
+}
