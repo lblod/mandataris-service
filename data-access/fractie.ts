@@ -35,10 +35,12 @@ async function forBestuursperiode(
   const type = onafhankelijk
     ? FRACTIE_TYPE.ONAFHANKELIJK
     : FRACTIE_TYPE.SAMENWERKING;
-  let periodeById = `mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.`;
+  let periodeById = `?bestuursperiode mu:uuid ${sparqlEscapeString(
+    bestuursperiodeId,
+  )}.`;
   if (bestuursperiodeId === ALLE_BESTUURSPERIODE_ID) {
     periodeById = `
-      mu:uuid ?periodId .
+      ?bestuursperiode mu:uuid ?periodId .
       filter (?periodId != ${sparqlEscapeString(OVERIGE_BESTUURSPERIODE_ID)})
     `;
   }
@@ -53,7 +55,7 @@ async function forBestuursperiode(
 
     SELECT DISTINCT ?fractieId
     WHERE {
-      ?bestuursperiode a lmb:Bestuursperiode;
+      ?bestuursperiode a lmb:Bestuursperiode .
       ${periodeById}
       ?bestuursorgaan a besluit:Bestuursorgaan;
         lmb:heeftBestuursperiode ?bestuursperiode.
