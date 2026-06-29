@@ -9,7 +9,11 @@ import { updateSudo, querySudo } from '@lblod/mu-auth-sudo';
 import { v4 as uuidv4 } from 'uuid';
 
 import { getSparqlResults } from '../util/sparql-result';
-import { FRACTIE_TYPE } from '../util/constants';
+import {
+  ALLE_BESTUURSPERIODE_ID,
+  FRACTIE_TYPE,
+  OVERIGE_BESTUURSPERIODE_ID,
+} from '../util/constants';
 import { endOfDay, startOfDay } from '../util/date-manipulation';
 import { TermProperty } from '../types';
 import moment from 'moment';
@@ -31,6 +35,14 @@ async function forBestuursperiode(
   const type = onafhankelijk
     ? FRACTIE_TYPE.ONAFHANKELIJK
     : FRACTIE_TYPE.SAMENWERKING;
+  let periodeById = `mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.`;
+  if (bestuursperiodeId === ALLE_BESTUURSPERIODE_ID) {
+    periodeById = `
+      mu:uuid ?periodId .
+      filter (?periodId != ${sparqlEscapeString(OVERIGE_BESTUURSPERIODE_ID)})
+    `;
+  }
+
   const getQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -42,7 +54,7 @@ async function forBestuursperiode(
     SELECT DISTINCT ?fractieId
     WHERE {
       ?bestuursperiode a lmb:Bestuursperiode;
-        mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
+      ${periodeById}
       ?bestuursorgaan a besluit:Bestuursorgaan;
         lmb:heeftBestuursperiode ?bestuursperiode.
       ?fractie a mandaat:Fractie;
