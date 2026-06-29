@@ -29,20 +29,21 @@ export const fractie = {
 };
 
 async function forBestuursperiode(
-  bestuursperiodeId: string,
+  bestuursperiodeId: string | undefined,
   onafhankelijk,
 ): Promise<Array<TermProperty>> {
   const type = onafhankelijk
     ? FRACTIE_TYPE.ONAFHANKELIJK
     : FRACTIE_TYPE.SAMENWERKING;
-  let periodeById = `?bestuursperiode mu:uuid ${sparqlEscapeString(
-    bestuursperiodeId,
-  )}.`;
-  if (bestuursperiodeId === ALLE_BESTUURSPERIODE_ID) {
-    periodeById = `
+  let periodeById = `
       ?bestuursperiode mu:uuid ?periodId .
       filter (?periodId != ${sparqlEscapeString(OVERIGE_BESTUURSPERIODE_ID)})
     `;
+
+  if (!bestuursperiodeId) {
+    periodeById = `?bestuursperiode mu:uuid ${sparqlEscapeString(
+      bestuursperiodeId,
+    )}.`;
   }
 
   const getQuery = `

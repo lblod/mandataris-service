@@ -1,10 +1,7 @@
 import { query, sparqlEscapeString, sparqlEscapeUri } from 'mu';
 import { getSparqlResults } from '../util/sparql-result';
 import { queryResultToJson } from '../util/json-to-csv';
-import {
-  ALLE_BESTUURSPERIODE_ID,
-  OVERIGE_BESTUURSPERIODE_ID,
-} from '../util/constants';
+import { OVERIGE_BESTUURSPERIODE_ID } from '../util/constants';
 
 export const downloadMandatarissen = {
   getUrisForFilters,
@@ -60,14 +57,15 @@ async function getUrisForFilters(filters) {
       ?bestuursfunctieCode mu:uuid ?functieCode.
     `;
   }
-  let periodeById = `?bestuursperiode mu:uuid ${sparqlEscapeString(
-    bestuursperiodeId,
-  )}.`;
-  if (bestuursperiodeId === ALLE_BESTUURSPERIODE_ID) {
-    periodeById = `
-        ?bestuursperiode mu:uuid ?periodId .
-        filter (?periodId != ${sparqlEscapeString(OVERIGE_BESTUURSPERIODE_ID)})
-      `;
+  let periodeById = `
+      ?bestuursperiode mu:uuid ?periodId .
+      filter (?periodId != ${sparqlEscapeString(OVERIGE_BESTUURSPERIODE_ID)})
+    `;
+
+  if (bestuursperiodeId) {
+    periodeById = `?bestuursperiode mu:uuid ${sparqlEscapeString(
+      bestuursperiodeId,
+    )}.`;
   }
 
   const queryString = `

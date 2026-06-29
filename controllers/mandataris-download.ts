@@ -36,14 +36,16 @@ async function validateQueryParams(queryParams) {
     fractieIds,
     bestuursFunctieCodeIds,
   } = queryParams;
-  const isBestuursperiode = await areIdsValid(RDF_TYPE.BESTUURSPERIODE, [
-    bestuursperiodeId,
-  ]);
-  if (!isBestuursperiode) {
-    throw new HttpError(
-      `Bestuursperiode with id ${bestuursperiodeId} not found.`,
-      STATUS_CODE.BAD_REQUEST,
-    );
+  if (bestuursperiodeId) {
+    const isBestuursperiode = await areIdsValid(RDF_TYPE.BESTUURSPERIODE, [
+      bestuursperiodeId,
+    ]);
+    if (!isBestuursperiode) {
+      throw new HttpError(
+        `Bestuursperiode with id ${bestuursperiodeId} not found.`,
+        STATUS_CODE.BAD_REQUEST,
+      );
+    }
   }
 
   if (bestuursorgaanId) {

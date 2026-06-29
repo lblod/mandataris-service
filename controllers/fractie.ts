@@ -12,19 +12,9 @@ export const fractieUsecase = {
 };
 
 async function forBestuursperiode(
-  bestuursperiodeId: string,
+  bestuursperiodeId: string | undefined,
   onafhankelijk,
 ): Promise<Array<string>> {
-  const isBestuursperiode = await areIdsValid(RDF_TYPE.BESTUURSPERIODE, [
-    bestuursperiodeId,
-  ]);
-  if (!isBestuursperiode) {
-    throw new HttpError(
-      `Bestuursperiode with id ${bestuursperiodeId} not found.`,
-      STATUS_CODE.BAD_REQUEST,
-    );
-  }
-
   const fractieResult = await fractie.forBestuursperiode(
     bestuursperiodeId,
     onafhankelijk,

@@ -51,4 +51,3 @@ export const PUBLIC_GRAPH_URI =
 
 export const OVERIGE_BESTUURSPERIODE_ID =
   '9486222f-2696-4811-bde1-fef9dc4b5f68';
-export const ALLE_BESTUURSPERIODE_ID = '3faeb4c3-c4d7-47ea-b449-61579092a200';
