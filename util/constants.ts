@@ -48,6 +48,3 @@ export const AANGEWEZEN_BURGEMEESTER_FUNCTIE_CODE =
 
 export const PUBLIC_GRAPH_URI =
   process.env.PUBLIC_GRAPH_URI || 'http://mu.semte.ch/graphs/public';
-
-export const OVERIGE_BESTUURSPERIODE_ID =
-  '9486222f-2696-4811-bde1-fef9dc4b5f68';

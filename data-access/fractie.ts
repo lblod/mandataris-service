@@ -9,11 +9,7 @@ import { updateSudo, querySudo } from '@lblod/mu-auth-sudo';
 import { v4 as uuidv4 } from 'uuid';
 
 import { getSparqlResults } from '../util/sparql-result';
-import {
-  ALLE_BESTUURSPERIODE_ID,
-  FRACTIE_TYPE,
-  OVERIGE_BESTUURSPERIODE_ID,
-} from '../util/constants';
+import { FRACTIE_TYPE } from '../util/constants';
 import { endOfDay, startOfDay } from '../util/date-manipulation';
 import { TermProperty } from '../types';
 import moment from 'moment';
@@ -35,11 +31,8 @@ async function forBestuursperiode(
   const type = onafhankelijk
     ? FRACTIE_TYPE.ONAFHANKELIJK
     : FRACTIE_TYPE.SAMENWERKING;
-  let periodeById = `
-      ?bestuursperiode mu:uuid ?periodId .
-      filter (?periodId != ${sparqlEscapeString(OVERIGE_BESTUURSPERIODE_ID)})
-    `;
 
+  let periodeById = '?bestuursperiode mu:uuid ?periodId .';
   if (!bestuursperiodeId) {
     periodeById = `?bestuursperiode mu:uuid ${sparqlEscapeString(
       bestuursperiodeId,
