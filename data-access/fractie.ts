@@ -25,12 +25,20 @@ export const fractie = {
 };
 
 async function forBestuursperiode(
-  bestuursperiodeId: string,
+  bestuursperiodeId: string | undefined,
   onafhankelijk,
 ): Promise<Array<TermProperty>> {
   const type = onafhankelijk
     ? FRACTIE_TYPE.ONAFHANKELIJK
     : FRACTIE_TYPE.SAMENWERKING;
+
+  let periodeById = '?bestuursperiode mu:uuid ?periodId .';
+  if (!bestuursperiodeId) {
+    periodeById = `?bestuursperiode mu:uuid ${sparqlEscapeString(
+      bestuursperiodeId,
+    )}.`;
+  }
+
   const getQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -41,8 +49,8 @@ async function forBestuursperiode(
 
     SELECT DISTINCT ?fractieId
     WHERE {
-      ?bestuursperiode a lmb:Bestuursperiode;
-        mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
+      ?bestuursperiode a lmb:Bestuursperiode .
+      ${periodeById}
       ?bestuursorgaan a besluit:Bestuursorgaan;
         lmb:heeftBestuursperiode ?bestuursperiode.
       ?fractie a mandaat:Fractie;

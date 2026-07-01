@@ -57,6 +57,13 @@ async function getUrisForFilters(filters) {
     `;
   }
 
+  let periodeById = '?bestuursperiode mu:uuid ?periodId .';
+  if (bestuursperiodeId) {
+    periodeById = `?bestuursperiode mu:uuid ${sparqlEscapeString(
+      bestuursperiodeId,
+    )}.`;
+  }
+
   const queryString = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -73,7 +80,7 @@ async function getUrisForFilters(filters) {
       ?mandataris org:holds ?mandaat.
 
       ?bestuursorgaan lmb:heeftBestuursperiode ?bestuursperiode.
-      ?bestuursperiode mu:uuid ${sparqlEscapeString(bestuursperiodeId)}.
+      ${periodeById}
 
       ${bestuursorgaanInTijdFilter ?? ''}
       ${onlyActiveFilter ?? ''}
