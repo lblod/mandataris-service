@@ -180,10 +180,10 @@ export async function createOnafhankelijkeFractie(mandateUris: string[]) {
 }
 
 export const findMandatesByName = async (row: CSVRow) => {
-  const { mandateName, startDateTime, endDateTime, fractieName } = row.data;
-  const from = sparqlEscapeDateTime(startDateTime);
-  const to = endDateTime
-    ? sparqlEscapeDateTime(endDateTime)
+  const { mandateName, orgName, fractieName } = row.data;
+  const from = sparqlEscapeDateTime(row.data.startDateTime);
+  const to = row.data.endDateTime
+    ? sparqlEscapeDateTime(row.data.endDateTime)
     : sparqlEscapeDateTime(new Date('3000-01-01'));
   const safeFractionName = fractieName
     ? sparqlEscapeString(fractieName)
@@ -206,6 +206,8 @@ export const findMandatesByName = async (row: CSVRow) => {
     ?mandate a mandaat:Mandaat ;
     ^org:hasPost ?orgaanInTijd ;
         org:role / skos:prefLabel ${sparqlEscapeString(mandateName)} .
+    ?orgaanInTijd mandaat:isTijdspecialisatieVan ?orgaan .
+    ?orgaan skos:prefLabel ${sparqlEscapeString(orgName)} .
     ?orgaanInTijd mandaat:bindingStart ?start .
     OPTIONAL {
       ?orgaanInTijd mandaat:bindingEinde ?end .
