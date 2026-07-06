@@ -13,6 +13,7 @@ export type CSVRow = {
     firstName: string;
     lastName: string;
     mandateName: string;
+    orgName: string;
     startDateTime: string;
     endDateTime: string | null;
     fractieName: string | null;

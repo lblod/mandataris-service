@@ -179,43 +179,7 @@ export async function createOnafhankelijkeFractie(mandateUris: string[]) {
   return uri;
 }
 
-export const findGraphAndMandates = async (row: CSVRow) => {
-  const mandates = await findMandatesByName(row);
-
-  if (mandates.length === 0) {
-    return { mandates: [], graph: null };
-  }
-
-  const q = `
-  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-  PREFIX org: <http://www.w3.org/ns/org#>
-  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-  PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
-
-  SELECT ?g ?mandate WHERE {
-    ?g ext:ownedBy ?eenheid .
-
-    ?mandate a mandaat:Mandaat .
-    VALUES ?mandate {
-      ${sparqlEscapeUri(mandates[0].mandateUri)}
-    }
-    ?org ^mandaat:isTijdspecialisatieVan / org:hasPost ?mandate .
-    ?org besluit:bestuurt ?eenheid .
-
-  } LIMIT 1`;
-  const result = await querySudo(q);
-  if (!result.results.bindings.length) {
-    return { mandates: [], graph: null };
-  }
-
-  return {
-    graph: result.results.bindings[0].g.value as string,
-    mandates: mandates,
-  };
-};
-
-const findMandatesByName = async (row: CSVRow) => {
+export const findMandatesByName = async (row: CSVRow) => {
   const { mandateName, startDateTime, endDateTime, fractieName } = row.data;
   const from = sparqlEscapeDateTime(startDateTime);
   const to = endDateTime
