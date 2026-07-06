@@ -75,6 +75,7 @@ const validateHeaders = (row: CSVRow): Map<string, number> => {
     'mandateName',
     'startDateTime',
     'endDateTime',
+    'orgName',
     'fractieName',
     'rangordeString',
     'beleidsdomeinNames',
@@ -135,6 +136,7 @@ const hasMissingRequiredColumns = (
     'firstName',
     'lastName',
     'mandateName',
+    'orgName',
     'startDateTime',
   ];
   let hasMissingData = false;

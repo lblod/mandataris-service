@@ -216,11 +216,12 @@ export const findGraphAndMandates = async (row: CSVRow) => {
 };
 
 const findMandatesByName = async (row: CSVRow) => {
-  const { mandateName, startDateTime, endDateTime, fractieName } = row.data;
-  const from = sparqlEscapeDateTime(startDateTime);
+  const { mandateName, startDateTime, endDateTime, fractieName, orgName } =
+    row.data;
+  const from = sparqlEscapeString(moment(startDateTime).toDate().toISOString());
   const to = endDateTime
-    ? sparqlEscapeDateTime(endDateTime)
-    : sparqlEscapeDateTime(new Date('3000-01-01'));
+    ? sparqlEscapeString(moment(endDateTime).toDate().toISOString())
+    : sparqlEscapeString(new Date('3000-01-01').toISOString());
   const safeFractionName = fractieName
     ? sparqlEscapeString(fractieName)
     : 'mu:doesNotExist';
@@ -242,6 +243,7 @@ const findMandatesByName = async (row: CSVRow) => {
     ?mandate a mandaat:Mandaat ;
     ^org:hasPost ?orgaanInTijd ;
         org:role / skos:prefLabel ${sparqlEscapeString(mandateName)} .
+    ?orgaanInTijd mandaat:isTijdspecialisatieVan / skos:prefLabel ${sparqlEscapeString(orgName)} .
     ?orgaanInTijd mandaat:bindingStart ?start .
     OPTIONAL {
       ?orgaanInTijd mandaat:bindingEinde ?end .
@@ -251,9 +253,9 @@ const findMandatesByName = async (row: CSVRow) => {
       ${fractionFilter}
     }
     BIND(IF(BOUND(?end), ?end,  "3000-01-01T12:00:00.000Z"^^xsd:dateTime) as ?safeEnd)
-    FILTER ((?start <= ${from} && ${from} <= ?safeEnd) ||
-            (?start <= ${to} && ${to} <= ?safeEnd) ||
-            (${from} <= ?start && ?safeEnd <= ${to}))
+    FILTER ((STR(?start) <= ${from} && ${from} <= STR(?safeEnd)) ||
+            (STR(?start) <= ${to} && ${to} <= STR(?safeEnd)) ||
+            (${from} <= STR(?start) && STR(?safeEnd) <= ${to}))
   }`;
   const result = await query(q);
   if (!result.results.bindings.length) {
