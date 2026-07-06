@@ -6,7 +6,7 @@ import { Parser, parse } from 'csv-parse';
 import {
   createMandatarisInstance,
   createOnafhankelijkeFractie,
-  findGraphAndMandates,
+  findMandatesByName,
   findOnafhankelijkeFractieForPerson,
   validateNoOverlappingMandate,
 } from '../data-access/mandataris';
@@ -73,6 +73,7 @@ const validateHeaders = (row: CSVRow): Map<string, number> => {
     'firstName',
     'lastName',
     'mandateName',
+    'orgName',
     'startDateTime',
     'endDateTime',
     'fractieName',
@@ -102,8 +103,8 @@ const processData = async (row: CSVRow, uploadState: CsvUploadState) => {
     return;
   }
   await increaseBeleidsdomeinMapping(row, uploadState);
-  const { mandates, graph } = await findGraphAndMandates(row);
-  if (!graph || !mandates) {
+  const mandates = await findMandatesByName(row);
+  if (!mandates || mandates.length === 0) {
     // this means that our user possibly does not have access to the mandate
     uploadState.errors.push(
       `[line ${row.lineNumber}] No mandate found name ${data['mandateName']}`,
@@ -117,13 +118,7 @@ const processData = async (row: CSVRow, uploadState: CsvUploadState) => {
   if (await invalidFraction(row, mandates, uploadState, persoon.uri)) {
     return;
   }
-  await createMandatarisInstances(
-    row,
-    persoon.uri,
-    mandates,
-    graph,
-    uploadState,
-  );
+  await createMandatarisInstances(row, persoon.uri, mandates, uploadState);
 };
 
 const hasMissingRequiredColumns = (
@@ -135,6 +130,7 @@ const hasMissingRequiredColumns = (
     'firstName',
     'lastName',
     'mandateName',
+    'orgName',
     'startDateTime',
   ];
   let hasMissingData = false;
@@ -175,7 +171,6 @@ const createMandatarisInstances = async (
   row: CSVRow,
   persoonUri: string,
   mandates: MandateHit[],
-  graph: string,
   uploadState: CsvUploadState,
 ) => {
   const { startDateTime, endDateTime, rangordeString, beleidsdomeinNames } =
