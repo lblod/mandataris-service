@@ -217,8 +217,11 @@ export const findMandatesByName = async (row: CSVRow) => {
       ?orgaanInTijd mandaat:bindingEinde ?end .
     }
     OPTIONAL {
-      ?orgaanInTijd ^org:memberOf ?fraction .
-      ${fractionFilter}
+      GRAPH ?fg {
+        ?orgaanInTijd ^org:memberOf ?fraction .
+        ${fractionFilter}
+      }
+      ?fg ext:ownedBy ?bestuursEenheid .
     }
     BIND(IF(BOUND(?end), ?end,  "3000-01-01T12:00:00.000Z"^^xsd:dateTime) as ?safeEnd)
     FILTER ((?start <= ${from} && ${from} <= ?safeEnd) ||
