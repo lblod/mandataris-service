@@ -181,10 +181,14 @@ export async function createOnafhankelijkeFractie(mandateUris: string[]) {
 
 export const findMandatesByName = async (row: CSVRow) => {
   const { mandateName, orgName, fractieName } = row.data;
-  const from = sparqlEscapeDateTime(row.data.startDateTime);
-  const to = row.data.endDateTime
-    ? sparqlEscapeDateTime(row.data.endDateTime)
-    : sparqlEscapeDateTime(new Date('3000-01-01'));
+  const from = sparqlEscapeDateTime(
+    startOfDay(moment(row.data.startDate, 'DD-MM-YYYY', true).toDate()),
+  );
+  const to = row.data.endDate
+    ? sparqlEscapeDateTime(
+      endOfDay(moment(row.data.endDate, 'DD-MM-YYYY', true).toDate()),
+    )
+    : sparqlEscapeDateTime(endOfDay(new Date('3000-01-01')));
   const safeFractionName = fractieName
     ? sparqlEscapeString(fractieName)
     : 'mu:doesNotExist';
@@ -242,8 +246,8 @@ export const findMandatesByName = async (row: CSVRow) => {
 export const createMandatarisInstance = async (
   persoonUri: string,
   mandate: MandateHit,
-  startDateTime: string,
-  endDateTime: string | null,
+  startDate: string,
+  endDate: string | null,
   rangordeString: string | null,
   beleidsdomeinNames: string | null,
   uploadState: CsvUploadState,
@@ -259,16 +263,16 @@ export const createMandatarisInstance = async (
   // the start of this mandataris is the minimum of the beleidsorgaan start date
   // and the start date from the excel, as we will create one for every overlapping mandate we found
   const mandatarisStart = moment
-    .max(moment(startDateTime), moment(mandate.start))
-    .toISOString();
-  let mandatarisEnd = moment(mandate.end).toISOString();
-  if (endDateTime) {
+    .max(moment(startDate), moment(mandate.start))
+    .toDate();
+  let mandatarisEnd = moment(mandate.end).toDate();
+  if (endDate) {
     if (mandate.end) {
       mandatarisEnd = moment
-        .min(moment(endDateTime), moment(mandate.end))
-        .toISOString();
+        .min(moment(endDate, 'DD-MM-YYYY', true), moment(mandate.end))
+        .toDate();
     } else {
-      mandatarisEnd = moment(endDateTime).toISOString();
+      mandatarisEnd = moment(endDate, 'DD-MM-YYYY', true).toDate();
     }
   }
 
@@ -312,7 +316,6 @@ export const createMandatarisInstance = async (
   PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
   INSERT DATA {
-    GRAPH <http://mu.semte.ch/graphs/application> {
       ${safeUri} a mandaat:Mandataris ;
         mu:uuid ${sparqlEscapeString(uuid)} ;
         mandaat:isBestuurlijkeAliasVan ${sparqlEscapeUri(persoonUri)} ;
@@ -328,7 +331,6 @@ export const createMandatarisInstance = async (
         lmb:hasPublicationStatus mps:9d8fd14d-95d0-4f5e-b3a5-a56a126227b6 .
 
         ${membershipTriples}
-    }
   }`;
 
   await query(q);
