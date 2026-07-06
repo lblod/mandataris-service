@@ -74,8 +74,8 @@ const validateHeaders = (row: CSVRow): Map<string, number> => {
     'lastName',
     'mandateName',
     'orgName',
-    'startDateTime',
-    'endDateTime',
+    'startDate',
+    'endDate',
     'fractieName',
     'rangordeString',
     'beleidsdomeinNames',
@@ -131,7 +131,7 @@ const hasMissingRequiredColumns = (
     'lastName',
     'mandateName',
     'orgName',
-    'startDateTime',
+    'startDate',
   ];
   let hasMissingData = false;
   required.forEach((elem) => {
@@ -173,8 +173,7 @@ const createMandatarisInstances = async (
   mandates: MandateHit[],
   uploadState: CsvUploadState,
 ) => {
-  const { startDateTime, endDateTime, rangordeString, beleidsdomeinNames } =
-    row.data;
+  const { startDate, endDate, rangordeString, beleidsdomeinNames } = row.data;
   const hasOverlappingMandate = await validateNoOverlappingMandate(
     row,
     persoonUri,
@@ -188,8 +187,8 @@ const createMandatarisInstances = async (
     return createMandatarisInstance(
       persoonUri,
       mandate,
-      startDateTime,
-      endDateTime,
+      startDate,
+      endDate,
       rangordeString,
       beleidsdomeinNames,
       uploadState,

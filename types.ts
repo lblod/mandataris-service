@@ -14,8 +14,8 @@ export type CSVRow = {
     lastName: string;
     mandateName: string;
     orgName: string;
-    startDateTime: string;
-    endDateTime: string | null;
+    startDate: string;
+    endDate: string | null;
     fractieName: string | null;
     rangordeString: string | null;
     beleidsdomeinNames: string | null;
