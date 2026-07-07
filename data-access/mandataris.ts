@@ -181,19 +181,23 @@ export async function createOnafhankelijkeFractie(mandateUris: string[]) {
 
 export const findMandatesByName = async (row: CSVRow) => {
   const { mandateName, orgName, fractieName } = row.data;
-  const from = sparqlEscapeDateTime(
-    startOfDay(moment(row.data.startDate, 'DD-MM-YYYY', true).toDate()),
-  );
-  const to = row.data.endDate
-    ? sparqlEscapeDateTime(
-      endOfDay(moment(row.data.endDate, 'DD-MM-YYYY', true).toDate()),
-    )
-    : sparqlEscapeDateTime(endOfDay(new Date('3000-01-01')));
-  const safeFractionName = fractieName
-    ? sparqlEscapeString(fractieName)
-    : 'mu:doesNotExist';
 
-  let fractionFilter = `?fraction regorg:legalName ${safeFractionName} .`;
+  const momentStart = moment(row.data.startDate, 'DD-MM-YYYY', true).toDate();
+  const momentEnd = moment(row.data.endDate, 'DD-MM-YYYY', true).toDate();
+  const safeEnd = moment('01-01-3000', 'DD-MM-YYYY', true).toDate();
+
+  const from = sparqlEscapeString(startOfDay(momentStart, true)?.toISOString());
+  let to = sparqlEscapeString(endOfDay(safeEnd)?.toISOString());
+  if (row.data.endDate) {
+    to = sparqlEscapeString(endOfDay(momentEnd, true)?.toISOString());
+  }
+
+  let fractieLabel = 'mu:doesNotExist';
+  if (fractieName) {
+    fractieLabel = sparqlEscapeString(fractieName);
+  }
+
+  let fractionFilter = `?fraction regorg:legalName ${fractieLabel} .`;
   if (!fractieName || fractieName.toLowerCase() === 'onafhankelijk') {
     // in case of onafhankelijk, don't fetch the fractions, there will be many different matches
     fractionFilter = '?fraction ext:doesNotExist ext:doesNotExist . ';
@@ -207,9 +211,10 @@ export const findMandatesByName = async (row: CSVRow) => {
   PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
   SELECT DISTINCT ?mandate ?fraction ?start ?end WHERE {
-    ?mandate a mandaat:Mandaat ;
-    ^org:hasPost ?orgaanInTijd ;
-        org:role / skos:prefLabel ${sparqlEscapeString(mandateName)} .
+    ?mandate a mandaat:Mandaat .
+    ?mandate ^org:hasPost ?orgaanInTijd .
+    ?mandate org:role / skos:prefLabel ${sparqlEscapeString(mandateName)} .
+
     ?orgaanInTijd mandaat:isTijdspecialisatieVan ?orgaan .
     ?orgaan skos:prefLabel ${sparqlEscapeString(orgName)} .
     ?orgaanInTijd mandaat:bindingStart ?start .
@@ -223,10 +228,14 @@ export const findMandatesByName = async (row: CSVRow) => {
       }
       ?fg ext:ownedBy ?bestuursEenheid .
     }
-    BIND(IF(BOUND(?end), ?end,  "3000-01-01T12:00:00.000Z"^^xsd:dateTime) as ?safeEnd)
-    FILTER ((?start <= ${from} && ${from} <= ?safeEnd) ||
-            (?start <= ${to} && ${to} <= ?safeEnd) ||
-            (${from} <= ?start && ?safeEnd <= ${to}))
+    BIND(STR(
+      IF(BOUND(?end), ?end, ${sparqlEscapeString(safeEnd.toISOString())})
+    ) as ?safeEnd)
+    FILTER (
+      (STR(?start) <= ${from} && ${from} <= ?safeEnd) ||
+      (STR(?start) <= ${to} && ${to} <= ?safeEnd) ||
+      (${from} <= STR(?start) && ?safeEnd <= ${to})
+    )
   }`;
   const result = await query(q);
   if (!result.results.bindings.length) {
