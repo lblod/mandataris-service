@@ -179,7 +179,10 @@ export async function createOnafhankelijkeFractie(mandateUris: string[]) {
   return uri;
 }
 
-export const findMandatesByName = async (row: CSVRow) => {
+export const findMandatesByName = async (
+  row: CSVRow,
+  bestuurseenheidUri: string,
+) => {
   const { mandateName, orgName, fractieName } = row.data;
 
   const momentStart = moment(row.data.startDate, 'DD-MM-YYYY', true).toDate();
@@ -198,11 +201,11 @@ export const findMandatesByName = async (row: CSVRow) => {
   }
 
   let fractionFilter = `
-    GRAPH ?fg {
+    GRAPH ?orgGraph {
       ?orgaanInTijd ^org:memberOf ?fraction .
         ?fraction regorg:legalName ${fractieLabel} .
     }
-    ?fg ext:ownedBy ?bestuursEenheid .
+    ?orgGraph ext:ownedBy ?bestuursEenheid .
   `;
   if (!fractieName || fractieName.toLowerCase() === 'onafhankelijk') {
     fractionFilter = '';
@@ -214,8 +217,12 @@ export const findMandatesByName = async (row: CSVRow) => {
   PREFIX org: <http://www.w3.org/ns/org#>
   PREFIX regorg: <https://www.w3.org/ns/regorg#>
   PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+  PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
-  SELECT DISTINCT ?mandate ?fraction ?start ?end WHERE {
+  SELECT DISTINCT ?mandate ?fraction ?start ?end
+  WHERE {
+    VALUES ?bestuurseenheid { ${sparqlEscapeUri(bestuurseenheidUri)} }
+
     ?mandate a mandaat:Mandaat .
     ?mandate ^org:hasPost ?orgaanInTijd .
     ?mandate org:role / skos:prefLabel ${sparqlEscapeString(mandateName)} .
@@ -223,10 +230,14 @@ export const findMandatesByName = async (row: CSVRow) => {
     ?orgaanInTijd mandaat:isTijdspecialisatieVan ?orgaan .
     ?orgaan skos:prefLabel ${sparqlEscapeString(orgName)} .
     ?orgaanInTijd mandaat:bindingStart ?start .
+    graph ?orgGraph {
+      ?orgaanInTijd lmb:heeftBestuursperiode ?periode.
+    }
+    ?orgGraph ext:ownedBy ?bestuursEenheid .
+
     OPTIONAL {
       ?orgaanInTijd mandaat:bindingEinde ?end .
     }
-    ${fractionFilter}
     BIND(STR(
       IF(BOUND(?end), ?end, ${sparqlEscapeString(safeEnd.toISOString())})
     ) as ?safeEnd)
@@ -235,6 +246,8 @@ export const findMandatesByName = async (row: CSVRow) => {
       (STR(?start) <= ${to} && ${to} <= ?safeEnd) ||
       (${from} <= STR(?start) && ?safeEnd <= ${to})
     )
+
+    ${fractionFilter}
   }`;
   const result = await query(q);
   if (!result.results.bindings.length) {
