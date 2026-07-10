@@ -197,10 +197,15 @@ export const findMandatesByName = async (row: CSVRow) => {
     fractieLabel = sparqlEscapeString(fractieName);
   }
 
-  let fractionFilter = `?fraction regorg:legalName ${fractieLabel} .`;
+  let fractionFilter = `
+    GRAPH ?fg {
+      ?orgaanInTijd ^org:memberOf ?fraction .
+        ?fraction regorg:legalName ${fractieLabel} .
+    }
+    ?fg ext:ownedBy ?bestuursEenheid .
+  `;
   if (!fractieName || fractieName.toLowerCase() === 'onafhankelijk') {
-    // in case of onafhankelijk, don't fetch the fractions, there will be many different matches
-    fractionFilter = '?fraction ext:doesNotExist ext:doesNotExist . ';
+    fractionFilter = '';
   }
 
   const q = `
@@ -221,13 +226,7 @@ export const findMandatesByName = async (row: CSVRow) => {
     OPTIONAL {
       ?orgaanInTijd mandaat:bindingEinde ?end .
     }
-    OPTIONAL {
-      GRAPH ?fg {
-        ?orgaanInTijd ^org:memberOf ?fraction .
-        ${fractionFilter}
-      }
-      ?fg ext:ownedBy ?bestuursEenheid .
-    }
+    ${fractionFilter}
     BIND(STR(
       IF(BOUND(?end), ?end, ${sparqlEscapeString(safeEnd.toISOString())})
     ) as ?safeEnd)
