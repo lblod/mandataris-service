@@ -185,14 +185,15 @@ export const findMandatesByName = async (
 ) => {
   const { mandateName, orgName, fractieName } = row.data;
 
-  const momentStart = moment(row.data.startDate, 'DD-MM-YYYY', true).toDate();
-  const momentEnd = moment(row.data.endDate, 'DD-MM-YYYY', true).toDate();
-  const safeEnd = moment('01-01-3000', 'DD-MM-YYYY', true).toDate();
+  const momentStart = moment(row.data.startDate, 'DD-MM-YYYY', true);
+  const from = sparqlEscapeString(momentStart.format('YYYY-MM-DD'));
+  const safeEnd = moment('01-01-3000', 'DD-MM-YYYY', true).format('YYYY-MM-DD');
 
-  const from = sparqlEscapeString(startOfDay(momentStart, true)?.toISOString());
-  let to = sparqlEscapeString(endOfDay(safeEnd)?.toISOString());
+  let endDateCondition = '';
   if (row.data.endDate) {
-    to = sparqlEscapeString(endOfDay(momentEnd, true)?.toISOString());
+    const momentEnd = moment(row.data.endDate, 'DD-MM-YYYY', true);
+    const to = sparqlEscapeString(momentEnd.format('YYYY-MM-DD'));
+    endDateCondition = `&& substr(str(?safeEndOrgaanDate), 1, 10) >= ${to}`;
   }
 
   let fractieLabel = 'mu:doesNotExist';
@@ -201,64 +202,74 @@ export const findMandatesByName = async (
   }
 
   let fractionFilter = `
-    GRAPH ?orgGraph {
-      ?orgaanInTijd ^org:memberOf ?fraction .
-        ?fraction regorg:legalName ${fractieLabel} .
-    }
-    ?orgGraph ext:ownedBy ?bestuursEenheid .
+    ?otherOrgaanIT lmb:heeftBestuursperiode ?period .
+    ?fractie org:memberOf ?otherOrgaanIT .
+    ?fractie regorg:legalName ${fractieLabel} .
   `;
   if (!fractieName || fractieName.toLowerCase() === 'onafhankelijk') {
     fractionFilter = '';
   }
 
   const q = `
-  PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-  PREFIX org: <http://www.w3.org/ns/org#>
-  PREFIX regorg: <https://www.w3.org/ns/regorg#>
-  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-  PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+    prefix mu: <http://mu.semte.ch/vocabularies/core/>
+    prefix skos: <http://www.w3.org/2004/02/skos/core#>
+    prefix mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    prefix org: <http://www.w3.org/ns/org#>
+    prefix regorg: <https://www.w3.org/ns/regorg#>
+    prefix ext: <http://mu.semte.ch/vocabularies/ext/>
+    prefix lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
-  SELECT DISTINCT ?mandate ?fraction ?start ?end
-  WHERE {
-    VALUES ?bestuurseenheid { ${sparqlEscapeUri(bestuurseenheidUri)} }
+    select distinct ?mandaat ?fractie ?startOrgaanDate ?endOrgaanDate
+    where {
+      values (?csvStartDate ?organization ?mandaatLabel ?orgaanLabel) {
+        (
+          ${from}
+          ${sparqlEscapeUri(bestuurseenheidUri)}
+          ${sparqlEscapeString(mandateName)}
+          ${sparqlEscapeString(orgName)}
+        )
+      }
+      ?period lmb:startYear ?startYearPeriod .
+      ?orgaanIT lmb:heeftBestuursperiode ?period .
+      ?orgaanIT mandaat:bindingStart ?startOrgaanDate .
+      filter(strstarts(str(?startOrgaanDate), str(?startYearPeriod)))
 
-    ?mandate a mandaat:Mandaat .
-    ?mandate ^org:hasPost ?orgaanInTijd .
-    ?mandate org:role / skos:prefLabel ${sparqlEscapeString(mandateName)} .
+      optional {
+        ?orgaanIT mandaat:bindingEinde ?endOrgaanDate .
+      }
+      bind(str(
+        if(
+          bound(?endOrgaanDate),
+          ?endOrgaanDate,
+          ${safeEnd}
+          )
+        ) as ?safeEndOrgaanDate)
+      filter(
+        substr(str(?startOrgaanDate), 1, 10) <= ?csvStartDate
+        && substr(str(?safeEndOrgaanDate), 1, 10) >= ?csvStartDate
+        ${endDateCondition}
+        )
+      ?mandaat ^org:hasPost ?orgaanIT .
+      ?mandaat org:role / skos:prefLabel ?mandaatLabel .
 
-    ?orgaanInTijd mandaat:isTijdspecialisatieVan ?orgaan .
-    ?orgaan skos:prefLabel ${sparqlEscapeString(orgName)} .
-    ?orgaanInTijd mandaat:bindingStart ?start .
-    graph ?orgGraph {
-      ?orgaanInTijd lmb:heeftBestuursperiode ?periode.
+      ?orgGraph ext:ownedBy ?organization .
+      graph ?orgGraph {
+        ?orgaanIT mandaat:isTijdspecialisatieVan ?orgaan .
+        ?orgaan skos:prefLabel ?orgaanLabel .
+        ${fractionFilter}
+      }
     }
-    ?orgGraph ext:ownedBy ?bestuursEenheid .
-
-    OPTIONAL {
-      ?orgaanInTijd mandaat:bindingEinde ?end .
-    }
-    BIND(STR(
-      IF(BOUND(?end), ?end, ${sparqlEscapeString(safeEnd.toISOString())})
-    ) as ?safeEnd)
-    FILTER (
-      (STR(?start) <= ${from} && ${from} <= ?safeEnd) ||
-      (STR(?start) <= ${to} && ${to} <= ?safeEnd) ||
-      (${from} <= STR(?start) && ?safeEnd <= ${to})
-    )
-
-    ${fractionFilter}
-  }`;
+  `;
   const result = await query(q);
   if (!result.results.bindings.length) {
     return [];
   }
   const items: MandateHit[] = result.results.bindings.map((binding) => {
     return {
-      mandateUri: binding.mandate.value,
-      fractionUri: binding.fraction?.value,
-      start: binding.start.value,
-      end: binding.end?.value,
+      mandateUri: binding.mandaat.value,
+      fractionUri: binding.fractie?.value,
+      start: binding.startOrgaanDate.value,
+      end: binding.endOrgaanDate?.value,
     };
   });
   items.sort((a, b) => {
