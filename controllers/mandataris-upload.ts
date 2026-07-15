@@ -116,7 +116,11 @@ const validateHeaders = (row: CSVRow): Map<string, number> => {
   return headers;
 };
 
-const processData = async (row: CSVRow, uploadState: CsvUploadState, bestuurseenheidUri: string) => {
+const processData = async (
+  row: CSVRow,
+  uploadState: CsvUploadState,
+  bestuurseenheidUri: string,
+) => {
   const data = row.data;
   if (hasMissingRequiredColumns(row, uploadState)) {
     return;
