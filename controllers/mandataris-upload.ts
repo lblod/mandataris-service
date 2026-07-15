@@ -6,16 +6,27 @@ import { Parser, parse } from 'csv-parse';
 import {
   createMandatarisInstance,
   createOnafhankelijkeFractie,
-  findGraphAndMandates,
+  findMandatesByName,
   findOnafhankelijkeFractieForPerson,
   validateNoOverlappingMandate,
 } from '../data-access/mandataris';
 import { ensureBeleidsdomeinen } from '../data-access/beleidsdomein';
+import { query, sparqlEscapeUri } from 'mu';
 
 export const uploadCsv = async (req) => {
   const formData = req.file;
   if (!formData) {
     throw new HttpError('No file provided', 400);
+  }
+
+  const HEADER_MU_SESSION_ID = 'mu-session-id';
+  const sessionUri = req.get(HEADER_MU_SESSION_ID);
+  const bestuurseenheidUri = await getBestuurseenheidForSession(sessionUri);
+  if (!bestuurseenheidUri) {
+    throw new HttpError(
+      'We could not find the bestuurseenheid for the session',
+      400,
+    );
   }
 
   const uploadState: CsvUploadState = {
@@ -33,11 +44,15 @@ export const uploadCsv = async (req) => {
     }),
   );
 
-  await parseLineByLine(parser, uploadState).catch((err) => {
-    const lineIndex = err.message?.match(/line (\d+)/)?.[1];
-    const lineString = lineIndex ? `[line ${lineIndex}] ` : '';
-    uploadState.errors.push(`${lineString}Failed to parse CSV: ${err.message}`);
-  });
+  await parseLineByLine(parser, uploadState, bestuurseenheidUri).catch(
+    (err) => {
+      const lineIndex = err.message?.match(/line (\d+)/)?.[1];
+      const lineString = lineIndex ? `[line ${lineIndex}] ` : '';
+      uploadState.errors.push(
+        `${lineString}Failed to parse CSV: ${err.message}`,
+      );
+    },
+  );
 
   // Delete file after contents are processed.
   await fs.unlink(formData.path, (err) => {
@@ -49,14 +64,18 @@ export const uploadCsv = async (req) => {
   return uploadState;
 };
 
-const parseLineByLine = async (parser: Parser, uploadState: CsvUploadState) => {
+const parseLineByLine = async (
+  parser: Parser,
+  uploadState: CsvUploadState,
+  bestuurseenheidUri: string,
+) => {
   let lineNumber = 1; // headers are skipped so immediately set line to 1
   for await (const line of parser) {
     const row: CSVRow = { data: line, lineNumber };
     if (lineNumber === 0) {
       validateHeaders(row);
     }
-    await processData(row, uploadState).catch((err) => {
+    await processData(row, uploadState, bestuurseenheidUri).catch((err) => {
       uploadState.errors.push(
         `[line ${lineNumber}]: Failed to process person: ${err.message}`,
       );
@@ -73,8 +92,9 @@ const validateHeaders = (row: CSVRow): Map<string, number> => {
     'firstName',
     'lastName',
     'mandateName',
-    'startDateTime',
-    'endDateTime',
+    'orgName',
+    'startDate',
+    'endDate',
     'fractieName',
     'rangordeString',
     'beleidsdomeinNames',
@@ -96,14 +116,18 @@ const validateHeaders = (row: CSVRow): Map<string, number> => {
   return headers;
 };
 
-const processData = async (row: CSVRow, uploadState: CsvUploadState) => {
+const processData = async (
+  row: CSVRow,
+  uploadState: CsvUploadState,
+  bestuurseenheidUri: string,
+) => {
   const data = row.data;
   if (hasMissingRequiredColumns(row, uploadState)) {
     return;
   }
   await increaseBeleidsdomeinMapping(row, uploadState);
-  const { mandates, graph } = await findGraphAndMandates(row);
-  if (!graph || !mandates) {
+  const mandates = await findMandatesByName(row, bestuurseenheidUri);
+  if (!mandates || mandates.length === 0) {
     // this means that our user possibly does not have access to the mandate
     uploadState.errors.push(
       `[line ${row.lineNumber}] No mandate found name ${data['mandateName']}`,
@@ -117,13 +141,7 @@ const processData = async (row: CSVRow, uploadState: CsvUploadState) => {
   if (await invalidFraction(row, mandates, uploadState, persoon.uri)) {
     return;
   }
-  await createMandatarisInstances(
-    row,
-    persoon.uri,
-    mandates,
-    graph,
-    uploadState,
-  );
+  await createMandatarisInstances(row, persoon.uri, mandates, uploadState);
 };
 
 const hasMissingRequiredColumns = (
@@ -135,7 +153,8 @@ const hasMissingRequiredColumns = (
     'firstName',
     'lastName',
     'mandateName',
-    'startDateTime',
+    'orgName',
+    'startDate',
   ];
   let hasMissingData = false;
   required.forEach((elem) => {
@@ -175,11 +194,9 @@ const createMandatarisInstances = async (
   row: CSVRow,
   persoonUri: string,
   mandates: MandateHit[],
-  graph: string,
   uploadState: CsvUploadState,
 ) => {
-  const { startDateTime, endDateTime, rangordeString, beleidsdomeinNames } =
-    row.data;
+  const { startDate, endDate, rangordeString, beleidsdomeinNames } = row.data;
   const hasOverlappingMandate = await validateNoOverlappingMandate(
     row,
     persoonUri,
@@ -193,8 +210,8 @@ const createMandatarisInstances = async (
     return createMandatarisInstance(
       persoonUri,
       mandate,
-      startDateTime,
-      endDateTime,
+      startDate,
+      endDate,
       rangordeString,
       beleidsdomeinNames,
       uploadState,
@@ -282,3 +299,32 @@ const validateOrCreatePerson = async (
   }
   return persoon;
 };
+
+async function getBestuurseenheidForSession(sessionUri?: string) {
+  if (!sessionUri) {
+    return null;
+  }
+
+  const sparqlResult = await query(
+    `
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+    SELECT DISTINCT ?bestuurseenheid ?id
+    WHERE {
+      GRAPH <http://mu.semte.ch/graphs/sessions> {
+        ${sparqlEscapeUri(sessionUri)} ext:sessionGroup ?bestuurseenheid .
+      }
+      ?bestuurseenheid mu:uuid ?id .
+    } LIMIT 1
+  `,
+    { sudo: true },
+  );
+
+  const result = sparqlResult.results.bindings[0];
+  if (!result) {
+    return null;
+  }
+
+  return result.bestuurseenheid?.value;
+}
