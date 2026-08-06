@@ -298,9 +298,11 @@ export const createMandatarisInstance = async (
   // the start of this mandataris is the minimum of the beleidsorgaan start date
   // and the start date from the excel, as we will create one for every overlapping mandate we found
   const mandatarisStart = moment
-    .max(moment(startDate), moment(mandate.start))
+    .max(moment(startDate, 'DD-MM-YYYY', true), moment(mandate.start))
     .toDate();
-  let mandatarisEnd = moment(mandate.end).toDate();
+  let mandatarisEnd: Date | null = mandate.end
+    ? moment(mandate.end).toDate()
+    : null;
   if (endDate) {
     if (mandate.end) {
       mandatarisEnd = moment
@@ -358,7 +360,13 @@ export const createMandatarisInstance = async (
         ${mandatarisBeleidsDomeinen}
         mandaat:start
           ${sparqlEscapeDateTime(startOfDay(mandatarisStart, true))} ;
-        mandaat:einde ${sparqlEscapeDateTime(endOfDay(mandatarisEnd, true))} ;
+        ${
+  mandatarisEnd
+    ? `mandaat:einde ${sparqlEscapeDateTime(
+      endOfDay(mandatarisEnd, true),
+    )} ;`
+    : ''
+}
         org:holds ${sparqlEscapeUri(mandate.mandateUri)} ;
         # effectief
         mandaat:status <http://data.vlaanderen.be/id/concept/MandatarisStatusCode/21063a5b-912c-4241-841c-cc7fb3c73e75> ;
