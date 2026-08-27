@@ -130,7 +130,7 @@ const processData = async (
   if (!mandates || mandates.length === 0) {
     // this means that our user possibly does not have access to the mandate
     uploadState.errors.push(
-      `[line ${row.lineNumber}] No mandate found name ${data['mandateName']}`,
+      `[line ${row.lineNumber}] No mandate/fraction match found for these dates`,
     );
     return;
   }
