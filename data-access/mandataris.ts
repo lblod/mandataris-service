@@ -305,11 +305,11 @@ export const createMandatarisInstance = async (
 ) => {
   const rangorde = rangordeString ? rangordeString : null;
   const beleidsdomeinen = beleidsdomeinNames
-    ? beleidsdomeinNames.split('|')
+    ? beleidsdomeinNames.split('|').map((name) => name.trim())
     : [];
-  const beleidsDomeinUris = beleidsdomeinen.map((name) => {
-    return uploadState.beleidsDomeinMapping[name];
-  });
+  const beleidsDomeinUris = beleidsdomeinen
+    .map((name) => uploadState.beleidsDomeinMapping[name])
+    .filter(Boolean);
 
   // the start of this mandataris is the minimum of the beleidsorgaan start date
   // and the start date from the excel, as we will create one for every overlapping mandate we found

@@ -30,6 +30,9 @@ const getExistingBeleidsdomeinen = async (beleidsdomeinen: string[]) => {
 };
 
 const createMissingBeleidsdomeinen = async (beleidsdomeinen: string[]) => {
+  if (beleidsdomeinen.length === 0) {
+    return {};
+  }
   const concepts = beleidsdomeinen.map((name) => {
     const uuid = uuidv4();
     const uri = `http://data.vlaanderen.be/id/concept/BeleidsdomeinCode/${uuid}`;
