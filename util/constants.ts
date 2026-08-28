@@ -48,3 +48,5 @@ export const AANGEWEZEN_BURGEMEESTER_FUNCTIE_CODE =
 
 export const PUBLIC_GRAPH_URI =
   process.env.PUBLIC_GRAPH_URI || 'http://mu.semte.ch/graphs/public';
+
+export const UPLOAD_DATE_FORMAT = 'DD-MM-YYYY';

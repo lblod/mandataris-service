@@ -1,4 +1,5 @@
 import fs from 'fs';
+import moment from 'moment';
 import { HttpError } from '../util/http-error';
 import { createPerson, findPerson } from '../data-access/persoon';
 import { CSVRow, CsvUploadState, MandateHit } from '../types';
@@ -12,6 +13,7 @@ import {
 } from '../data-access/mandataris';
 import { ensureBeleidsdomeinen } from '../data-access/beleidsdomein';
 import { query, sparqlEscapeUri } from 'mu';
+import { UPLOAD_DATE_FORMAT } from '../util/constants';
 
 export const uploadCsv = async (req) => {
   const formData = req.file;
@@ -60,6 +62,18 @@ export const uploadCsv = async (req) => {
       throw new HttpError('File could not be deleted after processing', 500);
     }
   });
+
+  console.log(
+    [
+      `Upload report [${new Date().toISOString()}]: ${
+        uploadState.mandatarissenCreated
+      } mandatarissen created, ${uploadState.personsCreated} persons created, ${
+        uploadState.beleidsdomeinenCreated
+      } beleidsdomeinen created`,
+      ...uploadState.errors.map((e) => `  [ERROR] ${e}`),
+      ...uploadState.warnings.map((w) => `  [WARN] ${w}`),
+    ].join('\n'),
+  );
 
   return uploadState;
 };
@@ -121,8 +135,10 @@ const processData = async (
   uploadState: CsvUploadState,
   bestuurseenheidUri: string,
 ) => {
-  const data = row.data;
   if (hasMissingRequiredColumns(row, uploadState)) {
+    return;
+  }
+  if (hasInvalidDateFormats(row, uploadState)) {
     return;
   }
   await increaseBeleidsdomeinMapping(row, uploadState);
@@ -166,6 +182,28 @@ const hasMissingRequiredColumns = (
     }
   });
   return hasMissingData;
+};
+
+const hasInvalidDateFormats = (
+  row: CSVRow,
+  uploadState: CsvUploadState,
+): boolean => {
+  const startDate = row.data.startDate;
+  const endDate = row.data.endDate;
+  let isInvalidDate = false;
+  if (!moment(startDate, UPLOAD_DATE_FORMAT, true).isValid()) {
+    uploadState.errors.push(
+      `[line ${row.lineNumber}] Invalid startDate format: "${startDate}". Expected ${UPLOAD_DATE_FORMAT}`,
+    );
+    isInvalidDate = true;
+  }
+  if (endDate && !moment(endDate, UPLOAD_DATE_FORMAT, true).isValid()) {
+    uploadState.errors.push(
+      `[line ${row.lineNumber}] Invalid endDate format: "${endDate}". Expected ${UPLOAD_DATE_FORMAT}`,
+    );
+    isInvalidDate = true;
+  }
+  return isInvalidDate;
 };
 
 const increaseBeleidsdomeinMapping = async (
