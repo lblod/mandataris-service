@@ -202,9 +202,18 @@ export const findMandatesByName = async (
   }
 
   let fractionFilter = `
-    ?otherOrgaanIT lmb:heeftBestuursperiode ?period .
-    ?fractie org:memberOf ?otherOrgaanIT .
-    ?fractie regorg:legalName ${fractieLabel} .
+    {
+      filter(bound(?startYearPeriod))
+      ?otherOrgaanIT lmb:heeftBestuursperiode ?period .
+      ?fractie org:memberOf ?otherOrgaanIT .
+      ?fractie regorg:legalName ${fractieLabel} .
+    }
+    UNION
+    {
+      filter(!bound(?startYearPeriod))
+      ?fractie org:memberOf ?anyOrgaanIT .
+      ?fractie regorg:legalName ${fractieLabel} .
+    }
   `;
   if (!fractieName || fractieName.toLowerCase() === 'onafhankelijk') {
     fractionFilter = '';
@@ -229,11 +238,13 @@ export const findMandatesByName = async (
           ${sparqlEscapeString(orgName)}
         )
       }
-      ?period lmb:startYear ?startYearPeriod .
       ?orgaanIT lmb:heeftBestuursperiode ?period .
-      ?orgaanIT mandaat:bindingStart ?startOrgaanDate .
-      filter(strstarts(str(?startOrgaanDate), str(?startYearPeriod)))
-
+      optional {
+        ?period lmb:startYear ?startYearPeriod .
+      }
+      optional {
+        ?orgaanIT mandaat:bindingStart ?startOrgaanDate .
+      }
       optional {
         ?orgaanIT mandaat:bindingEinde ?endOrgaanDate .
       }
@@ -245,10 +256,15 @@ export const findMandatesByName = async (
           )
         ) as ?safeEndOrgaanDate)
       filter(
-        substr(str(?startOrgaanDate), 1, 10) <= ?csvStartDate
-        && substr(str(?safeEndOrgaanDate), 1, 10) >= ?csvStartDate
-        ${endDateCondition}
+        !bound(?startYearPeriod)
+        || (
+          bound(?startOrgaanDate)
+          && strstarts(str(?startOrgaanDate), str(?startYearPeriod))
+          && substr(str(?startOrgaanDate), 1, 10) <= ?csvStartDate
+          && substr(str(?safeEndOrgaanDate), 1, 10) >= ?csvStartDate
+          ${endDateCondition}
         )
+      )
       ?mandaat ^org:hasPost ?orgaanIT .
       ?mandaat org:role / skos:prefLabel ?mandaatLabel .
 
@@ -268,7 +284,7 @@ export const findMandatesByName = async (
     return {
       mandateUri: binding.mandaat.value,
       fractionUri: binding.fractie?.value,
-      start: binding.startOrgaanDate.value,
+      start: binding.startOrgaanDate?.value,
       end: binding.endOrgaanDate?.value,
     };
   });
@@ -360,13 +376,12 @@ export const createMandatarisInstance = async (
         ${mandatarisBeleidsDomeinen}
         mandaat:start
           ${sparqlEscapeDateTime(startOfDay(mandatarisStart, true))} ;
-        ${
-  mandatarisEnd
-    ? `mandaat:einde ${sparqlEscapeDateTime(
-      endOfDay(mandatarisEnd, true),
-    )} ;`
-    : ''
-}
+        ${mandatarisEnd
+      ? `mandaat:einde ${sparqlEscapeDateTime(
+        endOfDay(mandatarisEnd, true),
+      )} ;`
+      : ''
+    }
         org:holds ${sparqlEscapeUri(mandate.mandateUri)} ;
         # effectief
         mandaat:status <http://data.vlaanderen.be/id/concept/MandatarisStatusCode/21063a5b-912c-4241-841c-cc7fb3c73e75> ;
