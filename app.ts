@@ -33,6 +33,21 @@ app.get('/', async (_req, res) => {
   res.send({ status: 'ok' });
 });
 
+app.get('/validate-url', async (_req, res) => {
+  const { link } = _req.query;
+  if (!link || typeof link !== 'string') {
+    res.status(400).send({ message: 'Missing link parameter' });
+    return;
+  }
+
+  try {
+    const response = await fetch(link);
+    res.send({ isAccessible: response.ok });
+  } catch (_error) {
+    res.send({ isAccessible: false });
+  }
+});
+
 app.use('/delta', deltaRouter);
 app.use('/mandatarissen', mandatarissenRouter);
 app.use('/fracties', fractiesRouter);
