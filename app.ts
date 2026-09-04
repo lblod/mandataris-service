@@ -33,21 +33,6 @@ app.get('/', async (_req, res) => {
   res.send({ status: 'ok' });
 });
 
-app.get('/validate-url', async (_req, res) => {
-  const { link } = _req.query;
-  if (!link || typeof link !== 'string') {
-    res.status(400).send({ message: 'Missing link parameter' });
-    return;
-  }
-
-  try {
-    const response = await fetch(link);
-    res.send({ isAccessible: response.ok });
-  } catch (_error) {
-    res.send({ isAccessible: false });
-  }
-});
-
 app.use('/delta', deltaRouter);
 app.use('/mandatarissen', mandatarissenRouter);
 app.use('/fracties', fractiesRouter);
@@ -58,6 +43,29 @@ app.use('/installatievergadering-api', installatievergaderingRouter);
 app.use('/election-results-api', electionResultsRouter);
 app.use('/rangorde', rangordeRouter);
 app.use('/mock', mockRouter);
+
+app.get('/validate-url', async (_req, res) => {
+  const { link, follow } = _req.query;
+  const options: RequestInit = {};
+  if (!link || typeof link !== 'string') {
+    res.status(400).send({ message: 'Missing link parameter' });
+    return;
+  }
+  if (follow && follow === 'true') {
+    options.redirect = 'follow';
+  }
+
+  try {
+    const response = await fetch(link, options);
+    res.send({
+      isAccessible: response.ok,
+      finalUrl: response.url,
+      status: response.status,
+    });
+  } catch (_error) {
+    res.send({ isAccessible: false });
+  }
+});
 
 const errorHandler: ErrorRequestHandler = function (err, _req, res, _next) {
   // custom error handler to have a default 500 error code instead of 400 as in the template
