@@ -36,15 +36,9 @@ fractiesRouter.get(
   '/samenwerking/:bestuursperiodeId/bestuursperiode',
   async (req: Request, res: Response) => {
     const id = req.params.bestuursperiodeId;
-    const includeReplacedFracties =
-      req.query.includeReplacedFracties === 'true';
 
     try {
-      const fractieIds = await fractieUsecase.forBestuursperiode(
-        id,
-        false,
-        includeReplacedFracties,
-      );
+      const fractieIds = await fractieUsecase.forBestuursperiode(id, false);
       return res.status(STATUS_CODE.OK).send({ fracties: fractieIds });
     } catch (error) {
       const message =
