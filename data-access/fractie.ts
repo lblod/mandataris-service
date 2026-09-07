@@ -26,17 +26,26 @@ export const fractie = {
 
 async function forBestuursperiode(
   bestuursperiodeId: string | undefined,
-  onafhankelijk,
+  onafhankelijk: boolean,
+  includeReplaced: boolean,
 ): Promise<Array<TermProperty>> {
   const type = onafhankelijk
     ? FRACTIE_TYPE.ONAFHANKELIJK
     : FRACTIE_TYPE.SAMENWERKING;
 
   let periodeById = '?bestuursperiode mu:uuid ?periodId .';
-  if (!bestuursperiodeId) {
+  if (bestuursperiodeId) {
     periodeById = `?bestuursperiode mu:uuid ${sparqlEscapeString(
       bestuursperiodeId,
     )}.`;
+  }
+  let replacedTriples = '';
+  if (!includeReplaced) {
+    replacedTriples = `
+      FILTER NOT EXISTS {
+        ?newerFractie dct:replaces ?fractie .
+      }
+    `;
   }
 
   const getQuery = `
@@ -46,6 +55,7 @@ async function forBestuursperiode(
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX dct: <http://purl.org/dc/terms/>
 
     SELECT DISTINCT ?fractieId
     WHERE {
@@ -57,6 +67,8 @@ async function forBestuursperiode(
         mu:uuid ?fractieId;
         org:memberOf ?bestuursorgaan ;
         ext:isFractietype ${sparqlEscapeUri(type)} .
+
+      ${replacedTriples}
     }
   `;
 

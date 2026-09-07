@@ -13,11 +13,13 @@ export const fractieUsecase = {
 
 async function forBestuursperiode(
   bestuursperiodeId: string | undefined,
-  onafhankelijk,
+  onafhankelijk: boolean,
+  includeReplaced = false,
 ): Promise<Array<string>> {
   const fractieResult = await fractie.forBestuursperiode(
     bestuursperiodeId,
     onafhankelijk,
+    includeReplaced,
   );
 
   if (fractieResult.length === 0) {
