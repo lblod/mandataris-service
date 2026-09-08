@@ -148,7 +148,7 @@ validateUrlRouter.get('/', async (req: Request, res: Response) => {
   const hostname = url.hostname.replace(/^\[|\]$/g, '');
   // single-label hostnames resolve inside the internal network
   if (!hostname.includes('.') && !hostname.includes(':')) {
-    res.status(403).send({
+    res.status(400).send({
       errors: [
         {
           title: 'Disallowed host',
@@ -167,7 +167,7 @@ validateUrlRouter.get('/', async (req: Request, res: Response) => {
     return;
   }
   if (addresses.some((address) => isPrivateAddress(address))) {
-    res.status(403).send({
+    res.status(400).send({
       errors: [
         {
           title: 'Disallowed host',
