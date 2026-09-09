@@ -46,22 +46,23 @@ export const uploadCsv = async (req) => {
     }),
   );
 
-  await parseLineByLine(parser, uploadState, bestuurseenheidUri).catch(
-    (err) => {
-      const lineIndex = err.message?.match(/line (\d+)/)?.[1];
-      const lineString = lineIndex ? `[line ${lineIndex}] ` : '';
-      uploadState.errors.push(
-        `${lineString}Failed to parse CSV: ${err.message}`,
-      );
-    },
-  );
-
-  // Delete file after contents are processed.
-  await fs.unlink(formData.path, (err) => {
-    if (err) {
-      throw new HttpError('File could not be deleted after processing', 500);
+  try {
+    await parseLineByLine(parser, uploadState, bestuurseenheidUri);
+  } catch (err) {
+    if (err instanceof HttpError) {
+      throw err;
     }
-  });
+    const lineIndex = err.message?.match(/line (\d+)/)?.[1];
+    const lineString = lineIndex ? `[line ${lineIndex}] ` : '';
+    uploadState.errors.push(`${lineString}Failed to parse CSV: ${err.message}`);
+  } finally {
+    // Delete file after contents are processed.
+    fs.unlink(formData.path, (err) => {
+      if (err) {
+        throw new HttpError('File could not be deleted after processing', 500);
+      }
+    });
+  }
 
   console.log(
     [
@@ -83,11 +84,13 @@ const parseLineByLine = async (
   uploadState: CsvUploadState,
   bestuurseenheidUri: string,
 ) => {
-  let lineNumber = 1; // headers are skipped so immediately set line to 1
+  let lineNumber = 2; // line 1 is the header; the first data row is physically line 2
+  let isFirstRow = true;
   for await (const line of parser) {
     const row: CSVRow = { data: line, lineNumber };
-    if (lineNumber === 0) {
+    if (isFirstRow) {
       validateHeaders(row);
+      isFirstRow = false;
     }
     await processData(row, uploadState, bestuurseenheidUri).catch((err) => {
       uploadState.errors.push(
