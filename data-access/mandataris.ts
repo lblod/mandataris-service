@@ -19,6 +19,7 @@ import {
 
 import {
   MANDATARIS_STATUS,
+  OVERIGE_BESTUURSPERIODE,
   PUBLICATION_STATUS,
   STATUS_CODE,
 } from '../util/constants';
@@ -201,22 +202,24 @@ export const findMandatesByName = async (
     fractieLabel = sparqlEscapeString(fractieName);
   }
 
-  let fractionFilter = `
+  let fractionFilter = '';
+  if (fractieName && fractieName.toLowerCase() !== 'onafhankelijk') {
+    fractionFilter = `
     {
-      filter(bound(?startYearPeriod))
+      filter(?hasStartYearPeriod)
       ?otherOrgaanIT lmb:heeftBestuursperiode ?period .
       ?fractie org:memberOf ?otherOrgaanIT .
       ?fractie regorg:legalName ${fractieLabel} .
     }
-    UNION
+    union
     {
-      filter(!bound(?startYearPeriod))
-      ?fractie org:memberOf ?anyOrgaanIT .
-      ?fractie regorg:legalName ${fractieLabel} .
+      filter(!?hasStartYearPeriod)
+      optional {
+        ?fractie org:memberOf ?anyOrgaanIT .
+        ?fractie regorg:legalName ${fractieLabel} .
+      }
     }
   `;
-  if (!fractieName || fractieName.toLowerCase() === 'onafhankelijk') {
-    fractionFilter = '';
   }
 
   const q = `
@@ -228,7 +231,7 @@ export const findMandatesByName = async (
     prefix ext: <http://mu.semte.ch/vocabularies/ext/>
     prefix lmb: <http://lblod.data.gift/vocabularies/lmb/>
 
-    select distinct ?mandaat ?fractie ?startOrgaanDate ?endOrgaanDate
+    select distinct ?mandaat ?fractie ?period ?startOrgaanDate ?endOrgaanDate
     where {
       values (?csvStartDate ?organization ?mandaatLabel ?orgaanLabel) {
         (
@@ -248,6 +251,7 @@ export const findMandatesByName = async (
       optional {
         ?orgaanIT mandaat:bindingEinde ?endOrgaanDate .
       }
+      bind(bound(?startYearPeriod) as ?hasStartYearPeriod)
       bind(str(
         if(
           bound(?endOrgaanDate),
@@ -256,7 +260,7 @@ export const findMandatesByName = async (
           )
         ) as ?safeEndOrgaanDate)
       filter(
-        !bound(?startYearPeriod)
+        !?hasStartYearPeriod
         || (
           bound(?startOrgaanDate)
           && strstarts(str(?startOrgaanDate), str(?startYearPeriod))
@@ -284,6 +288,7 @@ export const findMandatesByName = async (
     return {
       mandateUri: binding.mandaat.value,
       fractionUri: binding.fractie?.value,
+      bestuursperiodeUri: binding.period?.value,
       start: binding.startOrgaanDate?.value,
       end: binding.endOrgaanDate?.value,
     };
@@ -331,8 +336,6 @@ export const createMandatarisInstance = async (
 
   const uuid = uuidv4();
   const uri = `http://data.lblod.info/id/mandatarissen/${uuid}`;
-  const membershipUuid = uuidv4();
-  const membershipUri = `http://data.lblod.info/id/lidmaatschappen/${membershipUuid}`;
 
   let mandatarisBeleidsDomeinen = '';
   if (beleidsDomeinUris.length > 0) {
@@ -347,8 +350,14 @@ export const createMandatarisInstance = async (
 
   let membershipTriples = '';
   const safeUri = sparqlEscapeUri(uri);
-  const safeMembershipUri = sparqlEscapeUri(membershipUri);
-  if (mandate.fractionUri) {
+  if (
+    mandate.fractionUri &&
+    mandate.bestuursperiodeUri !== OVERIGE_BESTUURSPERIODE
+  ) {
+    const membershipUuid = uuidv4();
+    const membershipUri = `http://data.lblod.info/id/lidmaatschappen/${membershipUuid}`;
+    const safeMembershipUri = sparqlEscapeUri(membershipUri);
+
     membershipTriples = `
     ${safeMembershipUri} a org:Membership ;
       mu:uuid ${sparqlEscapeString(membershipUuid)} ;

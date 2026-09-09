@@ -13,7 +13,7 @@ import {
 } from '../data-access/mandataris';
 import { ensureBeleidsdomeinen } from '../data-access/beleidsdomein';
 import { query, sparqlEscapeUri } from 'mu';
-import { UPLOAD_DATE_FORMAT } from '../util/constants';
+import { OVERIGE_BESTUURSPERIODE, UPLOAD_DATE_FORMAT } from '../util/constants';
 
 export const uploadCsv = async (req) => {
   const formData = req.file;
@@ -265,20 +265,28 @@ const invalidFraction = async (
   persoonUri: string,
 ) => {
   const targetFraction = row.data.fractieName;
+  const relevantMandates = mandates.filter(
+    (mandate) => mandate.bestuursperiodeUri !== OVERIGE_BESTUURSPERIODE,
+  );
+  if (relevantMandates.length === 0) {
+    return false;
+  }
   if (
     !targetFraction ||
     row.data.fractieName?.toLowerCase() === 'onafhankelijk'
   ) {
     const fractieUri = await ensureOnafhankelijkeFractieForPerson(
       persoonUri,
-      mandates,
+      relevantMandates,
     );
-    mandates.forEach((mandate) => {
+    relevantMandates.forEach((mandate) => {
       mandate.fractionUri = fractieUri;
     });
     return false;
   }
-  const hasMissingFraction = mandates.some((mandate) => !mandate.fractionUri);
+  const hasMissingFraction = relevantMandates.some(
+    (mandate) => !mandate.fractionUri,
+  );
   if (hasMissingFraction) {
     uploadState.errors.push(
       `[line ${row.lineNumber}] No fraction found for fraction ${row.data.fractieName}`,

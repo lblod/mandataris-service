@@ -28,6 +28,7 @@ export type MandateHit = {
   start: string;
   end: string | null;
   fractionUri: string | null;
+  bestuursperiodeUri: string | null;
 };
 
 export type Term = {
