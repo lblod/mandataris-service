@@ -190,13 +190,6 @@ export const findMandatesByName = async (
   const from = sparqlEscapeString(momentStart.format('YYYY-MM-DD'));
   const safeEnd = moment('01-01-3000', 'DD-MM-YYYY', true).format('YYYY-MM-DD');
 
-  let endDateCondition = '';
-  if (row.data.endDate) {
-    const momentEnd = moment(row.data.endDate, 'DD-MM-YYYY', true);
-    const to = sparqlEscapeString(momentEnd.format('YYYY-MM-DD'));
-    endDateCondition = `&& substr(str(?safeEndOrgaanDate), 1, 10) >= ${to}`;
-  }
-
   let fractieLabel = 'mu:doesNotExist';
   if (fractieName) {
     fractieLabel = sparqlEscapeString(fractieName);
@@ -266,7 +259,6 @@ export const findMandatesByName = async (
           && strstarts(str(?startOrgaanDate), str(?startYearPeriod))
           && substr(str(?startOrgaanDate), 1, 10) <= ?csvStartDate
           && substr(str(?safeEndOrgaanDate), 1, 10) >= ?csvStartDate
-          ${endDateCondition}
         )
       )
       ?mandaat ^org:hasPost ?orgaanIT .
@@ -293,10 +285,14 @@ export const findMandatesByName = async (
       end: binding.endOrgaanDate?.value,
     };
   });
-  items.sort((a, b) => {
+  const datedItems = items.filter(
+    (item) => item.bestuursperiodeUri !== OVERIGE_BESTUURSPERIODE,
+  );
+  const filteredItems = datedItems.length > 0 ? datedItems : items;
+  filteredItems.sort((a, b) => {
     return new Date(b.start).getTime() - new Date(a.start).getTime();
   });
-  return items;
+  return filteredItems;
 };
 
 export const createMandatarisInstance = async (
@@ -321,18 +317,6 @@ export const createMandatarisInstance = async (
   const mandatarisStart = moment
     .max(moment(startDate, 'DD-MM-YYYY', true), moment(mandate.start))
     .toDate();
-  let mandatarisEnd: Date | null = mandate.end
-    ? moment(mandate.end).toDate()
-    : null;
-  if (endDate) {
-    if (mandate.end) {
-      mandatarisEnd = moment
-        .min(moment(endDate, 'DD-MM-YYYY', true), moment(mandate.end))
-        .toDate();
-    } else {
-      mandatarisEnd = moment(endDate, 'DD-MM-YYYY', true).toDate();
-    }
-  }
 
   const uuid = uuidv4();
   const uri = `http://data.lblod.info/id/mandatarissen/${uuid}`;
@@ -367,6 +351,10 @@ export const createMandatarisInstance = async (
     `;
   }
 
+  let mandatarisEnd: Date | null = null;
+  if (endDate) {
+    mandatarisEnd = moment(endDate, 'DD-MM-YYYY', true).toDate();
+  }
   let mandatarisEndTriples = '';
   if (mandatarisEnd) {
     mandatarisEndTriples = `
