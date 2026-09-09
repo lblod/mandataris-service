@@ -367,6 +367,13 @@ export const createMandatarisInstance = async (
     `;
   }
 
+  let mandatarisEndTriples = '';
+  if (mandatarisEnd) {
+    mandatarisEndTriples = `
+      mandaat:einde ${sparqlEscapeDateTime(endOfDay(mandatarisEnd, true))} ;
+    `;
+  }
+
   const q = `
   PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
   PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
@@ -385,12 +392,7 @@ export const createMandatarisInstance = async (
         ${mandatarisBeleidsDomeinen}
         mandaat:start
           ${sparqlEscapeDateTime(startOfDay(mandatarisStart, true))} ;
-        ${mandatarisEnd
-      ? `mandaat:einde ${sparqlEscapeDateTime(
-        endOfDay(mandatarisEnd, true),
-      )} ;`
-      : ''
-    }
+        ${mandatarisEndTriples}
         org:holds ${sparqlEscapeUri(mandate.mandateUri)} ;
         # effectief
         mandaat:status <http://data.vlaanderen.be/id/concept/MandatarisStatusCode/21063a5b-912c-4241-841c-cc7fb3c73e75> ;
