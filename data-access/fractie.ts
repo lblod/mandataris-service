@@ -26,14 +26,14 @@ export const fractie = {
 
 async function forBestuursperiode(
   bestuursperiodeId: string | undefined,
-  onafhankelijk,
+  onafhankelijk: boolean,
 ): Promise<Array<TermProperty>> {
   const type = onafhankelijk
     ? FRACTIE_TYPE.ONAFHANKELIJK
     : FRACTIE_TYPE.SAMENWERKING;
 
   let periodeById = '?bestuursperiode mu:uuid ?periodId .';
-  if (!bestuursperiodeId) {
+  if (bestuursperiodeId) {
     periodeById = `?bestuursperiode mu:uuid ${sparqlEscapeString(
       bestuursperiodeId,
     )}.`;
