@@ -14,6 +14,7 @@ import {
 import { ensureBeleidsdomeinen } from '../data-access/beleidsdomein';
 import { query, sparqlEscapeUri } from 'mu';
 import { OVERIGE_BESTUURSPERIODE, UPLOAD_DATE_FORMAT } from '../util/constants';
+import { getMandates } from '../data-access/mandataris-import';
 
 export const uploadCsv = async (req) => {
   const formData = req.file;
@@ -66,10 +67,8 @@ export const uploadCsv = async (req) => {
 
   console.log(
     [
-      `Upload report [${new Date().toISOString()}]: ${
-        uploadState.mandatarissenCreated
-      } mandatarissen created, ${uploadState.personsCreated} persons created, ${
-        uploadState.beleidsdomeinenCreated
+      `Upload report [${new Date().toISOString()}]: ${uploadState.mandatarissenCreated
+      } mandatarissen created, ${uploadState.personsCreated} persons created, ${uploadState.beleidsdomeinenCreated
       } beleidsdomeinen created`,
       ...uploadState.errors.map((e) => `  [ERROR] ${e}`),
       ...uploadState.warnings.map((w) => `  [WARN] ${w}`),
@@ -145,6 +144,13 @@ const processData = async (
     return;
   }
   await increaseBeleidsdomeinMapping(row, uploadState);
+  const bestuursperiode = await getMandates(row, uploadState);
+  if (!bestuursperiode) {
+    uploadState.errors.push(
+      `[line ${row.lineNumber}] We could not find a bestuursperiode matching`,
+    );
+  }
+
   const mandates = await findMandatesByName(row, bestuurseenheidUri);
   if (!mandates || mandates.length === 0) {
     // this means that our user possibly does not have access to the mandate
