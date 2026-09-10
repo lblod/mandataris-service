@@ -25,8 +25,8 @@ export type CSVRow = {
 
 export type MandateHit = {
   mandateUri: string;
-  start: string;
-  end: string | null;
+  start: Date;
+  end?: Date;
   fractionUri: string | null;
   bestuursperiodeUri: string | null;
 };
