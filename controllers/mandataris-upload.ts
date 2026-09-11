@@ -146,7 +146,7 @@ const processData = async (
   await increaseBeleidsdomeinMapping(row, uploadState);
   let mandates: Array<MandateHit> = [];
   try {
-    mandates = await getMandates(row);
+    mandates = await getMandates(row, bestuurseenheidUri);
   } catch (error: any) {
     uploadState.errors.push(`[line ${row.lineNumber}] ${error.message}`);
   }
