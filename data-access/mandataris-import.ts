@@ -9,8 +9,11 @@ type MandateInfo = {
   bestuursperiodeUri?: string;
 };
 
-export async function getMandates(row: CSVRow): Promise<Array<MandateHit>> {
-  const mandatesInfo = await filterMandateInfo(row);
+export async function getMandates(
+  row: CSVRow,
+  bestuurseenheidUri: string,
+): Promise<Array<MandateHit>> {
+  const mandatesInfo = await filterMandateInfo(row, bestuurseenheidUri);
 
   if (mandatesInfo?.length === 0) {
     throw new Error('No mandates found');
@@ -36,14 +39,18 @@ export async function getMandates(row: CSVRow): Promise<Array<MandateHit>> {
   }
 }
 
-async function filterMandateInfo(row: CSVRow): Promise<Array<MandateInfo>> {
+async function filterMandateInfo(
+  row: CSVRow,
+  bestuurseenheidUri: string,
+): Promise<Array<MandateInfo>> {
   const { mandateName, orgName } = row.data;
 
   const selectQuery = `
-    prefix skos: <http://www.w3.org/2004/02/skos/core#>
-    prefix mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    prefix org: <http://www.w3.org/ns/org#>
-    prefix lmb: <http://lblod.data.gift/vocabularies/lmb/>
+    PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     SELECT DISTINCT ?mandaat ?orgaanIT ?bestuursperiode
     WHERE {
@@ -54,8 +61,12 @@ async function filterMandateInfo(row: CSVRow): Promise<Array<MandateInfo>> {
       ?mandaat org:role / skos:prefLabel ?mandaatLabel .
 
       ?orgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
-      ?orgaanIT mandaat:isTijdspecialisatieVan ?orgaan .
-      ?orgaan skos:prefLabel ?orgaanLabel .
+
+      ?orgGraph ext:ownedBy ${sparqlEscapeUri(bestuurseenheidUri)} .
+      graph ?orgGraph {
+        ?orgaanIT mandaat:isTijdspecialisatieVan ?orgaan .
+        ?orgaan skos:prefLabel ?orgaanLabel .
+      }
     }
   `;
 
@@ -126,10 +137,11 @@ async function getLegislaturePeriodMandatesForRowData(
   }
 
   const selectQuery = `
-    prefix mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-    prefix org: <http://www.w3.org/ns/org#>
-    prefix regorg: <https://www.w3.org/ns/regorg#>
-    prefix lmb: <http://lblod.data.gift/vocabularies/lmb/>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX regorg: <https://www.w3.org/ns/regorg#>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
     SELECT distinct ?mandaat ?fractie ?period ?startOrgaanDate ?endOrgaanDate
     WHERE {
