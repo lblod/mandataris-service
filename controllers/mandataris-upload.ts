@@ -144,14 +144,13 @@ const processData = async (
     return;
   }
   await increaseBeleidsdomeinMapping(row, uploadState);
-  const bestuursperiode = await getMandates(row, uploadState);
-  if (!bestuursperiode) {
-    uploadState.errors.push(
-      `[line ${row.lineNumber}] We could not find a bestuursperiode matching`,
-    );
+  let mandates: Array<MandateHit> = [];
+  try {
+    mandates = await getMandates(row);
+  } catch (error: any) {
+    uploadState.errors.push(`[line ${row.lineNumber}] ${error.message}`);
   }
 
-  const mandates = await findMandatesByName(row, bestuurseenheidUri);
   if (!mandates || mandates.length === 0) {
     // this means that our user possibly does not have access to the mandate
     uploadState.errors.push(
