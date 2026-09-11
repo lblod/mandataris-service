@@ -13,8 +13,9 @@ export type CSVRow = {
     firstName: string;
     lastName: string;
     mandateName: string;
-    startDateTime: string;
-    endDateTime: string | null;
+    orgName: string;
+    startDate: string;
+    endDate: string | null;
     fractieName: string | null;
     rangordeString: string | null;
     beleidsdomeinNames: string | null;
@@ -24,9 +25,10 @@ export type CSVRow = {
 
 export type MandateHit = {
   mandateUri: string;
-  start: string;
-  end: string | null;
+  start: Date;
+  end?: Date;
   fractionUri: string | null;
+  bestuursperiodeUri: string | null;
 };
 
 export type Term = {

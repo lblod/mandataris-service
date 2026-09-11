@@ -1,4 +1,5 @@
 import fs from 'fs';
+import moment from 'moment';
 import { HttpError } from '../util/http-error';
 import { createPerson, findPerson } from '../data-access/persoon';
 import { CSVRow, CsvUploadState, MandateHit } from '../types';
@@ -6,16 +7,29 @@ import { Parser, parse } from 'csv-parse';
 import {
   createMandatarisInstance,
   createOnafhankelijkeFractie,
-  findGraphAndMandates,
+  findMandatesByName,
   findOnafhankelijkeFractieForPerson,
   validateNoOverlappingMandate,
 } from '../data-access/mandataris';
 import { ensureBeleidsdomeinen } from '../data-access/beleidsdomein';
+import { query, sparqlEscapeUri } from 'mu';
+import { OVERIGE_BESTUURSPERIODE, UPLOAD_DATE_FORMAT } from '../util/constants';
+import { getMandates } from '../data-access/mandataris-import';
 
 export const uploadCsv = async (req) => {
   const formData = req.file;
   if (!formData) {
     throw new HttpError('No file provided', 400);
+  }
+
+  const HEADER_MU_SESSION_ID = 'mu-session-id';
+  const sessionUri = req.get(HEADER_MU_SESSION_ID);
+  const bestuurseenheidUri = await getBestuurseenheidForSession(sessionUri);
+  if (!bestuurseenheidUri) {
+    throw new HttpError(
+      'We could not find the bestuurseenheid for the session',
+      400,
+    );
   }
 
   const uploadState: CsvUploadState = {
@@ -33,30 +47,51 @@ export const uploadCsv = async (req) => {
     }),
   );
 
-  await parseLineByLine(parser, uploadState).catch((err) => {
+  try {
+    await parseLineByLine(parser, uploadState, bestuurseenheidUri);
+  } catch (err) {
+    if (err instanceof HttpError) {
+      throw err;
+    }
     const lineIndex = err.message?.match(/line (\d+)/)?.[1];
     const lineString = lineIndex ? `[line ${lineIndex}] ` : '';
     uploadState.errors.push(`${lineString}Failed to parse CSV: ${err.message}`);
-  });
+  } finally {
+    // Delete file after contents are processed.
+    fs.unlink(formData.path, (err) => {
+      if (err) {
+        throw new HttpError('File could not be deleted after processing', 500);
+      }
+    });
+  }
 
-  // Delete file after contents are processed.
-  await fs.unlink(formData.path, (err) => {
-    if (err) {
-      throw new HttpError('File could not be deleted after processing', 500);
-    }
-  });
+  console.log(
+    [
+      `Upload report [${new Date().toISOString()}]: ${uploadState.mandatarissenCreated
+      } mandatarissen created, ${uploadState.personsCreated} persons created, ${uploadState.beleidsdomeinenCreated
+      } beleidsdomeinen created`,
+      ...uploadState.errors.map((e) => `  [ERROR] ${e}`),
+      ...uploadState.warnings.map((w) => `  [WARN] ${w}`),
+    ].join('\n'),
+  );
 
   return uploadState;
 };
 
-const parseLineByLine = async (parser: Parser, uploadState: CsvUploadState) => {
-  let lineNumber = 1; // headers are skipped so immediately set line to 1
+const parseLineByLine = async (
+  parser: Parser,
+  uploadState: CsvUploadState,
+  bestuurseenheidUri: string,
+) => {
+  let lineNumber = 2; // line 1 is the header; the first data row is physically line 2
+  let isFirstRow = true;
   for await (const line of parser) {
     const row: CSVRow = { data: line, lineNumber };
-    if (lineNumber === 0) {
+    if (isFirstRow) {
       validateHeaders(row);
+      isFirstRow = false;
     }
-    await processData(row, uploadState).catch((err) => {
+    await processData(row, uploadState, bestuurseenheidUri).catch((err) => {
       uploadState.errors.push(
         `[line ${lineNumber}]: Failed to process person: ${err.message}`,
       );
@@ -73,8 +108,9 @@ const validateHeaders = (row: CSVRow): Map<string, number> => {
     'firstName',
     'lastName',
     'mandateName',
-    'startDateTime',
-    'endDateTime',
+    'orgName',
+    'startDate',
+    'endDate',
     'fractieName',
     'rangordeString',
     'beleidsdomeinNames',
@@ -96,17 +132,29 @@ const validateHeaders = (row: CSVRow): Map<string, number> => {
   return headers;
 };
 
-const processData = async (row: CSVRow, uploadState: CsvUploadState) => {
-  const data = row.data;
+const processData = async (
+  row: CSVRow,
+  uploadState: CsvUploadState,
+  bestuurseenheidUri: string,
+) => {
   if (hasMissingRequiredColumns(row, uploadState)) {
     return;
   }
+  if (hasInvalidDateFormats(row, uploadState)) {
+    return;
+  }
   await increaseBeleidsdomeinMapping(row, uploadState);
-  const { mandates, graph } = await findGraphAndMandates(row);
-  if (!graph || !mandates) {
+  let mandates: Array<MandateHit> = [];
+  try {
+    mandates = await getMandates(row, bestuurseenheidUri);
+  } catch (error: any) {
+    uploadState.errors.push(`[line ${row.lineNumber}] ${error.message}`);
+  }
+
+  if (!mandates || mandates.length === 0) {
     // this means that our user possibly does not have access to the mandate
     uploadState.errors.push(
-      `[line ${row.lineNumber}] No mandate found name ${data['mandateName']}`,
+      `[line ${row.lineNumber}] No mandate/fraction match found for these dates`,
     );
     return;
   }
@@ -117,13 +165,7 @@ const processData = async (row: CSVRow, uploadState: CsvUploadState) => {
   if (await invalidFraction(row, mandates, uploadState, persoon.uri)) {
     return;
   }
-  await createMandatarisInstances(
-    row,
-    persoon.uri,
-    mandates,
-    graph,
-    uploadState,
-  );
+  await createMandatarisInstances(row, persoon.uri, mandates, uploadState);
 };
 
 const hasMissingRequiredColumns = (
@@ -135,7 +177,8 @@ const hasMissingRequiredColumns = (
     'firstName',
     'lastName',
     'mandateName',
-    'startDateTime',
+    'orgName',
+    'startDate',
   ];
   let hasMissingData = false;
   required.forEach((elem) => {
@@ -147,6 +190,28 @@ const hasMissingRequiredColumns = (
     }
   });
   return hasMissingData;
+};
+
+const hasInvalidDateFormats = (
+  row: CSVRow,
+  uploadState: CsvUploadState,
+): boolean => {
+  const startDate = row.data.startDate;
+  const endDate = row.data.endDate;
+  let isInvalidDate = false;
+  if (!moment(startDate, UPLOAD_DATE_FORMAT, true).isValid()) {
+    uploadState.errors.push(
+      `[line ${row.lineNumber}] Invalid startDate format: "${startDate}". Expected ${UPLOAD_DATE_FORMAT}`,
+    );
+    isInvalidDate = true;
+  }
+  if (endDate && !moment(endDate, UPLOAD_DATE_FORMAT, true).isValid()) {
+    uploadState.errors.push(
+      `[line ${row.lineNumber}] Invalid endDate format: "${endDate}". Expected ${UPLOAD_DATE_FORMAT}`,
+    );
+    isInvalidDate = true;
+  }
+  return isInvalidDate;
 };
 
 const increaseBeleidsdomeinMapping = async (
@@ -175,11 +240,9 @@ const createMandatarisInstances = async (
   row: CSVRow,
   persoonUri: string,
   mandates: MandateHit[],
-  graph: string,
   uploadState: CsvUploadState,
 ) => {
-  const { startDateTime, endDateTime, rangordeString, beleidsdomeinNames } =
-    row.data;
+  const { startDate, endDate, rangordeString, beleidsdomeinNames } = row.data;
   const hasOverlappingMandate = await validateNoOverlappingMandate(
     row,
     persoonUri,
@@ -193,8 +256,8 @@ const createMandatarisInstances = async (
     return createMandatarisInstance(
       persoonUri,
       mandate,
-      startDateTime,
-      endDateTime,
+      startDate,
+      endDate,
       rangordeString,
       beleidsdomeinNames,
       uploadState,
@@ -210,20 +273,28 @@ const invalidFraction = async (
   persoonUri: string,
 ) => {
   const targetFraction = row.data.fractieName;
+  const relevantMandates = mandates.filter(
+    (mandate) => mandate.bestuursperiodeUri !== OVERIGE_BESTUURSPERIODE,
+  );
+  if (relevantMandates.length === 0) {
+    return false;
+  }
   if (
     !targetFraction ||
     row.data.fractieName?.toLowerCase() === 'onafhankelijk'
   ) {
     const fractieUri = await ensureOnafhankelijkeFractieForPerson(
       persoonUri,
-      mandates,
+      relevantMandates,
     );
-    mandates.forEach((mandate) => {
+    relevantMandates.forEach((mandate) => {
       mandate.fractionUri = fractieUri;
     });
     return false;
   }
-  const hasMissingFraction = mandates.some((mandate) => !mandate.fractionUri);
+  const hasMissingFraction = relevantMandates.some(
+    (mandate) => !mandate.fractionUri,
+  );
   if (hasMissingFraction) {
     uploadState.errors.push(
       `[line ${row.lineNumber}] No fraction found for fraction ${row.data.fractieName}`,
@@ -282,3 +353,32 @@ const validateOrCreatePerson = async (
   }
   return persoon;
 };
+
+async function getBestuurseenheidForSession(sessionUri?: string) {
+  if (!sessionUri) {
+    return null;
+  }
+
+  const sparqlResult = await query(
+    `
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+    SELECT DISTINCT ?bestuurseenheid ?id
+    WHERE {
+      GRAPH <http://mu.semte.ch/graphs/sessions> {
+        ${sparqlEscapeUri(sessionUri)} ext:sessionGroup ?bestuurseenheid .
+      }
+      ?bestuurseenheid mu:uuid ?id .
+    } LIMIT 1
+  `,
+    { sudo: true },
+  );
+
+  const result = sparqlResult.results.bindings[0];
+  if (!result) {
+    return null;
+  }
+
+  return result.bestuurseenheid?.value;
+}
