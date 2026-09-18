@@ -51,6 +51,7 @@ async function filterMandateInfo(
     PREFIX org: <http://www.w3.org/ns/org#>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
 
     SELECT DISTINCT ?mandaat ?orgaanIT ?bestuursperiode
     WHERE {
@@ -62,11 +63,10 @@ async function filterMandateInfo(
 
       ?orgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
 
-      ?orgGraph ext:ownedBy ${sparqlEscapeUri(bestuurseenheidUri)} .
-      graph ?orgGraph {
-        ?orgaanIT mandaat:isTijdspecialisatieVan ?orgaan .
-        ?orgaan skos:prefLabel ?orgaanLabel .
-      }
+      ?orgaanIT mandaat:isTijdspecialisatieVan ?orgaan .
+      ?orgaan skos:prefLabel ?orgaanLabel .
+    
+      ?orgaan besluit:bestuurt ${sparqlEscapeUri(bestuurseenheidUri)}
     }
   `;
 
