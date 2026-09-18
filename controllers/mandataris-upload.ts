@@ -7,7 +7,6 @@ import { Parser, parse } from 'csv-parse';
 import {
   createMandatarisInstance,
   createOnafhankelijkeFractie,
-  findMandatesByName,
   findOnafhankelijkeFractieForPerson,
   validateNoOverlappingMandate,
 } from '../data-access/mandataris';
@@ -67,8 +66,10 @@ export const uploadCsv = async (req) => {
 
   console.log(
     [
-      `Upload report [${new Date().toISOString()}]: ${uploadState.mandatarissenCreated
-      } mandatarissen created, ${uploadState.personsCreated} persons created, ${uploadState.beleidsdomeinenCreated
+      `Upload report [${new Date().toISOString()}]: ${
+        uploadState.mandatarissenCreated
+      } mandatarissen created, ${uploadState.personsCreated} persons created, ${
+        uploadState.beleidsdomeinenCreated
       } beleidsdomeinen created`,
       ...uploadState.errors.map((e) => `  [ERROR] ${e}`),
       ...uploadState.warnings.map((w) => `  [WARN] ${w}`),
