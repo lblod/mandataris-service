@@ -9,15 +9,15 @@ services:
       TZ: Europe/Brussels
       NODE_ENV: development
       NO_BABEL_NODE: true
-      EMAIL_FROM_MANDATARIS_WITHOUT_DECISION: 'lokaalmandatenbeheer@vlaanderen.be'
+      EMAIL_FROM_MANDATARIS_WITHOUT_DECISION: "lokaalmandatenbeheer@vlaanderen.be"
       SEND_EMAIL_FOR_MANDATARIS_WITHOUT_DECISION: true
       NOTIFICATION_CRON_PATTERN: 47 8 * * 1-5
       ALLOW_MU_AUTH_SUDO: true
-      LINKING_MANDATEES_CRON_PATTERN: '*/40 * * * * *' # Every 40 seconds
+      LINKING_MANDATEES_CRON_PATTERN: "*/40 1 1 1 * *" # Every 40 seconds
       LINKING_MANDATEES_BATCH_SIZE: 1500
     ports:
-      - '8082:80'
-      - '9225:9229'
+      - "8082:80"
+      - "9225:9229"
     volumes:
       - ../app-lokaal-mandatenbeheer/config/mandataris:/config
       - ../app-lokaal-mandatenbeheer/data/files/burgemeester-benoemingen:/uploads
