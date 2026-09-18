@@ -332,6 +332,11 @@ export const createMandatarisInstance = async (
     } else {
       mandatarisEnd = moment(endDate, 'DD-MM-YYYY', true).toDate();
     }
+  } else if (mandate.end) {
+    // safety: the imported mandataris will be added to all periods that match
+    // if no enddate is given, the mandataris would otherwise be added to
+    // each period but every time without an enddate, which is a problem for ended mandates
+    mandatarisEnd = moment(mandate.end).toDate();
   }
 
   const uuid = uuidv4();

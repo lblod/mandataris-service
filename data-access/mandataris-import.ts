@@ -126,14 +126,13 @@ async function getLegislaturePeriodMandatesForRowData(
     })
     .join('\n');
 
-  const safeSparqlEndDate = moment('01-01-3000', 'DD-MM-YYYY', true).format(
-    'YYYY-MM-DD',
-  );
-  let endDateSparqlFilterCondition = '';
+  const safeSparqlEndDate = sparqlEscapeString('3000-01-01');
+  let sparqlEndDate = '';
   if (row.data.endDate) {
     const momentEnd = moment(row.data.endDate, 'DD-MM-YYYY', true);
-    const sparqlEndDate = sparqlEscapeString(momentEnd.format('YYYY-MM-DD'));
-    endDateSparqlFilterCondition = `&& substr(str(?safeEndOrgaanDate), 1, 10) >= ${sparqlEndDate}`;
+    sparqlEndDate = sparqlEscapeString(momentEnd.format('YYYY-MM-DD'));
+  } else {
+    sparqlEndDate = safeSparqlEndDate;
   }
 
   const selectQuery = `
@@ -156,8 +155,11 @@ async function getLegislaturePeriodMandatesForRowData(
       bind(str(if(bound(?endOrgaanDate), ?endOrgaanDate, ${safeSparqlEndDate})) as ?safeEndOrgaanDate)
 
       FILTER(
-        substr(str(?startOrgaanDate), 1, 10) <= ${sparqlStartDate}
-        ${endDateSparqlFilterCondition}
+        (substr(str(?startOrgaanDate), 1, 10) <= ${sparqlStartDate}
+        && substr(str(?safeEndOrgaanDate), 1, 10) >= ${sparqlStartDate}) ||
+        ((substr(str(?startOrgaanDate), 1, 10) <= ${sparqlEndDate}) && 
+        ${sparqlEndDate} <= substr(str(?safeEndOrgaanDate), 1, 10)) ||
+        (${sparqlStartDate} <= substr(str(?startOrgaanDate), 1, 10) && substr(str(?safeEndOrgaanDate), 1, 10) <= ${sparqlEndDate})
       )
 
       ${fractieFilter}
