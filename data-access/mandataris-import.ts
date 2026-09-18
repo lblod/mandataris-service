@@ -115,14 +115,14 @@ async function getLegislaturePeriodMandatesForRowData(
     momentStartDate.format('YYYY-MM-DD'),
   );
 
-  const fractieSparql = getFractieSparql(row);
+  const fractieFilter = getFractieFilter(row);
 
   const valuesStatement = mandatesInfo
     .map((info) => {
       const mandaat = sparqlEscapeUri(info.mandateUri);
       const orgaanInTijd = sparqlEscapeUri(info.orgaanInTijdUri);
 
-      return `(${mandaat} ${orgaanInTijd} ${fractieSparql.label})`;
+      return `(${mandaat} ${orgaanInTijd} )`;
     })
     .join('\n');
 
@@ -145,7 +145,7 @@ async function getLegislaturePeriodMandatesForRowData(
 
     SELECT distinct ?mandaat ?fractie ?period ?startOrgaanDate ?endOrgaanDate
     WHERE {
-      VALUES (?mandaat ?orgaanIT ?fractieLabel ) { ${valuesStatement} }
+      VALUES (?mandaat ?orgaanIT ) { ${valuesStatement} }
 
       ?orgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
       ?orgaanIT mandaat:bindingStart ?startOrgaanDate .
@@ -160,7 +160,7 @@ async function getLegislaturePeriodMandatesForRowData(
         ${endDateSparqlFilterCondition}
       )
 
-      ${fractieSparql.sparqlFilter}
+      ${fractieFilter}
     }
   `;
 
@@ -180,39 +180,20 @@ async function getLegislaturePeriodMandatesForRowData(
   });
 }
 
-function getFractieSparql(row: CSVRow): {
-  label: string;
-  sparqlFilter: string;
-} {
+function getFractieFilter(row: CSVRow): string {
   const { fractieName } = row.data;
 
-  let fractieLabel = 'mu:doesNotExist';
-  if (fractieName && fractieName.toLowerCase() !== 'onafhankelijk') {
-    fractieLabel = sparqlEscapeString(fractieName);
+  if (!fractieName || fractieName.toLowerCase() === 'onafhankelijk') {
+    return '';
   }
-
-  let sparqlFilter = '';
-  if (fractieName && fractieName.toLowerCase() !== 'onafhankelijk') {
-    sparqlFilter = `
-    {
-      filter(?hasStartYearPeriod)
-      ?otherOrgaanIT lmb:heeftBestuursperiode ?period .
-      ?fractie org:memberOf ?otherOrgaanIT .
-      ?fractie regorg:legalName ${fractieLabel} .
-    }
-    union
-    {
-      filter(!?hasStartYearPeriod)
-      optional {
-        ?fractie org:memberOf ?anyOrgaanIT .
-        ?fractie regorg:legalName ${fractieLabel} .
-      }
-    }
+  // since the fractie only matters for official bestuursorgaan instances,
+  // we can look for the orgaanIT's only org:memberOf fractions
+  const sparqlFilter = `
+  {
+    ?fractie org:memberOf ?orgaanIT .
+    ?fractie regorg:legalName ${sparqlEscapeString(fractieName)} .
+  }
   `;
-  }
 
-  return {
-    label: fractieLabel,
-    sparqlFilter: sparqlFilter,
-  };
+  return sparqlFilter;
 }
