@@ -48,3 +48,8 @@ export const AANGEWEZEN_BURGEMEESTER_FUNCTIE_CODE =
 
 export const PUBLIC_GRAPH_URI =
   process.env.PUBLIC_GRAPH_URI || 'http://mu.semte.ch/graphs/public';
+
+export const UPLOAD_DATE_FORMAT = 'DD-MM-YYYY';
+
+export const OVERIGE_BESTUURSPERIODE =
+  'http://data.lblod.info/id/concept/Bestuursperiode/9486222f-2696-4811-bde1-fef9dc4b5f68';

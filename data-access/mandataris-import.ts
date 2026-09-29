@@ -1,0 +1,201 @@
+import { query, sparqlEscapeString, sparqlEscapeUri } from 'mu';
+import { CSVRow, MandateHit } from '../types';
+import { OVERIGE_BESTUURSPERIODE } from '../util/constants';
+import moment from 'moment';
+
+type MandateInfo = {
+  mandateUri: string;
+  orgaanInTijdUri?: string;
+  bestuursperiodeUri?: string;
+};
+
+export async function getMandates(
+  row: CSVRow,
+  bestuurseenheidUri: string,
+): Promise<Array<MandateHit>> {
+  const mandatesInfo = await filterMandateInfo(row, bestuurseenheidUri);
+
+  if (mandatesInfo?.length === 0) {
+    throw new Error('No mandates found');
+  }
+  const hasOverigePeriode = mandatesInfo?.some(
+    (info) => info.bestuursperiodeUri === OVERIGE_BESTUURSPERIODE,
+  );
+  const hasLegislaturePeriod = mandatesInfo?.some(
+    (info) => info.bestuursperiodeUri !== OVERIGE_BESTUURSPERIODE,
+  );
+  if (hasOverigePeriode && hasLegislaturePeriod) {
+    throw new Error(
+      'We found mandates bound to legislature and non-legislature periodes',
+    );
+  }
+
+  if (hasOverigePeriode) {
+    return getOverigePeriodMandatesForRowData(row, mandatesInfo);
+  } else if (hasLegislaturePeriod) {
+    return await getLegislaturePeriodMandatesForRowData(row, mandatesInfo);
+  } else {
+    throw new Error('Unreachable code');
+  }
+}
+
+async function filterMandateInfo(
+  row: CSVRow,
+  bestuurseenheidUri: string,
+): Promise<Array<MandateInfo>> {
+  const { mandateName, orgName } = row.data;
+
+  const selectQuery = `
+    PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+
+    SELECT DISTINCT ?mandaat ?orgaanIT ?bestuursperiode
+    WHERE {
+      VALUES (?mandaatLabel ?orgaanLabel) {
+        ( ${sparqlEscapeString(mandateName)} ${sparqlEscapeString(orgName)})
+      }
+      ?mandaat ^org:hasPost ?orgaanIT .
+      ?mandaat org:role / skos:prefLabel ?mandaatLabel .
+
+      ?orgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
+
+      ?orgaanIT mandaat:isTijdspecialisatieVan ?orgaan .
+      ?orgaan skos:prefLabel ?orgaanLabel .
+    
+      ?orgaan besluit:bestuurt ${sparqlEscapeUri(bestuurseenheidUri)}
+    }
+  `;
+
+  const result = await query(selectQuery);
+
+  return result?.results?.bindings?.map(
+    (binding: any) =>
+      ({
+        mandateUri: binding.mandaat.value,
+        orgaanInTijdUri: binding.orgaanIT?.value,
+        bestuursperiodeUri: binding.bestuursperiode?.value,
+      }) as MandateInfo,
+  );
+}
+
+function getOverigePeriodMandatesForRowData(
+  row: CSVRow,
+  mandatesInfo: Array<MandateInfo>,
+): Array<MandateHit> {
+  if (mandatesInfo?.length !== 1) {
+    throw new Error('Found multiple mandate hits in non-legislature period');
+  }
+
+  let momentEndDate = null;
+  if (row.data.endDate) {
+    momentEndDate = moment(row.data.endDate, 'DD-MM-YYYY', true);
+  }
+
+  return mandatesInfo.map((info: any) => {
+    return {
+      mandateUri: info.mandateUri,
+      fractionUri: null,
+      bestuursperiodeUri: OVERIGE_BESTUURSPERIODE,
+      start: moment(row.data.startDate, 'DD-MM-YYYY', true).toDate(),
+      end: momentEndDate?.toDate(),
+    };
+  });
+}
+
+async function getLegislaturePeriodMandatesForRowData(
+  row: CSVRow,
+  mandatesInfo: Array<MandateInfo>,
+): Promise<Array<MandateHit>> {
+  const momentStartDate = moment(row.data.startDate, 'DD-MM-YYYY', true);
+  const sparqlStartDate = sparqlEscapeString(
+    momentStartDate.format('YYYY-MM-DD'),
+  );
+
+  const fractieFilter = getFractieFilter(row);
+
+  const valuesStatement = mandatesInfo
+    .map((info) => {
+      const mandaat = sparqlEscapeUri(info.mandateUri);
+      const orgaanInTijd = sparqlEscapeUri(info.orgaanInTijdUri);
+
+      return `(${mandaat} ${orgaanInTijd} )`;
+    })
+    .join('\n');
+
+  const safeSparqlEndDate = sparqlEscapeString('3000-01-01');
+  let sparqlEndDate = '';
+  if (row.data.endDate) {
+    const momentEnd = moment(row.data.endDate, 'DD-MM-YYYY', true);
+    sparqlEndDate = sparqlEscapeString(momentEnd.format('YYYY-MM-DD'));
+  } else {
+    sparqlEndDate = safeSparqlEndDate;
+  }
+
+  const selectQuery = `
+    PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+    PREFIX org: <http://www.w3.org/ns/org#>
+    PREFIX regorg: <https://www.w3.org/ns/regorg#>
+    PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+    SELECT distinct ?mandaat ?fractie ?period ?startOrgaanDate ?endOrgaanDate
+    WHERE {
+      VALUES (?mandaat ?orgaanIT ) { ${valuesStatement} }
+
+      ?orgaanIT lmb:heeftBestuursperiode ?bestuursperiode .
+      ?orgaanIT mandaat:bindingStart ?startOrgaanDate .
+      OPTIONAL {
+        ?orgaanIT mandaat:bindingEinde ?endOrgaanDate .
+      }
+
+      bind(str(if(bound(?endOrgaanDate), ?endOrgaanDate, ${safeSparqlEndDate})) as ?safeEndOrgaanDate)
+
+      FILTER(
+        (substr(str(?startOrgaanDate), 1, 10) <= ${sparqlStartDate}
+        && substr(str(?safeEndOrgaanDate), 1, 10) >= ${sparqlStartDate}) ||
+        ((substr(str(?startOrgaanDate), 1, 10) <= ${sparqlEndDate}) && 
+        ${sparqlEndDate} <= substr(str(?safeEndOrgaanDate), 1, 10)) ||
+        (${sparqlStartDate} <= substr(str(?startOrgaanDate), 1, 10) && substr(str(?safeEndOrgaanDate), 1, 10) <= ${sparqlEndDate})
+      )
+
+      ${fractieFilter}
+    }
+  `;
+
+  const result = await query(selectQuery);
+  if (!result.results.bindings.length) {
+    return [];
+  }
+
+  return result.results.bindings.map((binding: any) => {
+    return {
+      mandateUri: binding.mandaat.value,
+      fractionUri: binding.fractie?.value,
+      bestuursperiodeUri: binding.period?.value,
+      start: binding.startOrgaanDate?.value,
+      end: binding.endOrgaanDate?.value,
+    };
+  });
+}
+
+function getFractieFilter(row: CSVRow): string {
+  const { fractieName } = row.data;
+
+  if (!fractieName || fractieName.toLowerCase() === 'onafhankelijk') {
+    return '';
+  }
+  // since the fractie only matters for official bestuursorgaan instances,
+  // we can look for the orgaanIT's only org:memberOf fractions
+  const sparqlFilter = `
+  {
+    ?fractie org:memberOf ?orgaanIT .
+    ?fractie regorg:legalName ${sparqlEscapeString(fractieName)} .
+  }
+  `;
+
+  return sparqlFilter;
+}

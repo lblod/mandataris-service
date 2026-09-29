@@ -19,6 +19,7 @@ import {
 
 import {
   MANDATARIS_STATUS,
+  OVERIGE_BESTUURSPERIODE,
   PUBLICATION_STATUS,
   STATUS_CODE,
 } from '../util/constants';
@@ -179,137 +180,48 @@ export async function createOnafhankelijkeFractie(mandateUris: string[]) {
   return uri;
 }
 
-export const findGraphAndMandates = async (row: CSVRow) => {
-  const mandates = await findMandatesByName(row);
-
-  if (mandates.length === 0) {
-    return { mandates: [], graph: null };
-  }
-
-  const q = `
-  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-  PREFIX org: <http://www.w3.org/ns/org#>
-  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-  PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
-
-  SELECT ?g ?mandate WHERE {
-    ?g ext:ownedBy ?eenheid .
-
-    ?mandate a mandaat:Mandaat .
-    VALUES ?mandate {
-      ${sparqlEscapeUri(mandates[0].mandateUri)}
-    }
-    ?org ^mandaat:isTijdspecialisatieVan / org:hasPost ?mandate .
-    ?org besluit:bestuurt ?eenheid .
-
-  } LIMIT 1`;
-  const result = await querySudo(q);
-  if (!result.results.bindings.length) {
-    return { mandates: [], graph: null };
-  }
-
-  return {
-    graph: result.results.bindings[0].g.value as string,
-    mandates: mandates,
-  };
-};
-
-const findMandatesByName = async (row: CSVRow) => {
-  const { mandateName, startDateTime, endDateTime, fractieName } = row.data;
-  const from = sparqlEscapeDateTime(startDateTime);
-  const to = endDateTime
-    ? sparqlEscapeDateTime(endDateTime)
-    : sparqlEscapeDateTime(new Date('3000-01-01'));
-  const safeFractionName = fractieName
-    ? sparqlEscapeString(fractieName)
-    : 'mu:doesNotExist';
-
-  let fractionFilter = `?fraction regorg:legalName ${safeFractionName} .`;
-  if (!fractieName || fractieName.toLowerCase() === 'onafhankelijk') {
-    // in case of onafhankelijk, don't fetch the fractions, there will be many different matches
-    fractionFilter = '?fraction ext:doesNotExist ext:doesNotExist . ';
-  }
-
-  const q = `
-  PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-  PREFIX org: <http://www.w3.org/ns/org#>
-  PREFIX regorg: <https://www.w3.org/ns/regorg#>
-  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-
-  SELECT DISTINCT ?mandate ?fraction ?start ?end WHERE {
-    ?mandate a mandaat:Mandaat ;
-    ^org:hasPost ?orgaanInTijd ;
-        org:role / skos:prefLabel ${sparqlEscapeString(mandateName)} .
-    ?orgaanInTijd mandaat:bindingStart ?start .
-    OPTIONAL {
-      ?orgaanInTijd mandaat:bindingEinde ?end .
-    }
-    OPTIONAL {
-      ?orgaanInTijd ^org:memberOf ?fraction .
-      ${fractionFilter}
-    }
-    BIND(IF(BOUND(?end), ?end,  "3000-01-01T12:00:00.000Z"^^xsd:dateTime) as ?safeEnd)
-    FILTER ((?start <= ${from} && ${from} <= ?safeEnd) ||
-            (?start <= ${to} && ${to} <= ?safeEnd) ||
-            (${from} <= ?start && ?safeEnd <= ${to}))
-  }`;
-  const result = await query(q);
-  if (!result.results.bindings.length) {
-    return [];
-  }
-  const items: MandateHit[] = result.results.bindings.map((binding) => {
-    return {
-      mandateUri: binding.mandate.value,
-      fractionUri: binding.fraction?.value,
-      start: binding.start.value,
-      end: binding.end?.value,
-    };
-  });
-  items.sort((a, b) => {
-    return new Date(b.start).getTime() - new Date(a.start).getTime();
-  });
-  return items;
-};
-
 export const createMandatarisInstance = async (
   persoonUri: string,
   mandate: MandateHit,
-  startDateTime: string,
-  endDateTime: string | null,
+  startDate: string,
+  endDate: string | null,
   rangordeString: string | null,
   beleidsdomeinNames: string | null,
   uploadState: CsvUploadState,
 ) => {
   const rangorde = rangordeString ? rangordeString : null;
   const beleidsdomeinen = beleidsdomeinNames
-    ? beleidsdomeinNames.split('|')
+    ? beleidsdomeinNames.split('|').map((name) => name.trim())
     : [];
-  const beleidsDomeinUris = beleidsdomeinen.map((name) => {
-    return uploadState.beleidsDomeinMapping[name];
-  });
+  const beleidsDomeinUris = beleidsdomeinen
+    .map((name) => uploadState.beleidsDomeinMapping[name])
+    .filter(Boolean);
 
   // the start of this mandataris is the minimum of the beleidsorgaan start date
   // and the start date from the excel, as we will create one for every overlapping mandate we found
   const mandatarisStart = moment
-    .max(moment(startDateTime), moment(mandate.start))
-    .toISOString();
-  let mandatarisEnd = moment(mandate.end).toISOString();
-  if (endDateTime) {
+    .max(moment(startDate, 'DD-MM-YYYY', true), moment(mandate.start))
+    .toDate();
+  let mandatarisEnd: Date | null = mandate.end
+    ? moment(mandate.end).toDate()
+    : null;
+  if (endDate) {
     if (mandate.end) {
       mandatarisEnd = moment
-        .min(moment(endDateTime), moment(mandate.end))
-        .toISOString();
+        .min(moment(endDate, 'DD-MM-YYYY', true), moment(mandate.end))
+        .toDate();
     } else {
-      mandatarisEnd = moment(endDateTime).toISOString();
+      mandatarisEnd = moment(endDate, 'DD-MM-YYYY', true).toDate();
     }
+  } else if (mandate.end) {
+    // safety: the imported mandataris will be added to all periods that match
+    // if no enddate is given, the mandataris would otherwise be added to
+    // each period but every time without an enddate, which is a problem for ended mandates
+    mandatarisEnd = moment(mandate.end).toDate();
   }
 
   const uuid = uuidv4();
   const uri = `http://data.lblod.info/id/mandatarissen/${uuid}`;
-  const membershipUuid = uuidv4();
-  const membershipUri = `http://data.lblod.info/id/lidmaatschappen/${membershipUuid}`;
 
   let mandatarisBeleidsDomeinen = '';
   if (beleidsDomeinUris.length > 0) {
@@ -324,14 +236,27 @@ export const createMandatarisInstance = async (
 
   let membershipTriples = '';
   const safeUri = sparqlEscapeUri(uri);
-  const safeMembershipUri = sparqlEscapeUri(membershipUri);
-  if (mandate.fractionUri) {
+  if (
+    mandate.fractionUri &&
+    mandate.bestuursperiodeUri !== OVERIGE_BESTUURSPERIODE
+  ) {
+    const membershipUuid = uuidv4();
+    const membershipUri = `http://data.lblod.info/id/lidmaatschappen/${membershipUuid}`;
+    const safeMembershipUri = sparqlEscapeUri(membershipUri);
+
     membershipTriples = `
     ${safeMembershipUri} a org:Membership ;
       mu:uuid ${sparqlEscapeString(membershipUuid)} ;
       org:organisation ${sparqlEscapeUri(mandate.fractionUri)} .
 
     ${safeUri} org:hasMembership ${safeMembershipUri} .
+    `;
+  }
+
+  let mandatarisEndTriples = '';
+  if (mandatarisEnd) {
+    mandatarisEndTriples = `
+      mandaat:einde ${sparqlEscapeDateTime(endOfDay(mandatarisEnd, true))} ;
     `;
   }
 
@@ -346,7 +271,6 @@ export const createMandatarisInstance = async (
   PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
   INSERT DATA {
-    GRAPH <http://mu.semte.ch/graphs/application> {
       ${safeUri} a mandaat:Mandataris ;
         mu:uuid ${sparqlEscapeString(uuid)} ;
         mandaat:isBestuurlijkeAliasVan ${sparqlEscapeUri(persoonUri)} ;
@@ -354,7 +278,7 @@ export const createMandatarisInstance = async (
         ${mandatarisBeleidsDomeinen}
         mandaat:start
           ${sparqlEscapeDateTime(startOfDay(mandatarisStart, true))} ;
-        mandaat:einde ${sparqlEscapeDateTime(endOfDay(mandatarisEnd, true))} ;
+        ${mandatarisEndTriples}
         org:holds ${sparqlEscapeUri(mandate.mandateUri)} ;
         # effectief
         mandaat:status <http://data.vlaanderen.be/id/concept/MandatarisStatusCode/21063a5b-912c-4241-841c-cc7fb3c73e75> ;
@@ -362,7 +286,6 @@ export const createMandatarisInstance = async (
         lmb:hasPublicationStatus mps:9d8fd14d-95d0-4f5e-b3a5-a56a126227b6 .
 
         ${membershipTriples}
-    }
   }`;
 
   await query(q);
