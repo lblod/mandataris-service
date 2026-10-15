@@ -33,7 +33,7 @@ async function forBestuursperiode(
     : FRACTIE_TYPE.SAMENWERKING;
 
   let periodeById = '?bestuursperiode mu:uuid ?periodId .';
-  if (!bestuursperiodeId) {
+  if (bestuursperiodeId) {
     periodeById = `?bestuursperiode mu:uuid ${sparqlEscapeString(
       bestuursperiodeId,
     )}.`;

@@ -1074,7 +1074,7 @@ async function editFractionForFutureMandatarissen(
     
     DELETE {
       GRAPH ?g {
-        ?lidmaatschap org:organisation ?oldFractie .
+        ?lidmaatschap org:organisation ?fractie .
         ?lidmaatschap dct:modified ?oldModified .
       }
     }
