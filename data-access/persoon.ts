@@ -48,28 +48,16 @@ export const findPerson = async (rrn: string) => {
 export const findPersonByNameForMandates = async (
   firstName: string,
   lastName: string,
-  mandateUris: string[],
+  bestuurseenheidUri: string,
 ): Promise<string | undefined> => {
-  if (mandateUris.length === 0) {
-    return undefined;
-  }
-
   const q = `
-  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
-  PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
   PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
   PREFIX person: <http://www.w3.org/ns/person#>
   PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
   PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-  PREFIX org: <http://www.w3.org/ns/org#>
 
   SELECT DISTINCT ?persoon WHERE {
-    VALUES ?mandate {
-      ${mandateUris.map((uri) => sparqlEscapeUri(uri)).join('\n')}
-    }
-    ?mandate ^org:hasPost ?org .
-    ?org mandaat:isTijdspecialisatieVan / besluit:bestuurt ?eenheid .
-    ?graph ext:ownedBy ?eenheid .
+    ?graph ext:ownedBy ${sparqlEscapeUri(bestuurseenheidUri)} .
 
     GRAPH ?graph {
       ?persoon a person:Person ;
@@ -346,14 +334,16 @@ export async function copyPersonToGraph(personId: string, graph: string) {
   WHERE {
     GRAPH ?g {
       ?person mu:uuid ${escaped.person} ;
-        adms:identifier ?identifier ;
         ?pp ?po .
       OPTIONAL {
         ?person persoon:heeftGeboorte ?geboorte .
         ?geboorte ?gp ?go .
       }
-      ?identifier a adms:Identifier;
-        ?ip ?io .
+      OPTIONAL {
+        ?person adms:identifier ?identifier .
+        ?identifier a adms:Identifier;
+          ?ip ?io .
+      }
     }
     ?g ext:ownedBy ?bestuurseenheid .
     FILTER (BOUND(?bestuurseenheid))

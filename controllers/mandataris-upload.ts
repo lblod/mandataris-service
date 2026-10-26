@@ -170,7 +170,7 @@ const processData = async (
     row,
     uploadState,
     rrnRequired,
-    mandates,
+    bestuurseenheidUri,
   );
   if (!persoon) {
     return;
@@ -345,15 +345,15 @@ const validateOrCreatePerson = async (
   row: CSVRow,
   uploadState: CsvUploadState,
   rrnRequired: boolean,
-  mandates: MandateHit[],
+  bestuurseenheidUri: string,
 ) => {
-  const { rrn, firstName: fName, lastName: lName } = row.data;
+  const { rrn, firstName: fName, lastName: lName, orgName } = row.data;
   const hasRrn = !!rrn && rrn.trim().length > 0;
   if (!hasRrn && !rrnRequired) {
     const existingPersonUri = await findPersonByNameForMandates(
       fName,
       lName,
-      mandates.map((mandate) => mandate.mandateUri),
+      bestuurseenheidUri,
     );
     if (existingPersonUri) {
       uploadState.warnings.push(
@@ -372,7 +372,9 @@ const validateOrCreatePerson = async (
   const parsedRrn = parseRrn(rrn);
   if (!parsedRrn) {
     uploadState.errors.push(
-      `[line ${row.lineNumber}] No or invalid RRN provided`,
+      hasRrn
+        ? `[line ${row.lineNumber}] No or invalid RRN provided`
+        : `[line ${row.lineNumber}] RRN is required for official organ ${orgName}`,
     );
     return;
   }
