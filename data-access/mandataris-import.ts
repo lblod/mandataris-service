@@ -7,6 +7,7 @@ type MandateInfo = {
   mandateUri: string;
   orgaanInTijdUri?: string;
   bestuursperiodeUri?: string;
+  isNonOfficialOrgan: boolean;
 };
 
 export async function getMandates(
@@ -53,7 +54,7 @@ async function filterMandateInfo(
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
 
-    SELECT DISTINCT ?mandaat ?orgaanIT ?bestuursperiode
+    SELECT DISTINCT ?mandaat ?orgaanIT ?bestuursperiode ?nonOfficialClassificatie
     WHERE {
       VALUES (?mandaatLabel ?orgaanLabel) {
         ( ${sparqlEscapeString(mandateName)} ${sparqlEscapeString(orgName)})
@@ -65,8 +66,13 @@ async function filterMandateInfo(
 
       ?orgaanIT mandaat:isTijdspecialisatieVan ?orgaan .
       ?orgaan skos:prefLabel ?orgaanLabel .
-    
-      ?orgaan besluit:bestuurt ${sparqlEscapeUri(bestuurseenheidUri)}
+
+      ?orgaan besluit:bestuurt ${sparqlEscapeUri(bestuurseenheidUri)} .
+
+      OPTIONAL {
+        ?orgaan besluit:classificatie ?nonOfficialClassificatie .
+        ?nonOfficialClassificatie skos:inScheme <http://data.lblod.info/id/conceptscheme/LokaalOrgaanClassificatieCode> .
+      }
     }
   `;
 
@@ -78,6 +84,7 @@ async function filterMandateInfo(
         mandateUri: binding.mandaat.value,
         orgaanInTijdUri: binding.orgaanIT?.value,
         bestuursperiodeUri: binding.bestuursperiode?.value,
+        isNonOfficialOrgan: !!binding.nonOfficialClassificatie,
       }) as MandateInfo,
   );
 }
@@ -100,6 +107,7 @@ function getOverigePeriodMandatesForRowData(
       mandateUri: info.mandateUri,
       fractionUri: null,
       bestuursperiodeUri: OVERIGE_BESTUURSPERIODE,
+      isNonOfficialOrgan: info.isNonOfficialOrgan,
       start: moment(row.data.startDate, 'DD-MM-YYYY', true).toDate(),
       end: momentEndDate?.toDate(),
     };
@@ -142,7 +150,7 @@ async function getLegislaturePeriodMandatesForRowData(
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
 
-    SELECT distinct ?mandaat ?fractie ?period ?startOrgaanDate ?endOrgaanDate
+    SELECT distinct ?mandaat ?orgaanIT ?fractie ?period ?startOrgaanDate ?endOrgaanDate
     WHERE {
       VALUES (?mandaat ?orgaanIT ) { ${valuesStatement} }
 
@@ -172,10 +180,14 @@ async function getLegislaturePeriodMandatesForRowData(
   }
 
   return result.results.bindings.map((binding: any) => {
+    const mandateInfo = mandatesInfo.find(
+      (info) => info.orgaanInTijdUri === binding.orgaanIT?.value,
+    );
     return {
       mandateUri: binding.mandaat.value,
       fractionUri: binding.fractie?.value,
       bestuursperiodeUri: binding.period?.value,
+      isNonOfficialOrgan: mandateInfo?.isNonOfficialOrgan ?? false,
       start: binding.startOrgaanDate?.value,
       end: binding.endOrgaanDate?.value,
     };

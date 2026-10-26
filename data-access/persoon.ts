@@ -45,8 +45,47 @@ export const findPerson = async (rrn: string) => {
   }
 };
 
+export const findPersonByNameForMandates = async (
+  firstName: string,
+  lastName: string,
+  mandateUris: string[],
+): Promise<string | undefined> => {
+  if (mandateUris.length === 0) {
+    return undefined;
+  }
+
+  const q = `
+  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+  PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+  PREFIX person: <http://www.w3.org/ns/person#>
+  PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
+  PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+  PREFIX org: <http://www.w3.org/ns/org#>
+
+  SELECT DISTINCT ?persoon WHERE {
+    VALUES ?mandate {
+      ${mandateUris.map((uri) => sparqlEscapeUri(uri)).join('\n')}
+    }
+    ?mandate ^org:hasPost ?org .
+    ?org mandaat:isTijdspecialisatieVan / besluit:bestuurt ?eenheid .
+    ?graph ext:ownedBy ?eenheid .
+
+    GRAPH ?graph {
+      ?persoon a person:Person ;
+        persoon:gebruikteVoornaam ${sparqlEscapeString(firstName)} ;
+        foaf:familyName ${sparqlEscapeString(lastName)} .
+    }
+  } LIMIT 1
+  `;
+
+  const result = await query(q);
+
+  return findFirstSparqlResult(result)?.persoon?.value;
+};
+
 export const createPerson = async (
-  rrn: string,
+  rrn: string | null,
   fName: string,
   lName: string,
 ) => {
@@ -54,6 +93,14 @@ export const createPerson = async (
   const uri = `http://data.lblod.info/id/personen/${uuid}`;
   const idUuid = uuidv4();
   const idUri = `http://data.lblod.info/id/identificatoren/${idUuid}`;
+  const identifierTriples = rrn
+    ? `adms:identifier ${sparqlEscapeUri(idUri)};`
+    : '';
+  const identifierNode = rrn
+    ? `${sparqlEscapeUri(idUri)} a adms:Identifier;
+          mu:uuid ${sparqlEscapeString(idUuid)};
+          skos:notation ${sparqlEscapeString(rrn)} .`
+    : '';
   const q = `
   PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
   PREFIX person: <http://www.w3.org/ns/person#>
@@ -67,12 +114,10 @@ export const createPerson = async (
       ${sparqlEscapeUri(uri)} a person:Person;
           mu:uuid ${sparqlEscapeString(uuid)};
           persoon:gebruikteVoornaam ${sparqlEscapeString(fName)};
-          adms:identifier ${sparqlEscapeUri(idUri)};
+          ${identifierTriples}
           foaf:familyName ${sparqlEscapeString(lName)}.
 
-      ${sparqlEscapeUri(idUri)} a adms:Identifier;
-          mu:uuid ${sparqlEscapeString(idUuid)};
-          skos:notation ${sparqlEscapeString(rrn)}.
+      ${identifierNode}
     }
   }`;
 

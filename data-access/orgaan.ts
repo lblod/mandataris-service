@@ -50,6 +50,7 @@ export async function getActivePersonen(bestuursorgaanId: string) {
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     PREFIX lmb: <http://lblod.data.gift/vocabularies/lmb/>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
     SELECT (COUNT(DISTINCT ?persoon) AS ?count)
     WHERE {

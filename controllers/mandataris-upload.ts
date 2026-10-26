@@ -1,7 +1,11 @@
 import fs from 'fs';
 import moment from 'moment';
 import { HttpError } from '../util/http-error';
-import { createPerson, findPerson } from '../data-access/persoon';
+import {
+  createPerson,
+  findPerson,
+  findPersonByNameForMandates,
+} from '../data-access/persoon';
 import { CSVRow, CsvUploadState, MandateHit } from '../types';
 import { Parser, parse } from 'csv-parse';
 import {
@@ -159,7 +163,15 @@ const processData = async (
     );
     return;
   }
-  const persoon = await validateOrCreatePerson(row, uploadState);
+  // An RRN is only required when at least one of the matching mandates
+  // belongs to an official organ.
+  const rrnRequired = mandates.some((mandate) => !mandate.isNonOfficialOrgan);
+  const persoon = await validateOrCreatePerson(
+    row,
+    uploadState,
+    rrnRequired,
+    mandates,
+  );
   if (!persoon) {
     return;
   }
@@ -174,7 +186,6 @@ const hasMissingRequiredColumns = (
   uploadState: CsvUploadState,
 ) => {
   const required = [
-    'rrn',
     'firstName',
     'lastName',
     'mandateName',
@@ -333,8 +344,31 @@ const parseRrn = (rrn: string) => {
 const validateOrCreatePerson = async (
   row: CSVRow,
   uploadState: CsvUploadState,
+  rrnRequired: boolean,
+  mandates: MandateHit[],
 ) => {
   const { rrn, firstName: fName, lastName: lName } = row.data;
+  const hasRrn = !!rrn && rrn.trim().length > 0;
+  if (!hasRrn && !rrnRequired) {
+    const existingPersonUri = await findPersonByNameForMandates(
+      fName,
+      lName,
+      mandates.map((mandate) => mandate.mandateUri),
+    );
+    if (existingPersonUri) {
+      uploadState.warnings.push(
+        `[line ${row.lineNumber}] No RRN provided for ${fName} ${lName}, reused existing person ${existingPersonUri}`,
+      );
+      return { uri: existingPersonUri, voornaam: fName, naam: lName };
+    } else {
+      const persoon = await createPerson(null, fName, lName);
+      uploadState.personsCreated++;
+      uploadState.warnings.push(
+        `[line ${row.lineNumber}] No RRN provided for ${fName} ${lName}, created new person ${persoon.uri}`,
+      );
+      return persoon;
+    }
+  }
   const parsedRrn = parseRrn(rrn);
   if (!parsedRrn) {
     uploadState.errors.push(
