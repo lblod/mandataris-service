@@ -29,6 +29,7 @@ export type MandateHit = {
   end?: Date;
   fractionUri: string | null;
   bestuursperiodeUri: string | null;
+  isNonOfficialOrgan: boolean;
 };
 
 export type Term = {

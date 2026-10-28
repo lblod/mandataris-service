@@ -45,8 +45,35 @@ export const findPerson = async (rrn: string) => {
   }
 };
 
+export const findPersonByNameForMandates = async (
+  firstName: string,
+  lastName: string,
+  bestuurseenheidUri: string,
+): Promise<string | undefined> => {
+  const q = `
+  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+  PREFIX person: <http://www.w3.org/ns/person#>
+  PREFIX persoon: <http://data.vlaanderen.be/ns/persoon#>
+  PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+  SELECT DISTINCT ?persoon WHERE {
+    ?graph ext:ownedBy ${sparqlEscapeUri(bestuurseenheidUri)} .
+
+    GRAPH ?graph {
+      ?persoon a person:Person ;
+        persoon:gebruikteVoornaam ${sparqlEscapeString(firstName)} ;
+        foaf:familyName ${sparqlEscapeString(lastName)} .
+    }
+  } LIMIT 1
+  `;
+
+  const result = await query(q);
+
+  return findFirstSparqlResult(result)?.persoon?.value;
+};
+
 export const createPerson = async (
-  rrn: string,
+  rrn: string | null,
   fName: string,
   lName: string,
 ) => {
@@ -54,6 +81,14 @@ export const createPerson = async (
   const uri = `http://data.lblod.info/id/personen/${uuid}`;
   const idUuid = uuidv4();
   const idUri = `http://data.lblod.info/id/identificatoren/${idUuid}`;
+  const identifierTriples = rrn
+    ? `adms:identifier ${sparqlEscapeUri(idUri)};`
+    : '';
+  const identifierNode = rrn
+    ? `${sparqlEscapeUri(idUri)} a adms:Identifier;
+          mu:uuid ${sparqlEscapeString(idUuid)};
+          skos:notation ${sparqlEscapeString(rrn)} .`
+    : '';
   const q = `
   PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
   PREFIX person: <http://www.w3.org/ns/person#>
@@ -67,12 +102,10 @@ export const createPerson = async (
       ${sparqlEscapeUri(uri)} a person:Person;
           mu:uuid ${sparqlEscapeString(uuid)};
           persoon:gebruikteVoornaam ${sparqlEscapeString(fName)};
-          adms:identifier ${sparqlEscapeUri(idUri)};
+          ${identifierTriples}
           foaf:familyName ${sparqlEscapeString(lName)}.
 
-      ${sparqlEscapeUri(idUri)} a adms:Identifier;
-          mu:uuid ${sparqlEscapeString(idUuid)};
-          skos:notation ${sparqlEscapeString(rrn)}.
+      ${identifierNode}
     }
   }`;
 
@@ -301,14 +334,16 @@ export async function copyPersonToGraph(personId: string, graph: string) {
   WHERE {
     GRAPH ?g {
       ?person mu:uuid ${escaped.person} ;
-        adms:identifier ?identifier ;
         ?pp ?po .
       OPTIONAL {
         ?person persoon:heeftGeboorte ?geboorte .
         ?geboorte ?gp ?go .
       }
-      ?identifier a adms:Identifier;
-        ?ip ?io .
+      OPTIONAL {
+        ?person adms:identifier ?identifier .
+        ?identifier a adms:Identifier;
+          ?ip ?io .
+      }
     }
     ?g ext:ownedBy ?bestuurseenheid .
     FILTER (BOUND(?bestuurseenheid))
