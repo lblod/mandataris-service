@@ -47,6 +47,7 @@ export const uploadCsv = async (req) => {
   const parser = fs.createReadStream(formData.path).pipe(
     parse({
       columns: true,
+      bom: true,
     }),
   );
 
