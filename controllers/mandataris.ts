@@ -19,7 +19,6 @@ export const mandatarisUsecase = {
   getMandatarisFracties,
   updateCurrentFractie,
   updateCurrentFractieSudo,
-  copyOverNonResourceDomainPredicates,
   generateRows,
   setEndDateOfActiveMandatarissen,
   checkMandatarisOwnership,
@@ -117,46 +116,6 @@ async function updateCurrentFractieSudo(
     currentFractie,
     graph,
   );
-}
-
-async function copyOverNonResourceDomainPredicates(
-  mandatarisId: string,
-  newMandatarisId: string,
-): Promise<{ mandatarisId: string; itemsAdded: number }> {
-  const isMandataris = await isValidId(RDF_TYPE.MANDATARIS, mandatarisId);
-  if (!isMandataris) {
-    throw new HttpError(
-      `Mandataris with id ${mandatarisId} not found.`,
-      STATUS_CODE.BAD_REQUEST,
-    );
-  }
-  const isNewMandataris = await isValidId(RDF_TYPE.MANDATARIS, newMandatarisId);
-  if (!isNewMandataris) {
-    throw new HttpError(
-      `New mandataris with id ${mandatarisId} not found.`,
-      STATUS_CODE.BAD_REQUEST,
-    );
-  }
-
-  const nonDomainResourceProperties =
-    await mandataris.getNonResourceDomainProperties(mandatarisId);
-
-  if (nonDomainResourceProperties.length === 0) {
-    return {
-      mandatarisId: newMandatarisId,
-      itemsAdded: 0,
-    };
-  }
-
-  await mandataris.addPredicatesToMandataris(
-    newMandatarisId,
-    nonDomainResourceProperties,
-  );
-
-  return {
-    mandatarisId: newMandatarisId,
-    itemsAdded: nonDomainResourceProperties.length,
-  };
 }
 
 export async function handleBulkSetPublicationStatus(

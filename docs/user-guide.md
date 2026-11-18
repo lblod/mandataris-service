@@ -65,41 +65,34 @@ councils, OCMW councils, factions, and appointment decisions.
 Generates a number of empty draft mandatees for a mandate and period, with an
 automatically incrementing ranking order.
 
-### 4.2 Copy data to another mandatee
-
-`PUT /mandatarissen/:id/copy/:newId`
-
-Copies non-resource-domain properties from an existing mandatee to a newly
-created mandatee, so the new record starts from the previous data.
-
-### 4.3 Download mandatees
+### 4.2 Download mandatees
 
 `GET /mandatarissen/download`
 
 Exports a filtered list of mandatees as a CSV file. Filters include bestuursperiode, bestuursorgaan, person, faction, function, and active status.
 
-### 4.4 Delete a mandatee
+### 4.3 Delete a mandatee
 
 `DELETE /mandatarissen/:id`
 
 Deletes a mandatee by replacing it with a tombstone. Use `?withLinked=true` to
 also delete the linked mandatee in the other government level.
 
-### 4.5 Check mandatee ownership
+### 4.4 Check mandatee ownership
 
 `GET /mandatarissen/check-ownership?mandatarisIds=<id,id>`
 
 Checks whether the current session has access to the supplied mandatees. Returns
 an error when no mandatee IDs are provided.
 
-### 4.6 Set publication status in bulk
+### 4.5 Set publication status in bulk
 
 `POST /mandatarissen/bulk-set-publication-status`
 
 Sets the publication status of multiple mandatees to ratified or not ratified.
 Ratifying requires a link to the decision (for example a `besluit` URI).
 
-### 4.7 List factions of a mandatee
+### 4.6 List factions of a mandatee
 
 `GET /mandatarissen/:id/fracties`
 
@@ -212,14 +205,7 @@ faction or person data.
 Updates the linked mandatee when the source mandatee changes state, for example
 when a replacement starts or ends.
 
-### 7.5 Add a replacement to a linked mandatee
-
-`POST /mandatarissen/:id/add-linked-replacement`
-
-Adds replacement information to the linked mandatee in the other government
-level.
-
-### 7.6 Remove a link between mandatees
+### 7.5 Remove a link between mandatees
 
 `DELETE /mandatarissen/:id/remove-link-linked-mandataris`
 
