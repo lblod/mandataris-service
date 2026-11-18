@@ -8,7 +8,6 @@ import { mandatarisDownloadRequest } from '../Requests/mandataris-download';
 import { deleteMandatarisWithTombstone } from '../data-access/delete';
 
 import {
-  addSimpleReplacement,
   changeStateLinkedMandataris,
   checkLinkedMandataris,
   correctMistakesLinkedMandataris,
@@ -127,22 +126,6 @@ mandatarissenRouter.post(
   },
 );
 
-mandatarissenRouter.post(
-  '/:id/add-linked-replacement',
-  async (req: Request, res: Response) => {
-    try {
-      await addSimpleReplacement(req);
-      return res.status(200).send({ status: 'ok' });
-    } catch (error) {
-      const message =
-        error.message ??
-        `Something went wrong while adding replacement to duplicate mandate for: ${req.params.id}. Please try again later.`;
-      const statusCode = error.status ?? 500;
-      return res.status(statusCode).send({ message });
-    }
-  },
-);
-
 mandatarissenRouter.delete(
   '/:id/remove-link-linked-mandataris',
   async (req: Request, res: Response) => {
@@ -154,30 +137,6 @@ mandatarissenRouter.delete(
         error.message ??
         `Something went wrong while removing link of linked mandates for: ${req.params.id}. Please try again later.`;
       const statusCode = error.status ?? 500;
-      return res.status(statusCode).send({ message });
-    }
-  },
-);
-
-mandatarissenRouter.put(
-  '/:id/copy/:newId',
-  async (req: Request, res: Response) => {
-    try {
-      const mandatarisId = req.params.id;
-      const newMandatarisId = req.params.newId;
-      const update =
-        await mandatarisUsecase.copyOverNonResourceDomainPredicates(
-          mandatarisId,
-          newMandatarisId,
-        );
-      return res.status(STATUS_CODE.OK).send({
-        message: `Added ${update.itemsAdded} predicates to mandataris with id: ${update.mandatarisId}`,
-      });
-    } catch (error) {
-      const message =
-        error.message ??
-        `Something went wrong while copying over no resource domain predicates from mandataris with id: ${req.params.id}.`;
-      const statusCode = error.status ?? STATUS_CODE.INTERNAL_SERVER_ERROR;
       return res.status(statusCode).send({ message });
     }
   },
