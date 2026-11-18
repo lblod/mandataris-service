@@ -1,5 +1,3 @@
-import Router from 'express-promise-router';
-
 import {
   query,
   update,
@@ -13,10 +11,12 @@ import { v4 as uuidv4 } from 'uuid';
 import { Request, Response } from 'express';
 
 import { PUBLICATION_STATUS, STATUS_CODE } from '../util/constants';
+import { documentedRouter } from '../util/documented-router';
 import { HttpError } from '../util/http-error';
+import { commonErrorResponses, queryParameter } from '../util/openapi';
 import { sparqlEscapeQueryBinding } from '../util/sparql-escape';
 
-const rangordeRouter = Router();
+const rangordeRouter = documentedRouter();
 
 type RangordeDiff = {
   mandatarisId: string;
@@ -29,6 +29,69 @@ type RangordeDiffByUri = {
 
 rangordeRouter.post(
   '/update-rangordes/',
+  {
+    tags: ['Ranking order'],
+    summary: 'Update ranking orders',
+    operationId: 'updateRankingOrders',
+    description:
+      'Updates the ranking order of the supplied mandatees and starts a new mandatee state where needed. Use `asCorrection=true` to correct the ranking in place.',
+    parameters: [
+      queryParameter(
+        'asCorrection',
+        'Correct the ranking in place instead of starting a new mandatee state.',
+        { type: 'boolean', default: false },
+      ),
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: { $ref: '#/components/schemas/UpdateRangordesRequest' },
+        },
+      },
+    },
+    schemas: {
+      UpdateRangordesRequest: {
+        type: 'object',
+        description:
+          'Updated ranking orders for the supplied mandatees. A new mandatee state is started where needed.',
+        required: ['mandatarissen', 'date'],
+        properties: {
+          mandatarissen: {
+            type: 'array',
+            description: 'Mandatees with their new ranking order.',
+            items: {
+              type: 'object',
+              required: ['mandatarisId', 'rangorde'],
+              properties: {
+                mandatarisId: { type: 'string', format: 'uuid' },
+                rangorde: { type: 'string' },
+              },
+            },
+          },
+          date: {
+            type: 'string',
+            format: 'date-time',
+            description: 'Date on which the new ranking order takes effect.',
+          },
+        },
+      },
+    },
+    responses: {
+      '200': {
+        description: 'The ranking orders were updated.',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: { status: { type: 'string' } },
+            },
+          },
+        },
+      },
+      ...commonErrorResponses,
+    },
+  },
   async (req: Request, res: Response) => {
     const { mandatarissen, date } = req.body;
     const mandatarissenByUri = await transformIdsToUris(mandatarissen);
