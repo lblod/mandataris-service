@@ -1,6 +1,5 @@
 import { CronJob } from 'cron';
 import { Request, Response } from 'express';
-import Router from 'express-promise-router';
 import {
   query,
   update,
@@ -24,11 +23,56 @@ import {
   VOORZITTER_RMW_CODE,
   VOORZITTER_VB_FUNCTIE_CODE,
 } from '../util/constants';
+import { documentedRouter } from '../util/documented-router';
+import { commonErrorResponses, idParameter } from '../util/openapi';
 
-const installatievergaderingRouter = Router();
+const installatievergaderingRouter = documentedRouter();
 
 installatievergaderingRouter.post(
   '/copy-gemeente-to-ocmw-draft',
+  {
+    tags: ['Installation meeting'],
+    summary: 'Copy municipal mandatees to the OCMW draft',
+    operationId: 'copyMunicipalMandateesToOcmwDraft',
+    description:
+      'Creates draft OCMW mandatees by copying the municipal mandatees, mapping each municipal function to its OCMW equivalent.',
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: {
+            $ref: '#/components/schemas/CopyGemeenteToOcmwDraftRequest',
+          },
+        },
+      },
+    },
+    schemas: {
+      CopyGemeenteToOcmwDraftRequest: {
+        type: 'object',
+        description:
+          'Creates draft OCMW mandatees by copying the municipal mandatees.',
+        required: ['gemeenteUri', 'ocmwUri'],
+        properties: {
+          gemeenteUri: {
+            type: 'string',
+            format: 'uri',
+            description: 'URI of the municipal governing body to copy from.',
+          },
+          ocmwUri: {
+            type: 'string',
+            format: 'uri',
+            description: 'URI of the OCMW governing body to copy to.',
+          },
+        },
+      },
+    },
+    responses: {
+      '200': {
+        description: 'The OCMW draft mandatees were created.',
+      },
+      ...commonErrorResponses,
+    },
+  },
   async (req: Request, res: Response) => {
     const { gemeenteUri, ocmwUri } = req.body;
     await copyMunicipalityMandatarisInstancesToOCMW(gemeenteUri, ocmwUri);
@@ -38,6 +82,23 @@ installatievergaderingRouter.post(
 
 installatievergaderingRouter.post(
   '/:id/move-ocmw-organs/',
+  {
+    tags: ['Installation meeting'],
+    summary: 'Move OCMW organs to the real OCMW graph',
+    operationId: 'moveOcmwOrgans',
+    description:
+      'Moves factions, mandatees, memberships, and persons from an installation meeting draft to the real OCMW graph and marks the meeting as processed.',
+    parameters: [
+      idParameter('id', 'UUID of the installation meeting to process.'),
+    ],
+    responses: {
+      '200': {
+        description: 'The OCMW organs were moved.',
+      },
+      '404': { $ref: '#/components/responses/NotFound' },
+      ...commonErrorResponses,
+    },
+  },
   async (req: Request, res: Response) => {
     const installatievergaderingId = req.params.id;
     const hasAccess = await canSeeInstallatievergadering(

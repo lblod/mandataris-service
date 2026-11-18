@@ -1,19 +1,40 @@
-import Router from 'express-promise-router';
-
 import { Request, Response } from 'express';
 import { updateSudo } from '@lblod/mu-auth-sudo';
 import { v4 as uuidv4 } from 'uuid';
+import { documentedRouter } from '../util/documented-router';
+import { commonErrorResponses } from '../util/openapi';
 
-export const mockRouter = Router();
+export const mockRouter = documentedRouter();
 
-mockRouter.get('/add-decision', async (req: Request, res: Response) => {
-  try {
-    const id = uuidv4();
-    // http://localhost:4200/mandatarissen/1656cfde62b97fe365c5bc3813a8d7d4a76f0e14b1b9aacf4ae9e8558347aeb6/persoon/5FF2DC1278A81C0009000A15/mandataris
-    const mandatarisId = '5FF2DC1278A81C0009000A15';
-    const mandataris = `<http://data.lblod.info/id/mandatarissen/${mandatarisId}>`;
+mockRouter.get(
+  '/add-decision',
+  {
+    tags: ['Development-only mocks'],
+    summary: 'Add a mock decision',
+    operationId: 'addMockDecision',
+    description:
+      'Creates a fake decision for a fixed mandatee to test the ratification flow.',
+    security: [],
+    responses: {
+      '200': {
+        description: 'The mock decision was created.',
+        content: {
+          'application/json': {
+            schema: { type: 'object', additionalProperties: true },
+          },
+        },
+      },
+      ...commonErrorResponses,
+    },
+  },
+  async (req: Request, res: Response) => {
+    try {
+      const id = uuidv4();
+      // http://localhost:4200/mandatarissen/1656cfde62b97fe365c5bc3813a8d7d4a76f0e14b1b9aacf4ae9e8558347aeb6/persoon/5FF2DC1278A81C0009000A15/mandataris
+      const mandatarisId = '5FF2DC1278A81C0009000A15';
+      const mandataris = `<http://data.lblod.info/id/mandatarissen/${mandatarisId}>`;
 
-    const insertQuery = `
+      const insertQuery = `
     PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
@@ -31,20 +52,37 @@ mockRouter.get('/add-decision', async (req: Request, res: Response) => {
       }
     }
     `;
-    await updateSudo(insertQuery);
-    res.status(200).send({
-      mandatarisUri: mandataris,
-      besluit: `<http://data.lblod.info/id/besluiten/${id}>`,
-    });
-  } catch (error) {
-    res.status(500).send({ status: 'error', error: error.message });
-    return;
-  }
-});
+      await updateSudo(insertQuery);
+      res.status(200).send({
+        mandatarisUri: mandataris,
+        besluit: `<http://data.lblod.info/id/besluiten/${id}>`,
+      });
+    } catch (error) {
+      res.status(500).send({ status: 'error', error: error.message });
+      return;
+    }
+  },
+);
 
-mockRouter.get('/clear-decisions', async (_req: Request, res: Response) => {
-  //the mock functions here will create inconsistent states in the consumer graph. Clear it using this endpoint
-  const query = `
+mockRouter.get(
+  '/clear-decisions',
+  {
+    tags: ['Development-only mocks'],
+    summary: 'Clear mock decisions',
+    operationId: 'clearMockDecisions',
+    description:
+      'Removes mock decisions and resets the publication status of the affected mandatee.',
+    security: [],
+    responses: {
+      '200': {
+        description: 'The mock decisions were removed.',
+      },
+      ...commonErrorResponses,
+    },
+  },
+  async (_req: Request, res: Response) => {
+    //the mock functions here will create inconsistent states in the consumer graph. Clear it using this endpoint
+    const query = `
     DELETE {
       GRAPH <http://mu.semte.ch/graphs/besluiten-consumed> {
         ?s ?p ?o.
@@ -70,7 +108,8 @@ mockRouter.get('/clear-decisions', async (_req: Request, res: Response) => {
         <http://lblod.data.gift/vocabularies/lmb/hasPublicationStatus> ?publicatieStatus .
     }
   }`;
-  await updateSudo(query);
+    await updateSudo(query);
 
-  res.status(200).send({ status: 'cleared' });
-});
+    res.status(200).send({ status: 'cleared' });
+  },
+);

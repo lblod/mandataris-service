@@ -1,8 +1,8 @@
-import Router from 'express-promise-router';
-
 import { Request, Response } from 'express';
 import type { LookupAddress } from 'node:dns';
 import { lookup } from 'node:dns/promises';
+import { documentedRouter } from '../util/documented-router';
+import { commonErrorResponses, queryParameter } from '../util/openapi';
 
 const REQUEST_TIMEOUT_MS = 10_000;
 
@@ -103,96 +103,132 @@ function isPrivateAddress({ address, family }: LookupAddress): boolean {
   return family === 4 ? isPrivateIPv4(address) : isPrivateIPv6(address);
 }
 
-const validateUrlRouter = Router();
+const validateUrlRouter = documentedRouter();
 
-validateUrlRouter.get('/', async (req: Request, res: Response) => {
-  const { link, follow } = req.query;
-  if (typeof link !== 'string' || link.length === 0) {
-    res.status(400).send({
-      errors: [{ title: 'Missing link parameter' }],
-    });
-    return;
-  }
-
-  let url: URL;
-  try {
-    url = new URL(link);
-  } catch (_error) {
-    res.status(400).send({
-      errors: [
-        {
-          title: 'Invalid link parameter',
-          description: 'The link is not a valid URL',
+validateUrlRouter.get(
+  '/',
+  {
+    tags: ['URL validation'],
+    summary: 'Validate a URL',
+    operationId: 'validateUrl',
+    description:
+      'Checks whether a public HTTPS URL is reachable. Supports `follow=true` to follow redirects and rejects private or internal hosts.',
+    parameters: [
+      queryParameter(
+        'link',
+        'The URL to validate.',
+        { type: 'string', format: 'uri' },
+        true,
+      ),
+      queryParameter('follow', 'Follow redirects while validating the URL.', {
+        type: 'boolean',
+        default: false,
+      }),
+    ],
+    responses: {
+      '200': {
+        description: 'Whether the URL is accessible.',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: { isAccessible: { type: 'boolean' } },
+            },
+          },
         },
-      ],
-    });
-    return;
-  }
+      },
+      ...commonErrorResponses,
+    },
+  },
+  async (req: Request, res: Response) => {
+    const { link, follow } = req.query;
+    if (typeof link !== 'string' || link.length === 0) {
+      res.status(400).send({
+        errors: [{ title: 'Missing link parameter' }],
+      });
+      return;
+    }
 
-  const allowHttp = process.env.VALIDATE_URL_ALLOW_HTTP === 'true';
-  if (url.protocol !== 'https:' && !(allowHttp && url.protocol === 'http:')) {
-    res.status(400).send({
-      errors: [
-        {
-          title: 'Unsupported protocol',
-          description: allowHttp
-            ? 'Only http and https links are supported'
-            : 'Only https links are supported',
-        },
-      ],
-    });
-    return;
-  }
+    let url: URL;
+    try {
+      url = new URL(link);
+    } catch (_error) {
+      res.status(400).send({
+        errors: [
+          {
+            title: 'Invalid link parameter',
+            description: 'The link is not a valid URL',
+          },
+        ],
+      });
+      return;
+    }
 
-  // WHATWG URLs serialize IPv6 hosts with brackets
-  const hostname = url.hostname.replace(/^\[|\]$/g, '');
-  // single-label hostnames resolve inside the internal network
-  if (!hostname.includes('.') && !hostname.includes(':')) {
-    res.status(400).send({
-      errors: [
-        {
-          title: 'Disallowed host',
-          description: 'The link must point to a public host',
-        },
-      ],
-    });
-    return;
-  }
+    const allowHttp = process.env.VALIDATE_URL_ALLOW_HTTP === 'true';
+    if (url.protocol !== 'https:' && !(allowHttp && url.protocol === 'http:')) {
+      res.status(400).send({
+        errors: [
+          {
+            title: 'Unsupported protocol',
+            description: allowHttp
+              ? 'Only http and https links are supported'
+              : 'Only https links are supported',
+          },
+        ],
+      });
+      return;
+    }
 
-  let addresses: LookupAddress[];
-  try {
-    addresses = await lookup(hostname, { all: true });
-  } catch (_error) {
-    res.send({ isAccessible: false });
-    return;
-  }
-  if (addresses.some((address) => isPrivateAddress(address))) {
-    res.status(400).send({
-      errors: [
-        {
-          title: 'Disallowed host',
-          description: 'The link must point to a public host',
-        },
-      ],
-    });
-    return;
-  }
+    // WHATWG URLs serialize IPv6 hosts with brackets
+    const hostname = url.hostname.replace(/^\[|\]$/g, '');
+    // single-label hostnames resolve inside the internal network
+    if (!hostname.includes('.') && !hostname.includes(':')) {
+      res.status(400).send({
+        errors: [
+          {
+            title: 'Disallowed host',
+            description: 'The link must point to a public host',
+          },
+        ],
+      });
+      return;
+    }
 
-  try {
-    const response = await fetch(url, {
-      redirect: follow === 'true' ? 'follow' : 'manual',
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    });
-    await response.body?.cancel();
-    res.send({
-      isAccessible: response.ok,
-      finalUrl: response.url,
-      status: response.status,
-    });
-  } catch (error) {
-    console.warn(`[validate-url] Fetching ${url.href} failed: ${error}`);
-    res.send({ isAccessible: false });
-  }
-});
+    let addresses: LookupAddress[];
+    try {
+      addresses = await lookup(hostname, { all: true });
+    } catch (_error) {
+      res.send({ isAccessible: false });
+      return;
+    }
+    if (addresses.some((address) => isPrivateAddress(address))) {
+      res.status(400).send({
+        errors: [
+          {
+            title: 'Disallowed host',
+            description: 'The link must point to a public host',
+          },
+        ],
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(url, {
+        redirect: follow === 'true' ? 'follow' : 'manual',
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+      await response.body?.cancel();
+      res.send({
+        isAccessible: response.ok,
+        finalUrl: response.url,
+        status: response.status,
+      });
+    } catch (error) {
+      console.warn(`[validate-url] Fetching ${url.href} failed: ${error}`);
+      res.send({ isAccessible: false });
+    }
+  },
+);
 
 export { validateUrlRouter };

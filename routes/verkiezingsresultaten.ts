@@ -1,12 +1,33 @@
 import { Request, Response } from 'express';
-import Router from 'express-promise-router';
 import { query, sparqlEscapeString } from 'mu';
 import { jsonToCsv, queryResultToJson } from '../util/json-to-csv';
+import { documentedRouter } from '../util/documented-router';
+import { commonErrorResponses, idParameter } from '../util/openapi';
 
-export const electionResultsRouter = Router();
+export const electionResultsRouter = documentedRouter();
 
 electionResultsRouter.get(
   '/:id/download',
+  {
+    tags: ['Election results'],
+    summary: 'Download election results',
+    operationId: 'downloadElectionResults',
+    description:
+      'Downloads the results of a direct election as a CSV file. Returns 404 when the election cannot be found.',
+    parameters: [idParameter('id', 'UUID of the direct election.')],
+    responses: {
+      '200': {
+        description: 'A CSV file containing the election results.',
+        content: {
+          'text/csv': {
+            schema: { type: 'string', format: 'binary' },
+          },
+        },
+      },
+      '404': { $ref: '#/components/responses/NotFound' },
+      ...commonErrorResponses,
+    },
+  },
   async (req: Request, res: Response) => {
     const electionResultsId = req.params.id;
 
