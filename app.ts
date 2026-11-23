@@ -11,7 +11,6 @@ import { burgemeesterRouter } from './routes/burgemeester-benoeming';
 import { installatievergaderingRouter } from './routes/installatievergadering';
 import { organenRouter } from './routes/organen';
 import { mockRouter } from './routes/mock';
-import { electionResultsRouter } from './routes/verkiezingsresultaten';
 import { rangordeRouter } from './routes/rangorde';
 import { validateUrlRouter } from './routes/validate-url';
 
@@ -41,7 +40,7 @@ app.use('/personen', personenRouter);
 app.use('/organen', organenRouter);
 app.use('/burgemeester-benoeming', burgemeesterRouter);
 app.use('/installatievergadering-api', installatievergaderingRouter);
-app.use('/election-results-api', electionResultsRouter);
+
 app.use('/rangorde', rangordeRouter);
 app.use('/mock', mockRouter);
 app.use('/validate-url', validateUrlRouter);
