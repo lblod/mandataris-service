@@ -10,7 +10,7 @@ electionResultsRouter.get(
   async (req: Request, res: Response) => {
     const electionResultsId = req.params.id;
 
-    if (!canSeeElection(electionResultsId)) {
+    if (!(await canSeeElection(electionResultsId))) {
       return res.status(404).send('Verkiezing niet gevonden');
     }
 
